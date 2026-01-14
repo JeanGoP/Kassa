@@ -13,3 +13,4 @@ C:\Desarrollos propios\TPV\TPV.Application\obj\Debug\net9.0\TPV.Application.dll
 C:\Desarrollos propios\TPV\TPV.Application\obj\Debug\net9.0\refint\TPV.Application.dll
 C:\Desarrollos propios\TPV\TPV.Application\obj\Debug\net9.0\TPV.Application.pdb
 C:\Desarrollos propios\TPV\TPV.Application\obj\Debug\net9.0\ref\TPV.Application.dll
+C:\Desarrollos propios\TPV\TPV.Application\obj\Debug\net9.0\TPV.Application.sourcelink.json

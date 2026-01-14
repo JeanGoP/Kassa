@@ -20,10 +20,10 @@ namespace TPV.Application.Services
         public async Task<IEnumerable<CustomerDto>> GetAllAsync(string? search = null)
         {
             var customers = await _customerRepository.GetAsync(
-                predicate: c => string.IsNullOrEmpty(search) || 
-                             c.FirstName.Contains(search) || 
+                predicate: c => string.IsNullOrEmpty(search) ||
+                             c.FirstName.Contains(search) ||
                              c.LastName.Contains(search) ||
-                             c.TaxId.Contains(search),
+                             (c.TaxId != null && c.TaxId.Contains(search)),
                 orderBy: q => q.OrderBy(c => c.LastName)
             );
 
@@ -35,6 +35,7 @@ namespace TPV.Application.Services
                 Email = c.Email,
                 Phone = c.Phone,
                 Address = c.Address,
+                IdentificationType = c.IdentificationType,
                 TaxId = c.TaxId
             });
         }
@@ -52,6 +53,7 @@ namespace TPV.Application.Services
                 Email = c.Email,
                 Phone = c.Phone,
                 Address = c.Address,
+                IdentificationType = c.IdentificationType,
                 TaxId = c.TaxId
             };
         }
@@ -65,6 +67,7 @@ namespace TPV.Application.Services
                 Email = dto.Email,
                 Phone = dto.Phone,
                 Address = dto.Address,
+                IdentificationType = dto.IdentificationType,
                 TaxId = dto.TaxId,
                 IsActive = true
             };
@@ -79,6 +82,7 @@ namespace TPV.Application.Services
                 Email = created.Email,
                 Phone = created.Phone,
                 Address = created.Address,
+                IdentificationType = created.IdentificationType,
                 TaxId = created.TaxId
             };
         }
@@ -93,6 +97,7 @@ namespace TPV.Application.Services
                 customer.Email = dto.Email;
                 customer.Phone = dto.Phone;
                 customer.Address = dto.Address;
+                customer.IdentificationType = dto.IdentificationType;
                 customer.TaxId = dto.TaxId;
 
                 await _customerRepository.UpdateAsync(customer);

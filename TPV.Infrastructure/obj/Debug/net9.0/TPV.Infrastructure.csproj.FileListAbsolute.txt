@@ -15,3 +15,4 @@ C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructur
 C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\refint\TPV.Infrastructure.dll
 C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.pdb
 C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\ref\TPV.Infrastructure.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.sourcelink.json

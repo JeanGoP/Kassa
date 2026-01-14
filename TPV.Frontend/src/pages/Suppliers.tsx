@@ -9,7 +9,22 @@ interface Supplier {
     phone: string;
     email: string;
     address: string;
+    identificationType: string;
+    taxId: string;
 }
+
+const IDENTIFICATION_TYPES = [
+    "(RCN) Registro Civil de Nacimiento",
+    "(TI) Tarjeta de Identidad",
+    "(CC) Cédula de Ciudadanía",
+    "(CD) Cédula Digital",
+    "(CE) Cédula de Extranjería",
+    "(PA) Pasaporte",
+    "(PEP) Permiso Especial de Permanencia",
+    "(PPT) Permiso por Protección Temporal",
+    "(NUIP) Número Único de Identificación Personal",
+    "(NIT) Número de Identificación Tributaria"
+];
 
 const Suppliers = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -21,7 +36,9 @@ const Suppliers = () => {
         contactName: '',
         phone: '',
         email: '',
-        address: ''
+        address: '',
+        identificationType: '',
+        taxId: ''
     });
 
     useEffect(() => {
@@ -62,11 +79,21 @@ const Suppliers = () => {
                 contactName: supplier.contactName || '',
                 phone: supplier.phone || '',
                 email: supplier.email || '',
-                address: supplier.address || ''
+                address: supplier.address || '',
+                identificationType: supplier.identificationType || '',
+                taxId: supplier.taxId || ''
             });
         } else {
             setCurrentSupplier(null);
-            setFormData({ name: '', contactName: '', phone: '', email: '', address: '' });
+            setFormData({
+                name: '',
+                contactName: '',
+                phone: '',
+                email: '',
+                address: '',
+                identificationType: '',
+                taxId: ''
+            });
         }
         setIsModalOpen(true);
     };
@@ -107,6 +134,7 @@ const Suppliers = () => {
                         <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider">
                             <tr>
                                 <th className="p-4 border-b">Nombre</th>
+                                <th className="p-4 border-b">Identificación</th>
                                 <th className="p-4 border-b">Contacto</th>
                                 <th className="p-4 border-b">Teléfono</th>
                                 <th className="p-4 border-b">Email</th>
@@ -117,6 +145,10 @@ const Suppliers = () => {
                             {suppliers.map((item) => (
                                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="p-4 font-medium">{item.name}</td>
+                                    <td className="p-4 text-sm">
+                                        <div className="font-medium">{item.taxId || '-'}</div>
+                                        <div className="text-xs text-gray-500">{item.identificationType}</div>
+                                    </td>
                                     <td className="p-4 text-sm">{item.contactName}</td>
                                     <td className="p-4 text-sm">{item.phone}</td>
                                     <td className="p-4 text-sm">{item.email}</td>
@@ -170,6 +202,32 @@ const Suppliers = () => {
                                     value={formData.name}
                                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.identificationType}
+                                        onChange={(e) => setFormData({...formData, identificationType: e.target.value})}
+                                        required
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {IDENTIFICATION_TYPES.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.taxId}
+                                        onChange={(e) => setFormData({...formData, taxId: e.target.value})}
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Contacto</label>

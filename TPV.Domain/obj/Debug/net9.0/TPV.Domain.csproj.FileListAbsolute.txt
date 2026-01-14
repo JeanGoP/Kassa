@@ -9,3 +9,4 @@ C:\Desarrollos propios\TPV\TPV.Domain\obj\Debug\net9.0\TPV.Domain.dll
 C:\Desarrollos propios\TPV\TPV.Domain\obj\Debug\net9.0\refint\TPV.Domain.dll
 C:\Desarrollos propios\TPV\TPV.Domain\obj\Debug\net9.0\TPV.Domain.pdb
 C:\Desarrollos propios\TPV\TPV.Domain\obj\Debug\net9.0\ref\TPV.Domain.dll
+C:\Desarrollos propios\TPV\TPV.Domain\obj\Debug\net9.0\TPV.Domain.sourcelink.json

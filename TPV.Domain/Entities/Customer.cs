@@ -10,6 +10,7 @@ namespace TPV.Domain.Entities
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? Address { get; set; }
+        public string? IdentificationType { get; set; }
         public string? TaxId { get; set; } // DNI, RUT, CUIT
 
         public ICollection<Sale> Sales { get; set; }

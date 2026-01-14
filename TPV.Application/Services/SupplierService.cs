@@ -27,7 +27,9 @@ namespace TPV.Application.Services
                 ContactName = s.ContactName,
                 Phone = s.Phone,
                 Email = s.Email,
-                Address = s.Address
+                Address = s.Address,
+                IdentificationType = s.IdentificationType,
+                TaxId = s.TaxId
             });
         }
 
@@ -42,7 +44,9 @@ namespace TPV.Application.Services
                 ContactName = s.ContactName,
                 Phone = s.Phone,
                 Email = s.Email,
-                Address = s.Address
+                Address = s.Address,
+                IdentificationType = s.IdentificationType,
+                TaxId = s.TaxId
             };
         }
 
@@ -55,6 +59,8 @@ namespace TPV.Application.Services
                 Phone = dto.Phone,
                 Email = dto.Email,
                 Address = dto.Address,
+                IdentificationType = dto.IdentificationType,
+                TaxId = dto.TaxId,
                 IsActive = true
             };
             var created = await _supplierRepository.AddAsync(supplier);
@@ -65,7 +71,9 @@ namespace TPV.Application.Services
                 ContactName = created.ContactName,
                 Phone = created.Phone,
                 Email = created.Email,
-                Address = created.Address
+                Address = created.Address,
+                IdentificationType = created.IdentificationType,
+                TaxId = created.TaxId
             };
         }
 
@@ -79,6 +87,8 @@ namespace TPV.Application.Services
                 supplier.Phone = dto.Phone;
                 supplier.Email = dto.Email;
                 supplier.Address = dto.Address;
+                supplier.IdentificationType = dto.IdentificationType;
+                supplier.TaxId = dto.TaxId;
                 await _supplierRepository.UpdateAsync(supplier);
             }
         }

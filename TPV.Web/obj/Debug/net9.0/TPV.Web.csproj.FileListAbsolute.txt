@@ -225,3 +225,4 @@ C:\Desarrollos propios\TPV\TPV.Web\obj\Debug\net9.0\refint\TPV.Web.dll
 C:\Desarrollos propios\TPV\TPV.Web\obj\Debug\net9.0\TPV.Web.pdb
 C:\Desarrollos propios\TPV\TPV.Web\obj\Debug\net9.0\TPV.Web.genruntimeconfig.cache
 C:\Desarrollos propios\TPV\TPV.Web\obj\Debug\net9.0\ref\TPV.Web.dll
+C:\Desarrollos propios\TPV\TPV.Web\obj\Debug\net9.0\TPV.Web.sourcelink.json

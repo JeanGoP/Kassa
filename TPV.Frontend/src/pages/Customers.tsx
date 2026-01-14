@@ -10,7 +10,21 @@ interface Customer {
     phone: string;
     address: string;
     taxId: string;
+    identificationType: string;
 }
+
+const IDENTIFICATION_TYPES = [
+    "(RCN) Registro Civil de Nacimiento",
+    "(TI) Tarjeta de Identidad",
+    "(CC) Cédula de Ciudadanía",
+    "(CD) Cédula Digital",
+    "(CE) Cédula de Extranjería",
+    "(PA) Pasaporte",
+    "(PEP) Permiso Especial de Permanencia",
+    "(PPT) Permiso por Protección Temporal",
+    "(NUIP) Número Único de Identificación Personal",
+    "(NIT) Número de Identificación Tributaria"
+];
 
 const Customers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -24,7 +38,8 @@ const Customers = () => {
         email: '',
         phone: '',
         address: '',
-        taxId: ''
+        taxId: '',
+        identificationType: ''
     });
 
     useEffect(() => {
@@ -67,11 +82,20 @@ const Customers = () => {
                 email: customer.email || '',
                 phone: customer.phone || '',
                 address: customer.address || '',
-                taxId: customer.taxId || ''
+                taxId: customer.taxId || '',
+                identificationType: customer.identificationType || ''
             });
         } else {
             setCurrentCustomer(null);
-            setFormData({ firstName: '', lastName: '', email: '', phone: '', address: '', taxId: '' });
+            setFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                address: '',
+                taxId: '',
+                identificationType: ''
+            });
         }
         setIsModalOpen(true);
     };
@@ -123,7 +147,7 @@ const Customers = () => {
                         <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider">
                             <tr>
                                 <th className="p-4 border-b">Nombre</th>
-                                <th className="p-4 border-b">DNI/RUT</th>
+                                <th className="p-4 border-b">Identificación</th>
                                 <th className="p-4 border-b">Contacto</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
                             </tr>
@@ -135,7 +159,10 @@ const Customers = () => {
                                         <div>{customer.firstName} {customer.lastName}</div>
                                         <div className="text-xs text-gray-400">{customer.address}</div>
                                     </td>
-                                    <td className="p-4 text-sm">{customer.taxId || '-'}</td>
+                                    <td className="p-4 text-sm">
+                                        <div className="font-medium">{customer.taxId || '-'}</div>
+                                        <div className="text-xs text-gray-500">{customer.identificationType}</div>
+                                    </td>
                                     <td className="p-4 text-sm">
                                         <div>{customer.phone}</div>
                                         <div className="text-xs text-blue-500">{customer.email}</div>
@@ -206,14 +233,31 @@ const Customers = () => {
                                 </div>
                             </div>
                             
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">DNI / RUT / CUIT</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.taxId}
-                                    onChange={(e) => setFormData({...formData, taxId: e.target.value})}
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.identificationType}
+                                        onChange={(e) => setFormData({...formData, identificationType: e.target.value})}
+                                        required
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {IDENTIFICATION_TYPES.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.taxId}
+                                        onChange={(e) => setFormData({...formData, taxId: e.target.value})}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -239,9 +283,9 @@ const Customers = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                                <textarea 
+                                <input 
+                                    type="text" 
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    rows={2}
                                     value={formData.address}
                                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                                 />

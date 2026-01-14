@@ -8,6 +8,8 @@ namespace TPV.Application.DTOs
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
+        public string? IdentificationType { get; set; }
+        public string? TaxId { get; set; }
     }
 
     public class CreateSupplierDto
@@ -17,5 +19,7 @@ namespace TPV.Application.DTOs
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Address { get; set; }
+        public string? IdentificationType { get; set; }
+        public string? TaxId { get; set; }
     }
 }
