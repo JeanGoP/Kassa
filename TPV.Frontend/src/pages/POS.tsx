@@ -488,7 +488,7 @@ const POS = () => {
                             <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-lg text-sm font-mono relative">
                                 {/* Ticket Header */}
                                 <div className="text-center border-b border-dashed border-gray-300 pb-4 mb-4">
-                                    <h2 className="font-bold text-xl text-black">KASSA</h2>
+                                    <h2 className="font-bold text-xl text-black">KASSAS</h2>
                                     <p className="text-gray-500">Sucursal Principal</p>
                                     <p className="text-gray-500 mt-2">{new Date(lastSale.date).toLocaleString()}</p>
                                     <p className="font-bold mt-1">Ticket: {lastSale.invoiceNumber}</p>

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, Folder, ChevronDown, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -10,6 +10,7 @@ const Layout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
 
     const handleLogout = async () => {
         await logout();
@@ -19,15 +20,42 @@ const Layout = () => {
     const navItems = [
         { path: '/', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart },
-        { path: '/products', label: 'Productos', icon: Tags },
-        { path: '/customers', label: 'Clientes', icon: UserCircle },
+        { 
+            label: 'Catalogos', 
+            icon: Folder,
+            submenu: [
+                { path: '/products', label: 'Productos', icon: Tags },
+                { path: '/customers', label: 'Clientes', icon: UserCircle },
+                { path: '/suppliers', label: 'Proveedores', icon: Users },
+            ]
+        },
         { path: '/inventory', label: 'Inventario', icon: Package },
-        { path: '/suppliers', label: 'Proveedores', icon: Users },
         { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle },
         { path: '/cash', label: 'Caja', icon: DollarSign },
         { path: '/branches', label: 'Sucursales', icon: MapPin },
         { path: '/reports', label: 'Reportes', icon: FileBarChart },
     ];
+
+    useEffect(() => {
+        // Auto-expand menu if active item is inside
+        navItems.forEach(item => {
+            if (item.submenu) {
+                const hasActiveChild = item.submenu.some(sub => sub.path === location.pathname);
+                if (hasActiveChild && !expandedMenus.includes(item.label)) {
+                    setExpandedMenus(prev => [...prev, item.label]);
+                }
+            }
+        });
+    }, [location.pathname]);
+
+    const toggleMenu = (label: string) => {
+        if (!isSidebarOpen) setIsSidebarOpen(true);
+        setExpandedMenus(prev => 
+            prev.includes(label) 
+                ? prev.filter(item => item !== label)
+                : [...prev, label]
+        );
+    };
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -36,8 +64,8 @@ const Layout = () => {
                 <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">
-                             <img src={logo} alt="Kassa" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
-                             <h1 className="text-xl font-bold tracking-tight">Kassa</h1>
+                             <img src={logo} alt="Kassas" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
+                             <h1 className="text-xl font-bold tracking-tight">Kassas</h1>
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white">
@@ -45,16 +73,70 @@ const Layout = () => {
                     </button>
                 </div>
                 
-                <nav className="mt-6 flex-1 px-3 space-y-1">
+                <nav className="mt-6 flex-1 px-3 space-y-1 overflow-y-auto">
                     {navItems.map((item) => {
                         const Icon = item.icon;
+                        
+                        if (item.submenu) {
+                            const isExpanded = expandedMenus.includes(item.label);
+                            const hasActiveChild = item.submenu.some(sub => sub.path === location.pathname);
+                            const isActive = hasActiveChild; 
+
+                            return (
+                                <div key={item.label} className="mb-1">
+                                    <button
+                                        onClick={() => toggleMenu(item.label)}
+                                        className={clsx(
+                                            "w-full flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200 group relative",
+                                            isActive && !isExpanded
+                                                ? "bg-blue-600/20 text-blue-300" 
+                                                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                        )}
+                                    >
+                                        <div className="flex items-center">
+                                            <Icon size={22} className={clsx("flex-shrink-0 transition-transform duration-300", isActive ? "text-blue-400" : "")} />
+                                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">{item.label}</span>}
+                                        </div>
+                                        {isSidebarOpen && (
+                                            isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+                                        )}
+                                    </button>
+                                    
+                                    {/* Submenu */}
+                                    <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isExpanded && isSidebarOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0")}>
+                                        <div className="bg-slate-900/30 rounded-lg py-1 ml-3 border-l border-slate-700">
+                                            {item.submenu.map((subItem) => {
+                                                const SubIcon = subItem.icon;
+                                                const isSubActive = location.pathname === subItem.path;
+                                                return (
+                                                    <Link 
+                                                        key={subItem.path} 
+                                                        to={subItem.path}
+                                                        className={clsx(
+                                                            "flex items-center px-3 py-2 ml-2 rounded-lg transition-all duration-200 group relative text-sm",
+                                                            isSubActive 
+                                                                ? "text-blue-400 font-medium bg-blue-600/10" 
+                                                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                                        )}
+                                                    >
+                                                        <SubIcon size={18} className="mr-3" />
+                                                        <span>{subItem.label}</span>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+
                         const isActive = location.pathname === item.path;
                         return (
                             <Link 
                                 key={item.path} 
-                                to={item.path}
+                                to={item.path!} 
                                 className={clsx(
-                                    "flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative",
+                                    "flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative mb-1",
                                     isActive 
                                         ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" 
                                         : "text-slate-300 hover:bg-slate-800 hover:text-white"
