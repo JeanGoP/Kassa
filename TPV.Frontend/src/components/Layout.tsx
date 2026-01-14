@@ -64,8 +64,8 @@ const Layout = () => {
                 <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">
-                             <img src={logo} alt="Kassas" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
-                             <h1 className="text-xl font-bold tracking-tight">Kassas</h1>
+                             <img src={logo} alt="Kassa" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
+                             <h1 className="text-xl font-bold tracking-tight">Kassa</h1>
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white">

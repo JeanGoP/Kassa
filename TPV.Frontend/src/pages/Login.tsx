@@ -27,10 +27,10 @@ const Login = () => {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 transform transition-all hover:scale-105">
                 <div className="flex justify-center mb-6">
-                    <img src={logo} alt="Kassas Logo" className="w-20 h-20 object-contain drop-shadow-xl" />
+                    <img src={logo} alt="Kassa Logo" className="w-20 h-20 object-contain drop-shadow-xl" />
                 </div>
                 <h2 className="text-3xl font-bold mb-2 text-center text-slate-800">Bienvenido</h2>
-                <p className="text-center text-gray-500 mb-8">Inicia sesión en Kassas</p>
+                <p className="text-center text-gray-500 mb-8">Inicia sesión en Kassa</p>
                 
                 {error && (
                     <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6 text-sm flex items-center animate-pulse">
@@ -56,7 +56,7 @@ const Login = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="ejemplo@kassas.com"
+                                placeholder="ejemplo@kassa.com"
                                 required
                             />
                         </div>
