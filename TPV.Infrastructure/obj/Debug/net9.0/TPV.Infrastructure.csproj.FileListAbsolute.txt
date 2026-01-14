@@ -1,0 +1,17 @@
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.csproj.AssemblyReference.cache
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.AssemblyInfoInputs.cache
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.AssemblyInfo.cs
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Infrastructure.deps.json
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Infrastructure.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Infrastructure.pdb
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Application.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Domain.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Application.pdb
+C:\Desarrollos propios\TPV\TPV.Infrastructure\bin\Debug\net9.0\TPV.Domain.pdb
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infr.53A64908.Up2Date
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\refint\TPV.Infrastructure.dll
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\TPV.Infrastructure.pdb
+C:\Desarrollos propios\TPV\TPV.Infrastructure\obj\Debug\net9.0\ref\TPV.Infrastructure.dll

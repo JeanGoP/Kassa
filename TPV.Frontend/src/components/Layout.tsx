@@ -1,0 +1,105 @@
+import React from 'react';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin } from 'lucide-react';
+import { clsx } from 'clsx';
+import logo from '../assets/Logo.png';
+
+const Layout = () => {
+    const { logout, user } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
+    const navItems = [
+        { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart },
+        { path: '/products', label: 'Productos', icon: Tags },
+        { path: '/customers', label: 'Clientes', icon: UserCircle },
+        { path: '/inventory', label: 'Inventario', icon: Package },
+        { path: '/suppliers', label: 'Proveedores', icon: Users },
+        { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle },
+        { path: '/cash', label: 'Caja', icon: DollarSign },
+        { path: '/branches', label: 'Sucursales', icon: MapPin },
+        { path: '/reports', label: 'Reportes', icon: FileBarChart },
+    ];
+
+    return (
+        <div className="flex h-screen bg-gray-50 overflow-hidden">
+            {/* Sidebar */}
+            <aside className={clsx("bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 shadow-xl z-20 flex flex-col", isSidebarOpen ? "w-64" : "w-20")}>
+                <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
+                    {isSidebarOpen && (
+                        <div className="flex items-center space-x-2">
+                             <img src={logo} alt="Kassa" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
+                             <h1 className="text-xl font-bold tracking-tight">Kassa</h1>
+                        </div>
+                    )}
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white">
+                        <Menu size={20} />
+                    </button>
+                </div>
+                
+                <nav className="mt-6 flex-1 px-3 space-y-1">
+                    {navItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Link 
+                                key={item.path} 
+                                to={item.path}
+                                className={clsx(
+                                    "flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative",
+                                    isActive 
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" 
+                                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                )}
+                            >
+                                <Icon size={22} className={clsx("flex-shrink-0 transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
+                                {isSidebarOpen && <span className="ml-3 font-medium text-sm">{item.label}</span>}
+                                {!isSidebarOpen && (
+                                    <div className="absolute left-14 bg-slate-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                        {item.label}
+                                    </div>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                <div className="p-4 border-t border-slate-700/50 bg-slate-900/50">
+                     <button onClick={handleLogout} className="flex items-center px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg w-full transition-colors group">
+                        <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
+                        {isSidebarOpen && <span className="ml-3 font-medium text-sm">Cerrar Sesión</span>}
+                    </button>
+                    {isSidebarOpen && (
+                        <div className="mt-4 flex items-center px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+                                {user?.email?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="ml-3 overflow-hidden">
+                                <div className="text-xs font-medium text-white truncate">Usuario</div>
+                                <div className="text-xs text-slate-400 truncate w-32">{user?.email}</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto bg-gray-50 relative">
+                 {/* Top header could go here if needed */}
+                <div className="p-6 md:p-8 max-w-7xl mx-auto">
+                    <Outlet />
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default Layout;

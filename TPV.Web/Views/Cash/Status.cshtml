@@ -1,0 +1,36 @@
+@model TPV.Application.DTOs.CashSessionDto
+@{
+    ViewData["Title"] = "Estado de Caja";
+}
+
+<h2>Estado de Caja</h2>
+
+@if (Model == null)
+{
+    <div class="alert alert-warning">No hay una sesión de caja abierta para tu usuario en la sucursal seleccionada.</div>
+    <a class="btn btn-primary" asp-action="Open">Abrir Caja</a>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div><strong>Sucursal:</strong> @Model.BranchId</div>
+            <div><strong>Apertura:</strong> @Model.OpeningTime.ToLocalTime().ToString("g")</div>
+            <div><strong>Saldo Apertura:</strong> @Model.OpeningBalance.ToString("C")</div>
+            @if (Model.IsClosed)
+            {
+                <div><strong>Cierre:</strong> @Model.ClosingTime?.ToLocalTime().ToString("g")</div>
+                <div><strong>Saldo Cierre:</strong> @Model.ClosingBalance.ToString("C")</div>
+                <div><strong>Ventas del sistema:</strong> @Model.TotalSystemSales.ToString("C")</div>
+                <div><strong>Diferencia:</strong> @Model.Difference.ToString("C")</div>
+                <div class="alert alert-info mt-2">Sesión cerrada.</div>
+            }
+            else
+            {
+                <div class="alert alert-success mt-2">Sesión abierta.</div>
+                <a class="btn btn-danger" asp-action="Close" asp-route-sessionId="@Model.Id">Cerrar Caja</a>
+            }
+        </div>
+    </div>
+}
+

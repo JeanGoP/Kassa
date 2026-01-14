@@ -1,0 +1,41 @@
+@model IEnumerable<TPV.Application.DTOs.SalesByBranchDto>
+@{
+    ViewData["Title"] = "Ventas por sucursal";
+    DateTime? start = ViewBag.Start;
+    DateTime? end = ViewBag.End;
+}
+
+<h2>Ventas por sucursal</h2>
+
+<form method="get" asp-action="SalesByBranch" class="row g-3 mb-3">
+    <div class="col-auto">
+        <label class="form-label">Desde</label>
+        <input type="date" name="start" class="form-control" value="@(start?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Hasta</label>
+        <input type="date" name="end" class="form-control" value="@(end?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto align-self-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Sucursal</th>
+            <th>Total Ventas</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <td>@row.BranchName (@row.BranchId)</td>
+                <td>@row.TotalSales.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+

@@ -1,0 +1,66 @@
+@model IEnumerable<TPV.Application.DTOs.StockDto>
+
+@{
+    ViewData["Title"] = "Inventory Control";
+}
+
+<h2>Inventory Control</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <form method="get" asp-action="Index">
+            <div class="form-group">
+                <label>Select Branch:</label>
+                <select name="branchId" class="form-control" asp-items="ViewBag.Branches" onchange="this.form.submit()"></select>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-8 text-end">
+        <a asp-action="Alerts" asp-route-branchId="@ViewBag.CurrentBranchId" class="btn btn-warning">View Alerts</a>
+    </div>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Quantity</th>
+            <th>Min Stock Level</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.ProductSKU</td>
+                <form asp-action="UpdateStock" method="post">
+                    <input type="hidden" name="productId" value="@item.ProductId" />
+                    <input type="hidden" name="branchId" value="@item.BranchId" />
+                    <td>
+                        <input type="number" name="quantity" value="@item.Quantity" class="form-control" style="width: 100px" />
+                    </td>
+                    <td>
+                        <input type="number" name="minStockLevel" value="@item.MinStockLevel" class="form-control" style="width: 100px" />
+                    </td>
+                    <td>
+                        @if (item.IsLowStock)
+                        {
+                            <span class="badge bg-danger">Low Stock</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">OK</span>
+                        }
+                    </td>
+                    <td>
+                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                    </td>
+                </form>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Cerrar Caja";
+    var sessionId = (int)ViewBag.SessionId;
+}
+
+<h2>Cerrar Caja</h2>
+
+<form method="post" asp-action="Close">
+    <input type="hidden" name="sessionId" value="@sessionId" />
+    <div class="mb-3">
+        <label>Saldo de cierre</label>
+        <input type="number" name="closingBalance" step="0.01" class="form-control" />
+    </div>
+    <button class="btn btn-danger">Cerrar</button>
+</form>
+

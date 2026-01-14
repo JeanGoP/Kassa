@@ -1,0 +1,49 @@
+@model IEnumerable<TPV.Application.DTOs.ProductMarginDto>
+@{
+    ViewData["Title"] = "Margen por repuesto";
+    DateTime? start = ViewBag.Start;
+    DateTime? end = ViewBag.End;
+}
+
+<h2>Margen por repuesto</h2>
+
+<form method="get" asp-action="MarginByProduct" class="row g-3 mb-3">
+    <div class="col-auto">
+        <label class="form-label">Desde</label>
+        <input type="date" name="start" class="form-control" value="@(start?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Hasta</label>
+        <input type="date" name="end" class="form-control" value="@(end?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto align-self-end">
+        <button class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>SKU</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Ingresos</th>
+            <th>Costo</th>
+            <th>Margen</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <td>@row.SKU</td>
+                <td>@row.Name</td>
+                <td>@row.QuantitySold</td>
+                <td>@row.Revenue.ToString("C")</td>
+                <td>@row.CostTotal.ToString("C")</td>
+                <td>@row.Margin.ToString("C")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+

@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "Abrir Caja";
+    var branches = (IEnumerable<TPV.Domain.Entities.Branch>)ViewBag.Branches;
+    var branchId = (int?)ViewBag.BranchId;
+}
+
+<h2>Abrir Caja</h2>
+
+<form method="post" asp-action="Open">
+    <div class="mb-3">
+        <label>Sucursal</label>
+        <select name="branchId" class="form-control">
+            @foreach (var b in branches)
+            {
+                <option value="@b.Id" selected="@(branchId == b.Id)">@b.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>Saldo de apertura</label>
+        <input type="number" name="openingBalance" step="0.01" class="form-control" />
+    </div>
+    <button class="btn btn-primary">Abrir</button>
+</form>
+

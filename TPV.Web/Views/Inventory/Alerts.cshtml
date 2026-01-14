@@ -1,0 +1,49 @@
+@model IEnumerable<TPV.Application.DTOs.StockDto>
+
+@{
+    ViewData["Title"] = "Low Stock Alerts";
+}
+
+<h2>Low Stock Alerts</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <form method="get" asp-action="Alerts">
+            <div class="form-group">
+                <label>Select Branch:</label>
+                <select name="branchId" class="form-control" asp-items="ViewBag.Branches" onchange="this.form.submit()"></select>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-8 text-end">
+        <a asp-action="Index" asp-route-branchId="@ViewBag.CurrentBranchId" class="btn btn-secondary">Back to Inventory</a>
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    <strong>Attention!</strong> The following items are below minimum stock level.
+</div>
+
+<table class="table table-bordered table-danger">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Current Quantity</th>
+            <th>Min Level</th>
+            <th>Deficit</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.ProductSKU</td>
+                <td>@item.Quantity</td>
+                <td>@item.MinStockLevel</td>
+                <td>@(item.MinStockLevel - item.Quantity)</td>
+            </tr>
+        }
+    </tbody>
+</table>
