@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -19,17 +19,35 @@ interface Customer {
     id: number;
     firstName: string;
     lastName: string;
-    taxId?: string;
+    email: string;
+    phone: string;
+    address: string;
+    taxId: string;
+    identificationType: string;
 }
 
 interface NewCustomer {
     firstName: string;
     lastName: string;
-    taxId: string;
     email: string;
     phone: string;
     address: string;
+    taxId: string;
+    identificationType: string;
 }
+
+const IDENTIFICATION_TYPES = [
+    "(RCN) Registro Civil de Nacimiento",
+    "(TI) Tarjeta de Identidad",
+    "(CC) Cédula de Ciudadanía",
+    "(CD) Cédula Digital",
+    "(CE) Cédula de Extranjería",
+    "(PA) Pasaporte",
+    "(PEP) Permiso Especial de Permanencia",
+    "(PPT) Permiso por Protección Temporal",
+    "(NUIP) Número Único de Identificación Personal",
+    "(NIT) Número de Identificación Tributaria"
+];
 
 interface SaleResult {
     saleId: number;
@@ -71,10 +89,11 @@ const POS = () => {
     const [newCustomer, setNewCustomer] = useState<NewCustomer>({
         firstName: '',
         lastName: '',
-        taxId: '',
         email: '',
         phone: '',
-        address: ''
+        address: '',
+        taxId: '',
+        identificationType: ''
     });
     const [creatingCustomer, setCreatingCustomer] = useState(false);
 
@@ -170,10 +189,11 @@ const POS = () => {
             setNewCustomer({
                 firstName: '',
                 lastName: '',
-                taxId: '',
                 email: '',
                 phone: '',
-                address: ''
+                address: '',
+                taxId: '',
+                identificationType: ''
             });
         } catch (error) {
             console.error("Error creating customer", error);
@@ -332,7 +352,9 @@ const POS = () => {
                         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
                             <div>
                                 <div className="font-bold text-blue-900 text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
-                                <div className="text-xs text-blue-600">{selectedCustomer.taxId}</div>
+                                <div className="text-xs text-blue-600">
+                                    {selectedCustomer.taxId} - {selectedCustomer.identificationType}
+                                </div>
                             </div>
                             <div className="bg-blue-200 text-blue-700 rounded-full p-1">
                                 <Check size={14} />
@@ -582,14 +604,29 @@ const POS = () => {
                                     </div>
                                 </div>
                                 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">DNI / CUIT</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newCustomer.taxId}
-                                        onChange={(e) => setNewCustomer({...newCustomer, taxId: e.target.value})}
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
+                                        <select
+                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={newCustomer.identificationType}
+                                            onChange={(e) => setNewCustomer({ ...newCustomer, identificationType: e.target.value })}
+                                        >
+                                            <option value="">Seleccione...</option>
+                                            {IDENTIFICATION_TYPES.map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={newCustomer.taxId}
+                                            onChange={(e) => setNewCustomer({ ...newCustomer, taxId: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">

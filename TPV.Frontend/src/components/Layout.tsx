@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, Folder, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -19,10 +19,24 @@ const Layout = () => {
 
     const navItems = [
         { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart },
+        { 
+            label: 'Operaciones',
+            icon: ShoppingCart,
+            submenu: [
+                { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart },
+                { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle },
+            ]
+        },
+        { 
+            label: 'Ordenes de Servicio',
+            icon: Wrench,
+            submenu: [
+                { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car },
+            ]
+        },
         { 
             label: 'Catalogos', 
-            icon: Folder,
+            icon: Boxes,
             submenu: [
                 { path: '/products', label: 'Productos', icon: Tags },
                 { path: '/customers', label: 'Clientes', icon: UserCircle },
@@ -30,7 +44,6 @@ const Layout = () => {
             ]
         },
         { path: '/inventory', label: 'Inventario', icon: Package },
-        { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle },
         { path: '/cash', label: 'Caja', icon: DollarSign },
         { path: '/branches', label: 'Sucursales', icon: MapPin },
         { path: '/reports', label: 'Reportes', icon: FileBarChart },

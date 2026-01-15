@@ -15,7 +15,7 @@ interface StockItem {
 const Inventory = () => {
     const [stock, setStock] = useState<StockItem[]>([]);
     const [alerts, setAlerts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
     useEffect(() => {

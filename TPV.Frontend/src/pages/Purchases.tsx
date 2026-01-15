@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { ArrowDownCircle, Plus, Eye, Calendar, User, DollarSign } from 'lucide-react';
+import { ArrowDownCircle, Plus, Calendar, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Purchase {
@@ -59,7 +59,7 @@ const Purchases = () => {
                             </tr>
                         </thead>
                         <tbody className="text-gray-700 divide-y divide-gray-100">
-                            {purchases.map((item) => (
+                            {purchases.map((item: Purchase) => (
                                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="p-4 text-sm">
                                         <div className="flex items-center">
