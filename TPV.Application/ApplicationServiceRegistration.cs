@@ -18,6 +18,8 @@ namespace TPV.Application
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IServiceOrderService, ServiceOrderService>();
+            services.AddScoped<ITechnicianService, TechnicianService>();
+            services.AddScoped<IWorkshopDashboardService, WorkshopDashboardService>();
               
             return services;
         }

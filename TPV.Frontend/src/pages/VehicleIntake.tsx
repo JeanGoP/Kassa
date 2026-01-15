@@ -23,6 +23,12 @@ interface NewCustomer {
     identificationType: string;
 }
 
+interface Technician {
+    id: number;
+    name: string;
+    specialty?: string;
+}
+
 const IDENTIFICATION_TYPES = [
     "(RCN) Registro Civil de Nacimiento",
     "(TI) Tarjeta de Identidad",
@@ -73,6 +79,10 @@ const VehicleIntake = () => {
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
 
+    // Technicians State
+    const [technicians, setTechnicians] = useState<Technician[]>([]);
+    const [showTechnicianSearch, setShowTechnicianSearch] = useState(false);
+
     // Effects
     useEffect(() => {
         if (customerSearch.length > 2) {
@@ -85,12 +95,32 @@ const VehicleIntake = () => {
         }
     }, [customerSearch]);
 
+    useEffect(() => {
+        if (formData.technician.length > 1) {
+            const timer = setTimeout(() => {
+                fetchTechnicians();
+            }, 300);
+            return () => clearTimeout(timer);
+        } else {
+            setTechnicians([]);
+        }
+    }, [formData.technician]);
+
     const fetchCustomers = async () => {
         try {
             const response = await api.get(`/customers?search=${customerSearch}`);
             setCustomers(response.data);
         } catch (error) {
             console.error("Error fetching customers", error);
+        }
+    };
+
+    const fetchTechnicians = async () => {
+        try {
+            const response = await api.get(`/technicians?search=${formData.technician}`);
+            setTechnicians(response.data);
+        } catch (error) {
+            console.error("Error fetching technicians", error);
         }
     };
 
@@ -538,16 +568,41 @@ const VehicleIntake = () => {
                         )}
                     </div>
 
-                    <div>
+                    <div className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Técnico asignado</label>
-                        <input
-                            type="text"
-                            name="technician"
-                            value={formData.technician}
-                            onChange={handleChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                name="technician"
+                                placeholder="Buscar técnico..."
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={formData.technician}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    setShowTechnicianSearch(true);
+                                }}
+                                onFocus={() => setShowTechnicianSearch(true)}
+                                required
+                            />
+                            {showTechnicianSearch && technicians.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg mt-1 border border-gray-100 z-50 max-h-60 overflow-y-auto">
+                                    {technicians.map(t => (
+                                        <div
+                                            key={t.id}
+                                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                            onClick={() => {
+                                                setFormData(prev => ({ ...prev, technician: t.name }));
+                                                setShowTechnicianSearch(false);
+                                                setTechnicians([]);
+                                            }}
+                                        >
+                                            <div className="font-bold text-sm text-gray-800">{t.name}</div>
+                                            {t.specialty && <div className="text-xs text-gray-500">{t.specialty}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

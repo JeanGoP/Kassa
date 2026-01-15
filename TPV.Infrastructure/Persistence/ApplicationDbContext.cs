@@ -25,6 +25,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<Customer> Customers { get; set; }
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
+        public DbSet<Technician> Technicians { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

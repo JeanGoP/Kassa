@@ -1,5 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/axios';
+
+interface Technician {
+    id: number;
+    name: string;
+    specialty?: string;
+}
 
 const ServiceOrderWorks = () => {
     const [orderSearch, setOrderSearch] = useState('');
@@ -14,6 +20,48 @@ const ServiceOrderWorks = () => {
     const [status, setStatus] = useState<'PENDIENTE' | 'REALIZADO'>('PENDIENTE');
     const [submitting, setSubmitting] = useState(false);
     const [works, setWorks] = useState<any[]>([]);
+
+    const [selectedWork, setSelectedWork] = useState<any | null>(null);
+
+    // Technicians State
+    const [technicians, setTechnicians] = useState<Technician[]>([]);
+    const [showTechnicianSearch, setShowTechnicianSearch] = useState(false);
+
+    useEffect(() => {
+        if (selectedWork) {
+            setDescription(selectedWork.description);
+            setTechnician(selectedWork.technician);
+            setEstimatedTime(selectedWork.estimatedTimeHours ? selectedWork.estimatedTimeHours.toString() : '');
+            setLaborCost(selectedWork.laborCost ? selectedWork.laborCost.toString() : '');
+            setStatus(selectedWork.status);
+        } else {
+            setDescription('');
+            setTechnician('');
+            setEstimatedTime('');
+            setLaborCost('');
+            setStatus('PENDIENTE');
+        }
+    }, [selectedWork]);
+
+    useEffect(() => {
+        if (technician.length > 1) {
+            const timer = setTimeout(() => {
+                fetchTechnicians();
+            }, 300);
+            return () => clearTimeout(timer);
+        } else {
+            setTechnicians([]);
+        }
+    }, [technician]);
+
+    const fetchTechnicians = async () => {
+        try {
+            const response = await api.get(`/technicians?search=${technician}`);
+            setTechnicians(response.data);
+        } catch (error) {
+            console.error("Error fetching technicians", error);
+        }
+    };
 
     const handleSearchOrders = async () => {
         if (!orderSearch || orderSearch.trim().length < 2) {
@@ -67,17 +115,25 @@ const ServiceOrderWorks = () => {
 
         setSubmitting(true);
         try {
-            await api.post(`/ServiceOrders/${selectedOrder.id}/works`, payload);
-            setDescription('');
-            setTechnician('');
-            setEstimatedTime('');
-            setLaborCost('');
-            setStatus('PENDIENTE');
+            if (selectedWork) {
+                await api.put(`/ServiceOrders/${selectedOrder.id}/works/${selectedWork.id}`, payload);
+            } else {
+                await api.post(`/ServiceOrders/${selectedOrder.id}/works`, payload);
+            }
+            setSelectedWork(null);
             await loadWorks(selectedOrder.id);
         } catch {
-            alert('Error al registrar el trabajo/servicio.');
+            alert('Error al guardar el trabajo/servicio.');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleEditWork = (work: any) => {
+        if (work.status === 'PENDIENTE') {
+            setSelectedWork(work);
+        } else {
+            alert('Solo se pueden modificar trabajos en estado PENDIENTE.');
         }
     };
 
@@ -191,7 +247,20 @@ const ServiceOrderWorks = () => {
                         </div>
 
                         <form onSubmit={handleAddWork} className="space-y-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
-                            <h2 className="text-sm font-semibold text-slate-800">Nuevo trabajo / servicio</h2>
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="text-sm font-semibold text-slate-800">
+                                    {selectedWork ? 'Editar trabajo / servicio' : 'Nuevo trabajo / servicio'}
+                                </h2>
+                                {selectedWork && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedWork(null)}
+                                        className="text-xs text-red-600 hover:text-red-800 font-medium"
+                                    >
+                                        Cancelar edición
+                                    </button>
+                                )}
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -205,17 +274,41 @@ const ServiceOrderWorks = () => {
                                     />
                                 </div>
                                 <div className="space-y-3">
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Técnico
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={technician}
-                                            onChange={(e) => setTechnician(e.target.value)}
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            placeholder="Nombre del técnico"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={technician}
+                                                onChange={(e) => {
+                                                    setTechnician(e.target.value);
+                                                    setShowTechnicianSearch(true);
+                                                }}
+                                                onFocus={() => setShowTechnicianSearch(true)}
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder="Nombre del técnico"
+                                            />
+                                            {showTechnicianSearch && technicians.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg mt-1 border border-gray-100 z-50 max-h-60 overflow-y-auto">
+                                                    {technicians.map(t => (
+                                                        <div
+                                                            key={t.id}
+                                                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                                            onClick={() => {
+                                                                setTechnician(t.name);
+                                                                setShowTechnicianSearch(false);
+                                                                setTechnicians([]);
+                                                            }}
+                                                        >
+                                                            <div className="font-bold text-sm text-gray-800">{t.name}</div>
+                                                            {t.specialty && <div className="text-xs text-gray-500">{t.specialty}</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
@@ -264,7 +357,7 @@ const ServiceOrderWorks = () => {
                                     disabled={submitting}
                                     className="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    {submitting ? 'Guardando...' : 'Agregar trabajo'}
+                                    {submitting ? 'Guardando...' : (selectedWork ? 'Actualizar trabajo' : 'Agregar trabajo')}
                                 </button>
                             </div>
                         </form>
@@ -298,40 +391,42 @@ const ServiceOrderWorks = () => {
                                                     {work.estimatedTimeHours ?? '-'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
-                                                    {work.laborCost?.toFixed ? work.laborCost.toFixed(2) : work.laborCost}
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                {work.laborCost?.toFixed ? work.laborCost.toFixed(2) : work.laborCost}
+                                            </td>
+                                            <td className="px-4 py-2 text-center">
+                                                <button
+                                                    onClick={() => toggleWorkStatus(work)}
+                                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                                         work.status === 'REALIZADO'
                                                             ? 'bg-green-100 text-green-800'
                                                             : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                        {work.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-right">
+                                                    }`}
+                                                >
+                                                    {work.status}
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-2 text-right">
+                                                {work.status === 'PENDIENTE' && (
                                                     <button
-                                                        type="button"
-                                                        onClick={() => toggleWorkStatus(work)}
-                                                        className="px-3 py-1 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+                                                        onClick={() => handleEditWork(work)}
+                                                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                                                     >
-                                                        Marcar {work.status === 'REALIZADO' ? 'pendiente' : 'realizado'}
+                                                        Editar
                                                     </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {works.length === 0 && (
-                                            <tr>
-                                                <td colSpan={6} className="px-4 py-6 text-center text-gray-400 text-sm">
-                                                    No hay trabajos registrados para esta orden.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {works.length === 0 && (
+                                <div className="px-4 py-6 text-center text-gray-400 text-sm">
+                                    No hay trabajos registrados para esta orden.
+                                </div>
+                            )}
                         </div>
                     </div>
+                </div>
                 )}
             </div>
         </div>

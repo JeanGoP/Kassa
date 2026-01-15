@@ -62,6 +62,14 @@ namespace TPV.Web.Controllers.Api
             return CreatedAtAction(nameof(GetWorks), new { id }, result);
         }
 
+        [HttpPut("{id}/works/{workId}")]
+        public async Task<ActionResult<ServiceOrderWorkDto>> UpdateWork(int id, int workId, CreateServiceOrderWorkDto dto)
+        {
+            var result = await _service.UpdateWorkAsync(id, workId, dto);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
         [HttpPut("{id}/works/{workId}/status")]
         public async Task<ActionResult<ServiceOrderWorkDto>> UpdateWorkStatus(int id, int workId, ServiceOrderWorkStatusDto dto)
         {

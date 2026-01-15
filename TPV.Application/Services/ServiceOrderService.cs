@@ -195,6 +195,31 @@ namespace TPV.Application.Services
             };
         }
 
+        public async Task<ServiceOrderWorkDto> UpdateWorkAsync(int serviceOrderId, int workId, CreateServiceOrderWorkDto dto)
+        {
+            var entity = await _workRepository.GetByIdAsync(workId);
+            if (entity == null || entity.ServiceOrderId != serviceOrderId) return null;
+
+            entity.Description = dto.Description;
+            entity.Technician = dto.Technician;
+            entity.EstimatedTimeHours = dto.EstimatedTimeHours;
+            entity.LaborCost = dto.LaborCost;
+            entity.Status = dto.Status;
+
+            await _workRepository.UpdateAsync(entity);
+
+            return new ServiceOrderWorkDto
+            {
+                Id = entity.Id,
+                ServiceOrderId = entity.ServiceOrderId,
+                Description = entity.Description,
+                Technician = entity.Technician,
+                EstimatedTimeHours = entity.EstimatedTimeHours,
+                LaborCost = entity.LaborCost,
+                Status = entity.Status
+            };
+        }
+
         public async Task<ServiceOrderWorkDto> UpdateWorkStatusAsync(int serviceOrderId, int workId, ServiceOrderWorkStatusDto dto)
         {
             var entity = await _workRepository.GetByIdAsync(workId);
