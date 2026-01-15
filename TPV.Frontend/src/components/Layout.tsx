@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -32,8 +32,8 @@ const Layout = () => {
             icon: Wrench,
             submenu: [
                 { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car },
-                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Wrench },
-                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: Wrench },
+                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Stethoscope },
+                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList },
             ]
         },
         { 
