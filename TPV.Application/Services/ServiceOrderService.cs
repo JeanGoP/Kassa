@@ -27,7 +27,7 @@ namespace TPV.Application.Services
                 predicate: o =>
                     string.IsNullOrEmpty(search) ||
                     o.Plate.Contains(search) ||
-                    o.Technician.Contains(search) ||
+                    (o.Technician != null && o.Technician.Contains(search)) ||
                     o.Customer.FirstName.Contains(search) ||
                     o.Customer.LastName.Contains(search),
                 orderBy: q => q.OrderByDescending(o => o.IntakeDateTime),
@@ -49,6 +49,7 @@ namespace TPV.Application.Services
                 InitialObservations = o.InitialObservations,
                 VisualCondition = o.VisualCondition,
                 Technician = o.Technician,
+                WorkshopManager = o.WorkshopManager,
                 Status = o.Status
             });
         }
@@ -67,7 +68,8 @@ namespace TPV.Application.Services
                 FuelLevel = dto.FuelLevel,
                 InitialObservations = dto.InitialObservations,
                 VisualCondition = dto.VisualCondition,
-                Technician = dto.Technician,
+                Technician = string.Empty,
+                WorkshopManager = dto.WorkshopManager,
                 Status = dto.Status
             };
 
@@ -91,6 +93,7 @@ namespace TPV.Application.Services
                 InitialObservations = entity.InitialObservations,
                 VisualCondition = entity.VisualCondition,
                 Technician = entity.Technician,
+                WorkshopManager = entity.WorkshopManager,
                 Status = entity.Status
             };
         }
@@ -117,6 +120,7 @@ namespace TPV.Application.Services
                 InitialObservations = entity.InitialObservations,
                 VisualCondition = entity.VisualCondition,
                 Technician = entity.Technician,
+                WorkshopManager = entity.WorkshopManager,
                 Status = entity.Status
             };
         }

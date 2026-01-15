@@ -53,7 +53,7 @@ const VehicleIntake = () => {
         fuelLevel: '',
         initialObservations: '',
         visualCondition: '',
-        technician: '',
+        workshopManager: '',
     });
 
     // Customers State
@@ -79,12 +79,25 @@ const VehicleIntake = () => {
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
 
-    // Technicians State
-    const [technicians, setTechnicians] = useState<Technician[]>([]);
-    const [showTechnicianSearch, setShowTechnicianSearch] = useState(false);
-
     // Effects
     useEffect(() => {
+        // Fetch default branch manager
+        const fetchBranchManager = async () => {
+            try {
+                const response = await api.get('/branches');
+                if (response.data && response.data.length > 0) {
+                    // Assuming first branch or defaulting to it
+                    const branch = response.data[0];
+                    if (branch.managerName) {
+                        setFormData(prev => ({ ...prev, workshopManager: branch.managerName }));
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching branch info", error);
+            }
+        };
+        fetchBranchManager();
+
         if (customerSearch.length > 2) {
             const timer = setTimeout(() => {
                 fetchCustomers();
@@ -95,16 +108,7 @@ const VehicleIntake = () => {
         }
     }, [customerSearch]);
 
-    useEffect(() => {
-        if (formData.technician.length > 1) {
-            const timer = setTimeout(() => {
-                fetchTechnicians();
-            }, 300);
-            return () => clearTimeout(timer);
-        } else {
-            setTechnicians([]);
-        }
-    }, [formData.technician]);
+    // Technicians State (no se asigna técnico en el ingreso inicial)
 
     const fetchCustomers = async () => {
         try {
@@ -112,15 +116,6 @@ const VehicleIntake = () => {
             setCustomers(response.data);
         } catch (error) {
             console.error("Error fetching customers", error);
-        }
-    };
-
-    const fetchTechnicians = async () => {
-        try {
-            const response = await api.get(`/technicians?search=${formData.technician}`);
-            setTechnicians(response.data);
-        } catch (error) {
-            console.error("Error fetching technicians", error);
         }
     };
 
@@ -180,7 +175,7 @@ const VehicleIntake = () => {
             setLastServiceOrder(response.data);
             alert('Ingreso de vehículo registrado exitosamente.');
             // Reset form
-            setFormData({
+            setFormData(prev => ({
                 plate: '',
                 brand: '',
                 model: '',
@@ -190,8 +185,8 @@ const VehicleIntake = () => {
                 fuelLevel: '',
                 initialObservations: '',
                 visualCondition: '',
-                technician: '',
-            });
+                workshopManager: prev.workshopManager
+            }));
             setSelectedCustomer(null);
             setCustomerSearch('');
         } catch (error) {
@@ -414,8 +409,8 @@ const VehicleIntake = () => {
                     <div class="field-value-strong">${orderToPrint.customerName}</div>
                 </div>
                 <div>
-                    <div class="field-label">Técnico asignado</div>
-                    <div class="field-value">${orderToPrint.technician || '-'}</div>
+                    <div class="field-label">Jefe de Taller</div>
+                    <div class="field-value">${orderToPrint.workshopManager || ''}</div>
                 </div>
             </div>
         </div>
@@ -568,41 +563,16 @@ const VehicleIntake = () => {
                         )}
                     </div>
 
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Técnico asignado</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                name="technician"
-                                placeholder="Buscar técnico..."
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={formData.technician}
-                                onChange={(e) => {
-                                    handleChange(e);
-                                    setShowTechnicianSearch(true);
-                                }}
-                                onFocus={() => setShowTechnicianSearch(true)}
-                                required
-                            />
-                            {showTechnicianSearch && technicians.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg mt-1 border border-gray-100 z-50 max-h-60 overflow-y-auto">
-                                    {technicians.map(t => (
-                                        <div
-                                            key={t.id}
-                                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0"
-                                            onClick={() => {
-                                                setFormData(prev => ({ ...prev, technician: t.name }));
-                                                setShowTechnicianSearch(false);
-                                                setTechnicians([]);
-                                            }}
-                                        >
-                                            <div className="font-bold text-sm text-gray-800">{t.name}</div>
-                                            {t.specialty && <div className="text-xs text-gray-500">{t.specialty}</div>}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Jefe de Taller</label>
+                        <input
+                            type="text"
+                            name="workshopManager"
+                            value={formData.workshopManager}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                            placeholder="Nombre del encargado"
+                        />
                     </div>
                 </div>
 
@@ -765,7 +735,6 @@ const VehicleIntake = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca/Modelo</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
@@ -789,9 +758,6 @@ const VehicleIntake = () => {
                                                 ${order.status === 'ABIERTA' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {order.status}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {order.technician}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <button

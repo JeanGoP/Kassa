@@ -8,6 +8,7 @@ interface Branch {
     address: string;
     phone: string;
     email: string;
+    managerName?: string;
 }
 
 const Branches = () => {
@@ -19,7 +20,8 @@ const Branches = () => {
         name: '',
         address: '',
         phone: '',
-        email: ''
+        email: '',
+        managerName: ''
     });
 
     useEffect(() => {
@@ -60,11 +62,12 @@ const Branches = () => {
                 name: branch.name,
                 address: branch.address || '',
                 phone: branch.phone || '',
-                email: branch.email || ''
+                email: branch.email || '',
+                managerName: branch.managerName || ''
             });
         } else {
             setCurrentBranch(null);
-            setFormData({ name: '', address: '', phone: '', email: '' });
+            setFormData({ name: '', address: '', phone: '', email: '', managerName: '' });
         }
         setIsModalOpen(true);
     };
@@ -193,6 +196,16 @@ const Branches = () => {
                                     className="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Jefe de Taller</label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    value={formData.managerName}
+                                    onChange={(e) => setFormData({ ...formData, managerName: e.target.value })}
+                                    placeholder="Nombre del encargado"
                                 />
                             </div>
                             <div className="pt-4 flex justify-end space-x-3">

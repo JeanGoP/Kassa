@@ -17,6 +17,7 @@ namespace TPV.Domain.Entities
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
         public string Technician { get; set; }
+        public string? WorkshopManager { get; set; }
         public string Status { get; set; } // ABIERTA, etc.
     }
 }

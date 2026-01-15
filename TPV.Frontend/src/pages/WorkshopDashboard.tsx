@@ -49,19 +49,29 @@ const WorkshopDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    let isMounted = true;
 
-  const fetchDashboardData = async () => {
-    try {
-      const response = await api.get('/workshop-dashboard');
-      setData(response.data);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadDashboard = async () => {
+      try {
+        const response = await api.get('/workshop-dashboard');
+        if (isMounted) {
+          setData(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return <div className="p-6">Cargando dashboard...</div>;
@@ -128,7 +138,9 @@ const WorkshopDashboard: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }: { name?: string | number; percent?: number }) =>
+                    `${name ?? ''} ${(((percent ?? 0) * 100).toFixed(0))}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="count"

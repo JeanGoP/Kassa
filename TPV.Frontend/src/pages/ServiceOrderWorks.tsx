@@ -122,7 +122,8 @@ const ServiceOrderWorks = () => {
             }
             setSelectedWork(null);
             await loadWorks(selectedOrder.id);
-        } catch {
+        } catch (error) {
+            console.error("Error saving work:", error);
             alert('Error al guardar el trabajo/servicio.');
         } finally {
             setSubmitting(false);
