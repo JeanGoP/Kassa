@@ -32,6 +32,8 @@ const Layout = () => {
             icon: Wrench,
             submenu: [
                 { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car },
+                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Wrench },
+                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: Wrench },
             ]
         },
         { 

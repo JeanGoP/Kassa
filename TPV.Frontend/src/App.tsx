@@ -15,6 +15,7 @@ import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
 import VehicleIntake from './pages/VehicleIntake';
+import ServiceOrderDiagnosis from './pages/ServiceOrderDiagnosis';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
@@ -39,6 +40,7 @@ const AppRoutes = () => {
                 <Route path="purchases/create" element={<CreatePurchase />} />
                 <Route path="service-orders" element={<ServiceOrders />} />
                 <Route path="service-orders/ingreso-vehiculo" element={<VehicleIntake />} />
+                <Route path="service-orders/diagnostico" element={<ServiceOrderDiagnosis />} />
                 <Route path="cash" element={<Cash />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="reports" element={<Reports />} />

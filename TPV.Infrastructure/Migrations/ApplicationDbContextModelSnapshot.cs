@@ -611,6 +611,51 @@ namespace TPV.Infrastructure.Migrations
                     b.ToTable("ServiceOrders");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderWork", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("EstimatedTimeHours")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("LaborCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ServiceOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Technician")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.ToTable("ServiceOrderWorks");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.Stock", b =>
                 {
                     b.Property<int>("Id")
@@ -931,6 +976,17 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderWork", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
+                        .WithMany()
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceOrder");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Stock", b =>

@@ -24,6 +24,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<PurchaseDetail> PurchaseDetails { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
+        public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -85,6 +86,10 @@ namespace TPV.Infrastructure.Persistence
 
             builder.Entity<ServiceOrder>()
                 .Property(so => so.Mileage)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrderWork>()
+                .Property(w => w.LaborCost)
                 .HasColumnType("decimal(18,2)");
 
             // Relaciones obligatorias

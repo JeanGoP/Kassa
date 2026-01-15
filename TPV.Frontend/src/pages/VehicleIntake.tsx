@@ -460,8 +460,7 @@ const VehicleIntake = () => {
         try {
             const response = await api.get(`/ServiceOrders?search=${encodeURIComponent(orderSearch.trim())}`);
             setOrderResults(response.data);
-        } catch (error) {
-            console.error('Error searching service orders', error);
+        } catch {
             alert('Error al buscar ingresos de vehículos.');
         } finally {
             setSearchingOrders(false);

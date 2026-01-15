@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TPV.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9f0aac7360723ac9b6f8a9948a19a34e677d4e73")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4d7a274b68b2360250ad9f2f6a33f032f273c140")]
 [assembly: System.Reflection.AssemblyProductAttribute("TPV.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TPV.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
