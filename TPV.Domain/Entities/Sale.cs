@@ -20,6 +20,9 @@ namespace TPV.Domain.Entities
         // UserId string for Identity integration later
         public string UserId { get; set; } 
         
+        public int? ServiceOrderId { get; set; }
+        public ServiceOrder ServiceOrder { get; set; }
+
         public ICollection<SaleDetail> SaleDetails { get; set; }
     }
 }

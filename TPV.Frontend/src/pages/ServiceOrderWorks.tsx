@@ -245,9 +245,15 @@ const ServiceOrderWorks = () => {
                             <div>
                                 #{selectedOrder.id} • {selectedOrder.customerName} • Placa {selectedOrder.plate}
                             </div>
+                            {selectedOrder.status === 'FINALIZADA' && (
+                                <div className="mt-2 pt-2 border-t border-blue-200 font-semibold text-red-600">
+                                    ⚠ Esta orden está finalizada y no puede ser modificada.
+                                </div>
+                            )}
                         </div>
 
                         <form onSubmit={handleAddWork} className="space-y-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                            <fieldset disabled={selectedOrder.status === 'FINALIZADA'} className="contents">
                             <div className="flex justify-between items-center mb-2">
                                 <h2 className="text-sm font-semibold text-slate-800">
                                     {selectedWork ? 'Editar trabajo / servicio' : 'Nuevo trabajo / servicio'}
@@ -270,7 +276,7 @@ const ServiceOrderWorks = () => {
                                     <textarea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                         placeholder="Ej: Cambio de aceite, alineación, reparación frenos..."
                                     />
                                 </div>
@@ -288,10 +294,10 @@ const ServiceOrderWorks = () => {
                                                     setShowTechnicianSearch(true);
                                                 }}
                                                 onFocus={() => setShowTechnicianSearch(true)}
-                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                                 placeholder="Nombre del técnico"
                                             />
-                                            {showTechnicianSearch && technicians.length > 0 && (
+                                            {showTechnicianSearch && technicians.length > 0 && selectedOrder.status !== 'FINALIZADA' && (
                                                 <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg mt-1 border border-gray-100 z-50 max-h-60 overflow-y-auto">
                                                     {technicians.map(t => (
                                                         <div
@@ -321,7 +327,7 @@ const ServiceOrderWorks = () => {
                                                 step="0.1"
                                                 value={estimatedTime}
                                                 onChange={(e) => setEstimatedTime(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                             />
                                         </div>
                                         <div>
@@ -333,7 +339,7 @@ const ServiceOrderWorks = () => {
                                                 step="0.01"
                                                 value={laborCost}
                                                 onChange={(e) => setLaborCost(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                             />
                                         </div>
                                     </div>
@@ -344,7 +350,7 @@ const ServiceOrderWorks = () => {
                                         <select
                                             value={status}
                                             onChange={(e) => setStatus(e.target.value as 'PENDIENTE' | 'REALIZADO')}
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                         >
                                             <option value="PENDIENTE">Pendiente</option>
                                             <option value="REALIZADO">Realizado</option>
@@ -355,12 +361,13 @@ const ServiceOrderWorks = () => {
                             <div className="flex justify-end">
                                 <button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || selectedOrder.status === 'FINALIZADA'}
                                     className="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     {submitting ? 'Guardando...' : (selectedWork ? 'Actualizar trabajo' : 'Agregar trabajo')}
                                 </button>
                             </div>
+                            </fieldset>
                         </form>
 
                         <div className="bg-white border border-slate-200 rounded-lg mt-4">
@@ -397,17 +404,18 @@ const ServiceOrderWorks = () => {
                                             <td className="px-4 py-2 text-center">
                                                 <button
                                                     onClick={() => toggleWorkStatus(work)}
+                                                    disabled={selectedOrder.status === 'FINALIZADA'}
                                                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                                         work.status === 'REALIZADO'
                                                             ? 'bg-green-100 text-green-800'
                                                             : 'bg-yellow-100 text-yellow-800'
-                                                    }`}
+                                                    } ${selectedOrder.status === 'FINALIZADA' ? 'opacity-60 cursor-not-allowed' : ''}`}
                                                 >
                                                     {work.status}
                                                 </button>
                                             </td>
                                             <td className="px-4 py-2 text-right">
-                                                {work.status === 'PENDIENTE' && (
+                                                {work.status === 'PENDIENTE' && selectedOrder.status !== 'FINALIZADA' && (
                                                     <button
                                                         onClick={() => handleEditWork(work)}
                                                         className="text-blue-600 hover:text-blue-800 text-xs font-medium"

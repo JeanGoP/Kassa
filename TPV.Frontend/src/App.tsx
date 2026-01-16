@@ -18,6 +18,8 @@ import ServiceOrders from './pages/ServiceOrders';
 import VehicleIntake from './pages/VehicleIntake';
 import ServiceOrderDiagnosis from './pages/ServiceOrderDiagnosis';
 import ServiceOrderWorks from './pages/ServiceOrderWorks';
+import ServiceOrderParts from './pages/ServiceOrderParts';
+import ServiceOrderClosure from './pages/ServiceOrderClosure';
 import Technicians from './pages/Technicians';
 import Roles from './pages/Roles';
 import Users from './pages/Users';
@@ -55,6 +57,8 @@ const AppRoutes = () => {
                 <Route path="service-orders/ingreso-vehiculo" element={<VehicleIntake />} />
                 <Route path="service-orders/diagnostico" element={<ServiceOrderDiagnosis />} />
                 <Route path="service-orders/trabajos" element={<ServiceOrderWorks />} />
+                <Route path="service-orders/repuestos" element={<ServiceOrderParts />} />
+                <Route path="service-orders/cierre" element={<ServiceOrderClosure />} />
                 <Route path="cash" element={<Cash />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="users" element={<Users />} />

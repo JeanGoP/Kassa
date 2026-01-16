@@ -98,7 +98,8 @@ const ServiceOrderDiagnosis = () => {
                         <select
                             value={customerApproval}
                             onChange={(e) => setCustomerApproval(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                         >
                             <option value="">Seleccione...</option>
                             <option value="SI">Sí</option>
@@ -113,7 +114,8 @@ const ServiceOrderDiagnosis = () => {
                             type="date"
                             value={approvalDate}
                             onChange={(e) => setApprovalDate(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                         />
                     </div>
                 </div>
@@ -178,7 +180,7 @@ const ServiceOrderDiagnosis = () => {
                 )}
 
                 {selectedOrder && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900 mb-6">
                         <div className="font-semibold mb-1">Orden seleccionada</div>
                         <div>
                             #{selectedOrder.id} • {selectedOrder.customerName} • Placa {selectedOrder.plate}
@@ -186,6 +188,11 @@ const ServiceOrderDiagnosis = () => {
                         <div className="text-xs text-blue-800 mt-1">
                             Estado actual: {selectedOrder.status}
                         </div>
+                        {selectedOrder.status === 'FINALIZADA' && (
+                            <div className="mt-2 pt-2 border-t border-blue-200 font-semibold text-red-600">
+                                ⚠ Esta orden está finalizada y no puede ser modificada.
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -197,7 +204,8 @@ const ServiceOrderDiagnosis = () => {
                         <textarea
                             value={problemDescription}
                             onChange={(e) => setProblemDescription(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                             placeholder="Descripción aportada por el cliente, síntomas, ruidos, etc."
                         />
                     </div>
@@ -208,7 +216,8 @@ const ServiceOrderDiagnosis = () => {
                         <textarea
                             value={technicalDiagnosis}
                             onChange={(e) => setTechnicalDiagnosis(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                             placeholder="Conclusiones del técnico, posibles causas y trabajos sugeridos."
                         />
                     </div>
@@ -217,7 +226,7 @@ const ServiceOrderDiagnosis = () => {
                 <div className="flex justify-end">
                     <button
                         type="submit"
-                        disabled={submitting}
+                        disabled={submitting || selectedOrder?.status === 'FINALIZADA'}
                         className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         {submitting ? 'Guardando...' : 'Guardar diagnóstico'}

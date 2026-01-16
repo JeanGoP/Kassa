@@ -23,12 +23,6 @@ interface NewCustomer {
     identificationType: string;
 }
 
-interface Technician {
-    id: number;
-    name: string;
-    specialty?: string;
-}
-
 const IDENTIFICATION_TYPES = [
     "(RCN) Registro Civil de Nacimiento",
     "(TI) Tarjeta de Identidad",

@@ -14,10 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(Permissions.AdminRolesManage, policy =>
-        policy.RequireClaim("permission", Permissions.AdminRolesManage));
-    options.AddPolicy(Permissions.AdminUsersManage, policy =>
-        policy.RequireClaim("permission", Permissions.AdminUsersManage));
+    foreach (var permission in Permissions.All)
+    {
+        options.AddPolicy(permission, policy =>
+            policy.RequireClaim("permission", permission));
+    }
 });
 builder.Services.AddSession();
 builder.Services.AddCors(options =>

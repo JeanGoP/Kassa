@@ -30,7 +30,21 @@ namespace TPV.Web.Controllers.Api
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByEmailAsync(request.Email);
-                return Ok(new { message = "Inicio de sesión exitoso.", user = new { user.Email, user.Id } });
+                
+                // Generar el principal para obtener los claims completos (incluyendo roles y permisos)
+                var principal = await _signInManager.CreateUserPrincipalAsync(user);
+                var permissions = principal.FindAll("permission").Select(c => c.Value).ToList();
+                var roles = await _userManager.GetRolesAsync(user);
+
+                return Ok(new { 
+                    message = "Inicio de sesión exitoso.", 
+                    user = new { 
+                        user.Email, 
+                        user.Id,
+                        Permissions = permissions,
+                        Roles = roles
+                    } 
+                });
             }
 
             return Unauthorized("Intento de inicio de sesión no válido. Verifique sus credenciales.");
@@ -49,7 +63,15 @@ namespace TPV.Web.Controllers.Api
             if (User.Identity.IsAuthenticated)
             {
                 var user = await _userManager.GetUserAsync(User);
-                return Ok(new { user.Email, user.Id });
+                var permissions = User.FindAll("permission").Select(c => c.Value).ToList();
+                var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
+
+                return Ok(new { 
+                    user.Email, 
+                    user.Id,
+                    Permissions = permissions,
+                    Roles = roles
+                });
             }
             return Unauthorized();
         }

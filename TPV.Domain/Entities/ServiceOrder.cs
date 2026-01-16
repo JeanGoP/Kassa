@@ -18,6 +18,16 @@ namespace TPV.Domain.Entities
         public string VisualCondition { get; set; }
         public string Technician { get; set; }
         public string? WorkshopManager { get; set; }
-        public string Status { get; set; } // ABIERTA, etc.
+        public string Status { get; set; }
+        public DateTime? ExitDateTime { get; set; }
+        public string? DeliveryNotes { get; set; }
+        public string? CloseType { get; set; }
+        public string? CloseReason { get; set; }
+        public string? CustomerSignatureName { get; set; }
+        public string? SpecialCloseSupervisorName { get; set; }
+
+        // Invoicing
+        public decimal LaborCost { get; set; }
+        public Sale Sale { get; set; }
     }
 }

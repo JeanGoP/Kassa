@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
@@ -76,6 +77,53 @@ namespace TPV.Web.Controllers.Api
             var result = await _service.UpdateWorkStatusAsync(id, workId, dto);
             if (result == null) return NotFound();
             return Ok(result);
+        }
+
+        [HttpGet("{id}/parts")]
+        public async Task<ActionResult<IEnumerable<ServiceOrderPartDto>>> GetParts(int id)
+        {
+            var result = await _service.GetPartsByOrderAsync(id);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/parts/confirm")]
+        public async Task<ActionResult<ServiceOrderPartsResultDto>> ConfirmParts(int id, ConfirmServiceOrderPartsDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var result = await _service.ConfirmPartsAsync(id, dto, userId);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/close")]
+        public async Task<ActionResult<ServiceOrderDto>> CloseOrder(int id, CloseServiceOrderDto dto)
+        {
+            var result = await _service.CloseOrderAsync(id, dto);
+            if (result == null) return BadRequest("No se pudo cerrar la orden. Verifique el estado y el checklist.");
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/invoice")]
+        public async Task<ActionResult<SaleResultDto>> GenerateInvoice(int id, [FromBody] GenerateInvoiceDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var result = await _service.GenerateInvoiceAsync(id, dto, userId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

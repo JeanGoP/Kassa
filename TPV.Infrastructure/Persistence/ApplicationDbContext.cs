@@ -25,6 +25,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<Customer> Customers { get; set; }
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
+        public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
         public DbSet<Technician> Technicians { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -93,6 +94,18 @@ namespace TPV.Infrastructure.Persistence
                 .Property(w => w.LaborCost)
                 .HasColumnType("decimal(18,2)");
 
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
             // Relaciones obligatorias
             builder.Entity<Product>()
                 .HasOne(p => p.Category)
@@ -111,6 +124,16 @@ namespace TPV.Infrastructure.Persistence
                 .WithMany(c => c.Sales)
                 .HasForeignKey(s => s.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.LaborCost)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrder>()
+                .HasOne(so => so.Sale)
+                .WithOne(s => s.ServiceOrder)
+                .HasForeignKey<Sale>(s => s.ServiceOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

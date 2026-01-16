@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -18,54 +18,64 @@ const Layout = () => {
     };
 
     const navItems = [
-        { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'Menus.Dashboard.View' },
         { 
             label: 'Operaciones',
             icon: ShoppingCart,
             submenu: [
-                { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart },
-                { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle },
+                { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
+                { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
             ]
         },
         { 
             label: 'Ordenes de Servicio',
             icon: Wrench,
             submenu: [
-                { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity },
-                { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car },
-                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Stethoscope },
-                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList },
+                { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Stethoscope, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/repuestos', label: 'Repuestos e Insumos', icon: Boxes, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/cierre', label: 'Cierre, Entrega y Facturación', icon: CheckCircle, permission: 'Menus.Workshop.View' },
             ]
         },
         { 
             label: 'Catalogos', 
             icon: Boxes,
             submenu: [
-                { path: '/products', label: 'Productos', icon: Tags },
-                { path: '/customers', label: 'Clientes', icon: UserCircle },
-                { path: '/suppliers', label: 'Proveedores', icon: Users },
-                { path: '/technicians', label: 'Técnicos', icon: UserCog },
+                { path: '/products', label: 'Productos', icon: Tags, permission: 'Menus.Products.View' },
+                { path: '/customers', label: 'Clientes', icon: UserCircle, permission: 'Menus.Customers.View' },
+                { path: '/suppliers', label: 'Proveedores', icon: Users, permission: 'Menus.Suppliers.View' },
+                { path: '/technicians', label: 'Técnicos', icon: UserCog, permission: 'Menus.Technicians.View' },
+                { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },
             ]
         },
-        { path: '/inventory', label: 'Inventario', icon: Package },
-        { path: '/cash', label: 'Caja', icon: DollarSign },
-        { path: '/branches', label: 'Sucursales', icon: MapPin },
-        { path: '/users', label: 'Usuarios', icon: Users },
-        { path: '/roles', label: 'Roles y permisos', icon: Shield },
-        { path: '/reports', label: 'Reportes', icon: FileBarChart },
+        { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
+        { path: '/cash', label: 'Caja', icon: DollarSign, permission: 'Menus.Cash.View' },
+        { path: '/users', label: 'Usuarios', icon: Users, permission: 'Admin.Users.Manage' },
+        { path: '/roles', label: 'Roles y permisos', icon: Shield, permission: 'Admin.Roles.Manage' },
+        { path: '/reports', label: 'Reportes', icon: FileBarChart, permission: 'Menus.Reports.View' },
     ];
+
+    const hasPermission = (permission?: string) => {
+        if (!permission) return true;
+        // Si el usuario es Admin (rol), tiene acceso a todo (opcional, pero seguro)
+        if (user?.roles?.includes('Admin')) return true;
+        return user?.permissions?.includes(permission);
+    };
 
     useEffect(() => {
         // Auto-expand menu if active item is inside
         navItems.forEach(item => {
             if (item.submenu) {
-                const hasActiveChild = item.submenu.some(sub => sub.path === location.pathname);
+                const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
+                const hasActiveChild = visibleSubItems.some(sub => sub.path === location.pathname);
                 if (hasActiveChild && !expandedMenus.includes(item.label)) {
                     setExpandedMenus(prev => [...prev, item.label]);
                 }
             }
         });
-    }, [location.pathname]);
+    }, [location.pathname, user]); // Added user dependency
 
     const toggleMenu = (label: string) => {
         if (!isSidebarOpen) setIsSidebarOpen(true);
@@ -97,8 +107,14 @@ const Layout = () => {
                         const Icon = item.icon;
                         
                         if (item.submenu) {
+                            // Filter submenu items based on permissions
+                            const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
+                            
+                            // If no subitems are visible, don't render the group
+                            if (visibleSubItems.length === 0) return null;
+
                             const isExpanded = expandedMenus.includes(item.label);
-                            const hasActiveChild = item.submenu.some(sub => sub.path === location.pathname);
+                            const hasActiveChild = visibleSubItems.some(sub => sub.path === location.pathname);
                             const isActive = hasActiveChild; 
 
                             return (
@@ -124,7 +140,7 @@ const Layout = () => {
                                     {/* Submenu */}
                                     <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isExpanded && isSidebarOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0")}>
                                         <div className="bg-slate-900/30 rounded-lg py-1 ml-3 border-l border-slate-700">
-                                            {item.submenu.map((subItem) => {
+                                            {visibleSubItems.map((subItem) => {
                                                 const SubIcon = subItem.icon;
                                                 const isSubActive = location.pathname === subItem.path;
                                                 return (
@@ -148,6 +164,9 @@ const Layout = () => {
                                 </div>
                             );
                         }
+
+                        // Check permission for single items
+                        if (!hasPermission(item.permission)) return null;
 
                         const isActive = location.pathname === item.path;
                         return (

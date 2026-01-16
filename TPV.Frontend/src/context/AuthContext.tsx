@@ -5,6 +5,8 @@ import api from '../api/axios';
 interface User {
     email: string;
     id: string;
+    permissions?: string[];
+    roles?: string[];
 }
 
 interface AuthContextType {

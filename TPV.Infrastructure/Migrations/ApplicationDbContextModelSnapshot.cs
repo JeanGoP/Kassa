@@ -486,6 +486,9 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ServiceOrderId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -501,6 +504,10 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("BranchId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("ServiceOrderId")
+                        .IsUnique()
+                        .HasFilter("[ServiceOrderId] IS NOT NULL");
 
                     b.ToTable("Sales");
                 });
@@ -558,11 +565,26 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CloseReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CloseType")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
+
+                    b.Property<string>("CustomerSignatureName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeliveryNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExitDateTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("FuelLevel")
                         .IsRequired()
@@ -578,6 +600,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<decimal>("LaborCost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("Mileage")
                         .HasColumnType("decimal(18,2)");
 
@@ -587,6 +612,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<string>("Plate")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SpecialCloseSupervisorName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
@@ -615,6 +643,57 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("ServiceOrders");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderPart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServiceOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.ToTable("ServiceOrderParts");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderWork", b =>
@@ -984,9 +1063,16 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
+                        .WithOne("Sale")
+                        .HasForeignKey("TPV.Domain.Entities.Sale", "ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Branch");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("ServiceOrder");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.SaleDetail", b =>
@@ -1017,6 +1103,25 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderPart", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
+                        .WithMany()
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ServiceOrder");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderWork", b =>
@@ -1081,6 +1186,12 @@ namespace TPV.Infrastructure.Migrations
             modelBuilder.Entity("TPV.Domain.Entities.Sale", b =>
                 {
                     b.Navigation("SaleDetails");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ServiceOrder", b =>
+                {
+                    b.Navigation("Sale")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

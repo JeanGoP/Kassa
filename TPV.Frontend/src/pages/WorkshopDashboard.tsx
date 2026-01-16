@@ -16,6 +16,7 @@ import {
 interface OrderStatusStat {
   status: string;
   count: number;
+  [key: string]: string | number;
 }
 
 interface RevenueExpenseStat {
@@ -146,7 +147,7 @@ const WorkshopDashboard: React.FC = () => {
                   dataKey="count"
                   nameKey="status"
                 >
-                  {data.orderStatusStats.map((entry, index) => (
+                  {data.orderStatusStats.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
