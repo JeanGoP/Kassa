@@ -11,15 +11,21 @@ using TPV.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Permissions.AdminRolesManage, policy =>
+        policy.RequireClaim("permission", Permissions.AdminRolesManage));
+    options.AddPolicy(Permissions.AdminUsersManage, policy =>
+        policy.RequireClaim("permission", Permissions.AdminUsersManage));
+});
 builder.Services.AddSession();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173") // Vite default port
+            policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174") // Vite default port and fallback
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -67,6 +73,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

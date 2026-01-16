@@ -17,105 +17,105 @@ build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = TPV.Web
 build_property.RootNamespace = TPV.Web
-build_property.ProjectDir = C:\Desarrollos propios\TPV\TPV.Web\
+build_property.ProjectDir = c:\Desarrollos propios\TPV\TPV.Web\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 9.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Desarrollos propios\TPV\TPV.Web
+build_property.MSBuildProjectDirectory = c:\Desarrollos propios\TPV\TPV.Web
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 9.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Account/Login.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Account/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Account/Register.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Account/Register.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxSZWdpc3Rlci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Close.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Close.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaFxDbG9zZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Open.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Open.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaFxPcGVuLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Status.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Cash/Status.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaFxTdGF0dXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Home/Index.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Home/Privacy.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Inventory/Alerts.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Inventory/Alerts.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52ZW50b3J5XEFsZXJ0cy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Inventory/Index.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Inventory/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52ZW50b3J5XEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Products/Create.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Products/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHVjdHNcQ3JlYXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Products/Index.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Products/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHVjdHNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Reports/Index.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Reports/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Reports/MarginByProduct.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Reports/MarginByProduct.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xNYXJnaW5CeVByb2R1Y3QuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Reports/SalesByBranch.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Reports/SalesByBranch.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xTYWxlc0J5QnJhbmNoLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Cart.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Cart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcQ2FydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Checkout.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Checkout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcQ2hlY2tvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Receipt.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Sales/Receipt.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2FsZXNcUmVjZWlwdC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Shared/Error.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_LoginPartial.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_LoginPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9Mb2dpblBhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_ValidationScriptsPartial.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/_ViewImports.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/_ViewStart.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_Layout.cshtml]
+[c:/Desarrollos propios/TPV/TPV.Web/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-uc5tz6cxnl

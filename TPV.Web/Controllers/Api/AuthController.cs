@@ -22,7 +22,7 @@ namespace TPV.Web.Controllers.Api
         {
             if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                return BadRequest("Email and password are required.");
+                return BadRequest("El correo electrónico y la contraseña son obligatorios.");
             }
 
             var result = await _signInManager.PasswordSignInAsync(request.Email, request.Password, request.RememberMe, lockoutOnFailure: false);
@@ -30,17 +30,17 @@ namespace TPV.Web.Controllers.Api
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByEmailAsync(request.Email);
-                return Ok(new { message = "Login successful", user = new { user.Email, user.Id } });
+                return Ok(new { message = "Inicio de sesión exitoso.", user = new { user.Email, user.Id } });
             }
 
-            return Unauthorized("Invalid login attempt.");
+            return Unauthorized("Intento de inicio de sesión no válido. Verifique sus credenciales.");
         }
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return Ok(new { message = "Logged out" });
+            return Ok(new { message = "Sesión cerrada correctamente." });
         }
 
         [HttpGet("user")]

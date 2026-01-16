@@ -96,17 +96,66 @@ namespace TPV.Application.Services
             return await GetByIdAsync(createdPurchase.Id) ?? new PurchaseDto();
         }
 
-        public async Task<IEnumerable<PurchaseDto>> GetAllAsync()
+        public async Task<IEnumerable<PurchaseDto>> GetAllAsync(string? search = null)
         {
-            var purchases = await _purchaseRepository.GetAsync(null, query => query.OrderByDescending(p => p.Date), "Supplier,Branch");
+            var purchases = await _purchaseRepository.GetAsync(
+                p => string.IsNullOrEmpty(search) ||
+                     p.ReferenceNumber.Contains(search) ||
+                     (p.Supplier != null && p.Supplier.Name.Contains(search)),
+                query => query.OrderByDescending(p => p.Id),
+                "Supplier,Branch");
             return purchases.Select(MapToDto);
         }
 
         public async Task<PurchaseDto?> GetByIdAsync(int id)
         {
-            var purchases = await _purchaseRepository.GetAsync(p => p.Id == id, null, "Supplier,Branch,PurchaseDetails.Product");
+            var purchases = await _purchaseRepository.GetAsync(
+                p => p.Id == id,
+                null,
+                "Supplier,Branch,PurchaseDetails.Product");
             var purchase = purchases.FirstOrDefault();
             return purchase == null ? null : MapToDto(purchase);
+        }
+
+        public async Task<bool> DeleteAsync(int id, string userId)
+        {
+            var purchases = await _purchaseRepository.GetAsync(
+                p => p.Id == id,
+                null,
+                "PurchaseDetails");
+
+            var purchase = purchases.FirstOrDefault();
+            if (purchase == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                foreach (var detail in purchase.PurchaseDetails)
+                {
+                    var stocks = await _stockRepository.GetAsync(s =>
+                        s.ProductId == detail.ProductId &&
+                        s.BranchId == purchase.BranchId);
+
+                    var stock = stocks.FirstOrDefault();
+                    if (stock == null)
+                    {
+                        continue;
+                    }
+
+                    var newQuantity = stock.Quantity - detail.Quantity;
+                    stock.Quantity = newQuantity < 0 ? 0 : newQuantity;
+                    await _stockRepository.UpdateAsync(stock);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error ajustando stock al eliminar compra {id}: {ex.Message}");
+            }
+
+            await _purchaseRepository.DeleteAsync(purchase);
+            return true;
         }
 
         private PurchaseDto MapToDto(Purchase p)

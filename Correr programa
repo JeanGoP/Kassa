@@ -1,0 +1,9 @@
+cd "c:\Desarrollos propios\TPV"
+dotnet build "TPV.Web\TPV.Web.csproj"
+dotnet run --project "TPV.Web\TPV.Web.csproj"
+
+cd "c:\Desarrollos propios\TPV\TPV.Frontend"
+npm install
+npm run dev
+
+

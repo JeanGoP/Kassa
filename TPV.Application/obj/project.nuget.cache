@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "cTxps/lpFAo=",
+  "dgSpecHash": "EWsvvc1mPe8=",
   "success": true,
-  "projectFilePath": "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
+  "projectFilePath": "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Jean Sidecil\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.0\\microsoft.extensions.dependencyinjection.abstractions.9.0.0.nupkg.sha512"
   ],

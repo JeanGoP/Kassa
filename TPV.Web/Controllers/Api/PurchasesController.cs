@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
 
@@ -25,9 +26,9 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PurchaseDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<PurchaseDto>>> GetAll([FromQuery] string? search)
         {
-            return Ok(await _purchaseService.GetAllAsync());
+            return Ok(await _purchaseService.GetAllAsync(search));
         }
 
         [HttpGet("{id}")]
@@ -36,6 +37,24 @@ namespace TPV.Web.Controllers.Api
             var purchase = await _purchaseService.GetByIdAsync(id);
             if (purchase == null) return NotFound();
             return Ok(purchase);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Unknown";
+
+            try
+            {
+                var result = await _purchaseService.DeleteAsync(id, userId);
+                if (!result) return NotFound();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting purchase {id}: {ex.Message}");
+            }
+
+            return NoContent();
         }
     }
 }

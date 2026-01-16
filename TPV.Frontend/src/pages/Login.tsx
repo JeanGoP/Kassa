@@ -19,7 +19,14 @@ const Login = () => {
             navigate('/');
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data || 'Login failed');
+            const backendMessage = err.response?.data;
+            if (typeof backendMessage === 'string') {
+                setError(backendMessage);
+            } else if (backendMessage?.message) {
+                setError(backendMessage.message);
+            } else {
+                setError('No se pudo iniciar sesión. Intente nuevamente.');
+            }
         }
     };
 

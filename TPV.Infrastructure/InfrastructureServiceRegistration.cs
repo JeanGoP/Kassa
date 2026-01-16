@@ -6,6 +6,7 @@ using TPV.Infrastructure.Identity;
 using TPV.Infrastructure.Persistence;
 using TPV.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace TPV.Infrastructure
 {
@@ -18,7 +19,10 @@ namespace TPV.Infrastructure
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddErrorDescriber<SpanishIdentityErrorDescriber>()
                 .AddDefaultTokenProviders();
+
+            services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, ApplicationUserClaimsPrincipalFactory>();
 
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

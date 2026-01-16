@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -50,6 +50,8 @@ const Layout = () => {
         { path: '/inventory', label: 'Inventario', icon: Package },
         { path: '/cash', label: 'Caja', icon: DollarSign },
         { path: '/branches', label: 'Sucursales', icon: MapPin },
+        { path: '/users', label: 'Usuarios', icon: Users },
+        { path: '/roles', label: 'Roles y permisos', icon: Shield },
         { path: '/reports', label: 'Reportes', icon: FileBarChart },
     ];
 
