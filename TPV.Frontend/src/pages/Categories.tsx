@@ -16,10 +16,8 @@ interface CategoryNode extends Category {
 }
 
 const Categories = () => {
-    const [categories, setCategories] = useState<Category[]>([]);
     const [tree, setTree] = useState<CategoryNode[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -44,7 +42,6 @@ const Categories = () => {
                 level: c.level ?? c.Level ?? 1,
                 parentId: c.parentId ?? c.ParentId ?? null
             }));
-            setCategories(data);
             const builtTree = buildTree(data);
             setTree(builtTree);
             setExpandedIds(builtTree.map(n => n.id));
@@ -106,11 +103,9 @@ const Categories = () => {
                 isPrimary: true
             });
         }
-        setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
-        setIsModalOpen(false);
         setCurrentCategory(null);
     };
 

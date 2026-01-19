@@ -81,6 +81,7 @@ const POS = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [amountPaid, setAmountPaid] = useState(0);
     const [lastSale, setLastSale] = useState<SaleResult | null>(null);
     const [processing, setProcessing] = useState(false);
 
@@ -97,13 +98,23 @@ const POS = () => {
     });
     const [creatingCustomer, setCreatingCustomer] = useState(false);
 
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
     // --- Effects ---
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchProducts();
         }, 300);
+
         return () => clearTimeout(timer);
     }, [productSearch]);
+
+    // Update amountPaid when payment method changes (auto-fill total for non-cash)
+    useEffect(() => {
+        if (paymentMethod !== 'Cash') {
+            setAmountPaid(total);
+        }
+    }, [paymentMethod, total]);
 
     useEffect(() => {
         if (customerSearch.length > 2) {
@@ -163,11 +174,10 @@ const POS = () => {
         setCart(prev => prev.filter(item => item.id !== id));
     };
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
     // --- Checkout Logic ---
     const handleInitiateCheckout = () => {
         if (cart.length === 0) return;
+        setAmountPaid(total);
         setShowPaymentModal(true);
     };
 
@@ -450,12 +460,12 @@ const POS = () => {
                         </div>
                         
                         <div className="p-6">
-                            <div className="text-center mb-8">
+                            <div className="text-center mb-6">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide mb-1">Total a Pagar</p>
                                 <p className="text-4xl font-extrabold text-slate-800">${total.toFixed(2)}</p>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3 mb-8">
+                            <div className="grid grid-cols-3 gap-3 mb-6">
                                 {['Cash', 'Card', 'Transfer'].map(method => (
                                     <button
                                         key={method}
@@ -475,10 +485,36 @@ const POS = () => {
                                 ))}
                             </div>
 
+                            <div className="mb-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Monto Recibido
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                                        <input
+                                            type="number"
+                                            value={amountPaid}
+                                            onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full pl-8 pr-4 py-3 text-2xl font-bold text-slate-800 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-colors"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <span className="text-slate-600 font-medium">Su cambio:</span>
+                                    <span className={clsx("text-2xl font-bold", (amountPaid - Number(total.toFixed(2))) >= 0 ? "text-green-600" : "text-red-500")}>
+                                        ${Math.max(0, amountPaid - total).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
                             <button 
                                 onClick={processSale}
-                                disabled={processing}
-                                className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 flex justify-center items-center gap-2 shadow-lg shadow-green-500/30 transition-all"
+                                disabled={processing || amountPaid < Number(total.toFixed(2))}
+                                className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-green-500/30 transition-all"
                             >
                                 {processing ? (
                                     <span>Procesando...</span>
@@ -542,7 +578,11 @@ const POS = () => {
                                     </div>
                                     <div className="flex justify-between text-gray-500 mt-2">
                                         <span>Pago ({lastSale.paymentMethod})</span>
-                                        <span>${lastSale.totalAmount.toFixed(2)}</span>
+                                        <span>${amountPaid.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-500">
+                                        <span>Cambio</span>
+                                        <span>${Math.max(0, amountPaid - lastSale.totalAmount).toFixed(2)}</span>
                                     </div>
                                 </div>
                                 
