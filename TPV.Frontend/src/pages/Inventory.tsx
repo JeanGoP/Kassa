@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { Package, AlertTriangle, Edit, Save, X } from 'lucide-react';
+import { Package, AlertTriangle, Edit, Save, X, MapPin } from 'lucide-react';
 
 interface StockItem {
     id: number;
@@ -10,6 +10,13 @@ interface StockItem {
     minStockLevel: number;
     maxStockLevel: number;
     sku: string;
+    branchId: number;
+    branchName: string;
+}
+
+interface Branch {
+    id: number;
+    name: string;
 }
 
 const Inventory = () => {
@@ -17,16 +24,31 @@ const Inventory = () => {
     const [alerts, setAlerts] = useState<any[]>([]);
     const [, setLoading] = useState(true);
     const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
 
     useEffect(() => {
-        fetchData();
+        const init = async () => {
+            try {
+                const res = await api.get('/branches');
+                const branchList: Branch[] = res.data;
+                setBranches(branchList);
+                const initialBranchId = branchList.length > 0 ? branchList[0].id : 1;
+                setSelectedBranchId(initialBranchId);
+                await fetchData(initialBranchId);
+            } catch (error) {
+                console.error(error);
+                setLoading(false);
+            }
+        };
+        init();
     }, []);
 
-    const fetchData = async () => {
+    const fetchData = async (branchId: number) => {
         try {
             const [stockRes, alertsRes] = await Promise.all([
-                api.get('/inventory'),
-                api.get('/inventory/alerts')
+                api.get(`/inventory?branchId=${branchId}`),
+                api.get(`/inventory/alerts?branchId=${branchId}`)
             ]);
             setStock(stockRes.data);
             setAlerts(alertsRes.data);
@@ -46,15 +68,16 @@ const Inventory = () => {
     };
 
     const handleSaveEdit = async () => {
-        if (!editingItem) return;
+        if (!editingItem || selectedBranchId === null) return;
         try {
             await api.put(`/inventory/${editingItem.productId}`, {
+                branchId: selectedBranchId,
                 quantity: editingItem.quantity,
                 minStockLevel: editingItem.minStockLevel,
                 maxStockLevel: editingItem.maxStockLevel
             });
             setEditingItem(null);
-            fetchData();
+            await fetchData(selectedBranchId);
         } catch (error) {
             console.error("Error updating stock", error);
             alert("Error al actualizar el stock");
@@ -67,8 +90,37 @@ const Inventory = () => {
         setEditingItem({ ...editingItem, [name]: parseInt(value) || 0 });
     };
 
+    const handleBranchChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = parseInt(e.target.value);
+        setSelectedBranchId(id);
+        await fetchData(id);
+    };
+
     return (
         <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Package className="text-slate-700" />
+                    <h2 className="font-bold text-xl text-slate-800">Inventario</h2>
+                </div>
+                {branches.length > 0 && (
+                    <div className="flex items-center gap-2">
+                        <MapPin size={18} className="text-slate-500" />
+                        <select
+                            value={selectedBranchId ?? ''}
+                            onChange={handleBranchChange}
+                            className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>
+                                    {b.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
+
             {/* Alerts Section */}
             {alerts.length > 0 && (
                 <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded shadow-sm">
@@ -99,6 +151,7 @@ const Inventory = () => {
                             <tr>
                                 <th className="p-4 border-b">Producto</th>
                                 <th className="p-4 border-b">SKU</th>
+                                <th className="p-4 border-b">Sucursal</th>
                                 <th className="p-4 border-b text-center">Cantidad</th>
                                 <th className="p-4 border-b text-center">Min</th>
                                 <th className="p-4 border-b text-center">Max</th>
@@ -111,6 +164,7 @@ const Inventory = () => {
                                 <tr key={item.id} className="hover:bg-gray-50 border-b last:border-0">
                                     <td className="p-4">{item.productName}</td>
                                     <td className="p-4 text-sm text-gray-500">{item.sku}</td>
+                                    <td className="p-4 text-sm text-gray-600">{item.branchName}</td>
                                     
                                     {editingItem && editingItem.id === item.id ? (
                                         <>

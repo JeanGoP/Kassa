@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Trash2, Save, ArrowLeft, Calendar, FileText } from 'lucide-react';
+import { Search, Plus, Trash2, Save, ArrowLeft, Calendar, FileText, MapPin } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -11,6 +11,11 @@ interface Product {
 }
 
 interface Supplier {
+    id: number;
+    name: string;
+}
+
+interface Branch {
     id: number;
     name: string;
 }
@@ -27,15 +32,32 @@ const CreatePurchase = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState('');
+    const [branches, setBranches] = useState<Branch[]>([]);
     
     // Form State
     const [supplierId, setSupplierId] = useState<number | ''>('');
+    const [branchId, setBranchId] = useState<number | ''>('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [referenceNumber, setReferenceNumber] = useState('');
     const [details, setDetails] = useState<PurchaseItem[]>([]);
 
     useEffect(() => {
-        fetchSuppliers();
+        const init = async () => {
+            try {
+                const [suppliersRes, branchesRes] = await Promise.all([
+                    api.get('/suppliers'),
+                    api.get('/branches')
+                ]);
+                setSuppliers(suppliersRes.data);
+                setBranches(branchesRes.data);
+                if (branchesRes.data && branchesRes.data.length > 0) {
+                    setBranchId(branchesRes.data[0].id);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        init();
     }, []);
 
     useEffect(() => {
@@ -45,15 +67,6 @@ const CreatePurchase = () => {
             setProducts([]);
         }
     }, [search]);
-
-    const fetchSuppliers = async () => {
-        try {
-            const response = await api.get('/suppliers');
-            setSuppliers(response.data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
     const fetchProducts = async () => {
         try {
@@ -92,15 +105,15 @@ const CreatePurchase = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!supplierId || details.length === 0) {
-            alert('Seleccione un proveedor y agregue productos');
+        if (!supplierId || !branchId || details.length === 0) {
+            alert('Seleccione un proveedor, una sucursal y agregue productos');
             return;
         }
 
         try {
             const payload = {
                 supplierId,
-                branchId: 1, // Default branch
+                branchId,
                 date,
                 referenceNumber,
                 details: details.map(d => ({
@@ -133,7 +146,7 @@ const CreatePurchase = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Header Info */}
-                <div className="bg-white p-6 rounded-xl shadow-md grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-md grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
                         <select 
@@ -172,6 +185,24 @@ const CreatePurchase = () => {
                                 value={referenceNumber}
                                 onChange={(e) => setReferenceNumber(e.target.value)}
                             />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal / Bodega</label>
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                            <select
+                                className="w-full pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={branchId}
+                                onChange={(e) => setBranchId(Number(e.target.value))}
+                                required
+                            >
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>
+                                        {b.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -275,7 +306,7 @@ const CreatePurchase = () => {
                 <div className="flex justify-end">
                     <button 
                         type="submit" 
-                        disabled={details.length === 0 || !supplierId}
+                        disabled={details.length === 0 || !supplierId || !branchId}
                         className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/30 flex items-center font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         <Save size={24} className="mr-2" />

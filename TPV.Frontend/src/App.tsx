@@ -9,6 +9,7 @@ import Reports from './pages/Reports';
 import Suppliers from './pages/Suppliers';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
+import Categories from './pages/Categories';
 import Purchases from './pages/Purchases';
 import CreatePurchase from './pages/CreatePurchase';
 import PurchasePrint from './pages/PurchasePrint';
@@ -47,6 +48,7 @@ const AppRoutes = () => {
                 <Route path="pos" element={<POS />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="products" element={<Products />} />
+                <Route path="categories" element={<Categories />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="suppliers" element={<Suppliers />} />
                 <Route path="technicians" element={<Technicians />} />

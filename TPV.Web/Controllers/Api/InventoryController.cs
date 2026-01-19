@@ -16,32 +16,33 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetStock()
+        public async Task<IActionResult> GetStock([FromQuery] int? branchId)
         {
-            // Defaulting to branch 1
-            var stock = await _stockService.GetStockByBranchAsync(1);
+            var effectiveBranchId = branchId.GetValueOrDefault(1);
+            var stock = await _stockService.GetStockByBranchAsync(effectiveBranchId);
             return Ok(stock);
         }
 
         [HttpGet("alerts")]
-        public async Task<IActionResult> GetAlerts()
+        public async Task<IActionResult> GetAlerts([FromQuery] int? branchId)
         {
-            // Defaulting to branch 1
-            var alerts = await _stockService.GetLowStockAlertsAsync(1);
+            var effectiveBranchId = branchId.GetValueOrDefault(1);
+            var alerts = await _stockService.GetLowStockAlertsAsync(effectiveBranchId);
             return Ok(alerts);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStock(int id, [FromBody] UpdateStockRequest request)
         {
-            // Defaulting to branch 1
-            await _stockService.UpdateStockAsync(id, 1, request.Quantity, request.MinStockLevel, request.MaxStockLevel);
+            var effectiveBranchId = request.BranchId.GetValueOrDefault(1);
+            await _stockService.UpdateStockAsync(id, effectiveBranchId, request.Quantity, request.MinStockLevel, request.MaxStockLevel);
             return Ok();
         }
     }
 
     public class UpdateStockRequest
     {
+        public int? BranchId { get; set; }
         public int Quantity { get; set; }
         public int MinStockLevel { get; set; }
         public int MaxStockLevel { get; set; }

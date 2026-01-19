@@ -34,15 +34,37 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<CategoryDto>> Create(CreateCategoryDto dto)
         {
-            var created = await _categoryService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var created = await _categoryService.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error interno al crear la categoría: " + ex.Message);
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, CreateCategoryDto dto)
         {
-            await _categoryService.UpdateAsync(id, dto);
-            return NoContent();
+            try
+            {
+                await _categoryService.UpdateAsync(id, dto);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error interno al actualizar la categoría: " + ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]

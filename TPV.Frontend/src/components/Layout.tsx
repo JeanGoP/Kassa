@@ -44,6 +44,7 @@ const Layout = () => {
             icon: Boxes,
             submenu: [
                 { path: '/products', label: 'Productos', icon: Tags, permission: 'Menus.Products.View' },
+                { path: '/categories', label: 'Categorías', icon: Tags, permission: 'Menus.Products.View' },
                 { path: '/customers', label: 'Clientes', icon: UserCircle, permission: 'Menus.Customers.View' },
                 { path: '/suppliers', label: 'Proveedores', icon: Users, permission: 'Menus.Suppliers.View' },
                 { path: '/technicians', label: 'Técnicos', icon: UserCog, permission: 'Menus.Technicians.View' },
