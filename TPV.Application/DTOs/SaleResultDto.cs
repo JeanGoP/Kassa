@@ -13,6 +13,8 @@ namespace TPV.Application.DTOs
         public string? CustomerName { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; }
+        public string? Cufe { get; set; }
+        public string? QrCode { get; set; }
         public List<SaleItemDto> Items { get; set; } = new();
     }
 }

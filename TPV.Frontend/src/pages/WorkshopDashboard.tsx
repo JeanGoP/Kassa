@@ -161,8 +161,8 @@ const WorkshopDashboard: React.FC = () => {
         {/* Revenue vs Expenses Chart */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Ingresos vs Gastos (Últimos 7 días)</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart
                 data={data.revenueExpenseStats}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 
@@ -37,6 +37,7 @@ const Layout = () => {
                 { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList, permission: 'Menus.Workshop.View' },
                 { path: '/service-orders/repuestos', label: 'Repuestos e Insumos', icon: Boxes, permission: 'Menus.Workshop.View' },
                 { path: '/service-orders/cierre', label: 'Cierre, Entrega y Facturación', icon: CheckCircle, permission: 'Menus.Workshop.View' },
+                { path: '/warranties', label: 'Garantías', icon: Shield, permission: 'Menus.Workshop.View' },
             ]
         },
         { 
@@ -53,15 +54,21 @@ const Layout = () => {
         },
         { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
         { path: '/cash', label: 'Caja', icon: DollarSign, permission: 'Menus.Cash.View' },
-        { path: '/users', label: 'Usuarios', icon: Users, permission: 'Admin.Users.Manage' },
-        { path: '/roles', label: 'Roles y permisos', icon: Shield, permission: 'Admin.Roles.Manage' },
+        {
+            label: 'Seguridad',
+            icon: Shield,
+            submenu: [
+                ...(!user?.tenantId ? [{ path: '/tenants', label: 'Empresas', icon: Building2, permission: 'Host.Tenants.Manage' }] : []),
+                { path: '/users', label: 'Usuarios', icon: Users, permission: 'Admin.Users.Manage' },
+                { path: '/roles', label: 'Roles y permisos', icon: Shield, permission: 'Admin.Roles.Manage' },
+            ]
+        },
         { path: '/reports', label: 'Reportes', icon: FileBarChart, permission: 'Menus.Reports.View' },
     ];
 
     const hasPermission = (permission?: string) => {
+        if (!user?.tenantId) return true; // SuperAdmin has access to everything
         if (!permission) return true;
-        // Si el usuario es Admin (rol), tiene acceso a todo (opcional, pero seguro)
-        if (user?.roles?.includes('Admin')) return true;
         return user?.permissions?.includes(permission);
     };
 

@@ -34,15 +34,37 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<CustomerDto>> Create(CreateCustomerDto dto)
         {
-            var created = await _customerService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var created = await _customerService.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("Ya existe"))
+                {
+                    return Conflict(new { message = ex.Message });
+                }
+                return StatusCode(500, new { message = "Error al guardar el cliente." });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, CreateCustomerDto dto)
         {
-            await _customerService.UpdateAsync(id, dto);
-            return NoContent();
+            try
+            {
+                await _customerService.UpdateAsync(id, dto);
+                return NoContent();
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("Ya existe"))
+                {
+                    return Conflict(new { message = ex.Message });
+                }
+                return StatusCode(500, new { message = "Error al actualizar el cliente." });
+            }
         }
 
         [HttpDelete("{id}")]

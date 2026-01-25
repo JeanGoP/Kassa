@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus } from 'lucide-react';
+import { calculateNitVerificationDigit } from '../utils/nit';
+import AddressBuilder from '../components/AddressBuilder';
+import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus, MapPin } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Product {
@@ -27,8 +29,10 @@ interface Customer {
 }
 
 interface NewCustomer {
-    firstName: string;
-    lastName: string;
+    firstName1: string;
+    firstName2: string;
+    lastName1: string;
+    lastName2: string;
     email: string;
     phone: string;
     address: string;
@@ -37,16 +41,16 @@ interface NewCustomer {
 }
 
 const IDENTIFICATION_TYPES = [
-    "(RCN) Registro Civil de Nacimiento",
-    "(TI) Tarjeta de Identidad",
-    "(CC) Cédula de Ciudadanía",
-    "(CD) Cédula Digital",
-    "(CE) Cédula de Extranjería",
-    "(PA) Pasaporte",
-    "(PEP) Permiso Especial de Permanencia",
-    "(PPT) Permiso por Protección Temporal",
-    "(NUIP) Número Único de Identificación Personal",
-    "(NIT) Número de Identificación Tributaria"
+    "RCN Registro Civil de Nacimiento",
+    "TI Tarjeta de Identidad",
+    "CC Cédula de Ciudadanía",
+    "CD Cédula Digital",
+    "CE Cédula de Extranjería",
+    "PA Pasaporte",
+    "PEP Permiso Especial de Permanencia",
+    "PPT Permiso por Protección Temporal",
+    "NUIP Número Único de Identificación Personal",
+    "NIT Número de Identificación Tributaria"
 ];
 
 interface SaleResult {
@@ -56,6 +60,8 @@ interface SaleResult {
     totalAmount: number;
     paymentMethod: string;
     customerName?: string;
+    cufe?: string;
+    qrCode?: string;
     items: {
         productName: string;
         quantity: number;
@@ -87,9 +93,13 @@ const POS = () => {
 
     // Create Customer Modal
     const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+    const [showAddressBuilder, setShowAddressBuilder] = useState(false);
+    const [personType, setPersonType] = useState<'Natural' | 'Juridica'>('Natural');
     const [newCustomer, setNewCustomer] = useState<NewCustomer>({
-        firstName: '',
-        lastName: '',
+        firstName1: '',
+        firstName2: '',
+        lastName1: '',
+        lastName2: '',
         email: '',
         phone: '',
         address: '',
@@ -182,23 +192,49 @@ const POS = () => {
     };
 
     const handleCreateCustomer = async () => {
-        if (!newCustomer.firstName || !newCustomer.lastName) {
-            alert("Nombre y Apellido son obligatorios");
-            return;
+        const isJuridica = personType === 'Juridica';
+
+        if (isJuridica) {
+            if (!newCustomer.firstName1) {
+                alert("Razón Social es obligatoria");
+                return;
+            }
+        } else {
+            if (!newCustomer.firstName1 || !newCustomer.lastName1) {
+                alert("Primer Nombre y Primer Apellido son obligatorios");
+                return;
+            }
         }
 
         setCreatingCustomer(true);
         try {
-            const response = await api.post('/customers', newCustomer);
+            const payload = {
+                firstName: isJuridica 
+                    ? newCustomer.firstName1.trim()
+                    : `${newCustomer.firstName1} ${newCustomer.firstName2}`.trim(),
+                lastName: isJuridica
+                    ? "."
+                    : `${newCustomer.lastName1} ${newCustomer.lastName2}`.trim(),
+                email: newCustomer.email,
+                phone: newCustomer.phone,
+                address: newCustomer.address,
+                taxId: newCustomer.taxId,
+                identificationType: newCustomer.identificationType
+            };
+
+            const response = await api.post('/customers', payload);
             const createdCustomer = response.data;
             
             setCustomers([createdCustomer]);
             setSelectedCustomer(createdCustomer);
             setShowCreateCustomerModal(false);
             setCustomerSearch('');
+            setPersonType('Natural');
             setNewCustomer({
-                firstName: '',
-                lastName: '',
+                firstName1: '',
+                firstName2: '',
+                lastName1: '',
+                lastName2: '',
                 email: '',
                 phone: '',
                 address: '',
@@ -214,39 +250,51 @@ const POS = () => {
     };
 
     const processSale = async () => {
+        if (cart.length === 0) return;
+        
         setProcessing(true);
         try {
-            const saleData = {
-                items: cart.map(item => ({ productId: item.id, quantity: item.quantity })),
-                paymentMethod: paymentMethod,
+            const payload = {
+                branchId: 1, // Default branch
                 customerId: selectedCustomer?.id || null,
-                branchId: 0 // Let backend decide default branch
+                items: cart.map(item => ({
+                    productId: item.id,
+                    quantity: item.quantity
+                })),
+                paymentMethod
             };
-            
-            const response = await api.post('/sales/checkout', saleData);
+
+            const response = await api.post('/sales/checkout', payload);
             setLastSale(response.data);
-            
-            // Success actions
             setCart([]);
             setSelectedCustomer(null);
-            setCustomerSearch('');
             setShowPaymentModal(false);
             setShowTicketModal(true);
-            fetchProducts(); // Refresh stock
-            
-        } catch (error: any) {
-            console.error("Error processing sale", error);
-            const errorMessage = typeof error.response?.data === 'string' 
-                ? error.response.data 
-                : "Verifique el stock o intente nuevamente.";
-            alert(`Error al procesar la venta: ${errorMessage}`);
+            fetchProducts();
+        } catch (error) {
+            console.error("Error creating sale:", error);
+            alert("Error al procesar la venta");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleRetryInvoice = async () => {
+        if (!lastSale) return;
+        setProcessing(true);
+        try {
+            const response = await api.post(`/sales/${lastSale.saleId}/emit-invoice`);
+            setLastSale(response.data);
+        } catch (error) {
+            console.error("Error retrying invoice:", error);
+            alert("Error al emitir factura");
         } finally {
             setProcessing(false);
         }
     };
 
     return (
-        <div className="flex h-[calc(100vh-100px)] gap-6">
+        <div className="flex h-[calc(100vh-64px)] gap-4 p-4 max-w-[1600px] mx-auto">
             {/* LEFT: Product Catalog */}
             <div className="flex-1 bg-white rounded-xl shadow-md p-4 flex flex-col overflow-hidden">
                 <div className="mb-4 relative">
@@ -586,6 +634,32 @@ const POS = () => {
                                     </div>
                                 </div>
                                 
+                                {/* Electronic Invoicing */}
+                                {lastSale.cufe && lastSale.qrCode ? (
+                                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                                        <p className="text-xs font-bold text-gray-500 mb-2">Factura Electrónica</p>
+                                        <div className="flex justify-center mb-2">
+                                            <img 
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(lastSale.qrCode)}`} 
+                                                alt="QR Code" 
+                                                className="w-24 h-24"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 break-all leading-tight">CUFE: {lastSale.cufe}</p>
+                                    </div>
+                                ) : (
+                                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                                        <p className="text-xs text-amber-600 font-bold mb-2">Factura Electrónica Pendiente</p>
+                                        <button 
+                                            onClick={handleRetryInvoice}
+                                            disabled={processing}
+                                            className="bg-amber-100 text-amber-800 text-xs px-3 py-2 rounded hover:bg-amber-200 disabled:opacity-50 w-full font-bold transition-colors"
+                                        >
+                                            {processing ? 'Emitiendo...' : 'Emitir Factura Ahora'}
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Cut Line Visual */}
                                 <div className="absolute -bottom-3 -left-2 -right-2 h-6 bg-gray-50 rounded-full"></div>
                             </div>
@@ -623,27 +697,32 @@ const POS = () => {
                         
                         <div className="p-6">
                             <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={newCustomer.firstName}
-                                            onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={newCustomer.lastName}
-                                            onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})}
-                                        />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Persona</label>
+                                    <div className="flex space-x-4 mt-2">
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                value="Natural"
+                                                checked={personType === 'Natural'}
+                                                onChange={() => setPersonType('Natural')}
+                                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                            />
+                                            <span className="text-gray-700">Natural</span>
+                                        </label>
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                value="Juridica"
+                                                checked={personType === 'Juridica'}
+                                                onChange={() => setPersonType('Juridica')}
+                                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                            />
+                                            <span className="text-gray-700">Jurídica</span>
+                                        </label>
                                     </div>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
@@ -660,14 +739,87 @@ const POS = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={newCustomer.taxId}
+                                                onChange={(e) => setNewCustomer({ ...newCustomer, taxId: e.target.value })}
+                                            />
+                                            {newCustomer.identificationType.includes('NIT') && (
+                                                <div className="w-20">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full p-2 border border-gray-300 rounded-lg text-center bg-gray-50 text-gray-500 outline-none"
+                                                        value={calculateNitVerificationDigit(newCustomer.taxId)}
+                                                        readOnly
+                                                        title="Dígito de Verificación"
+                                                        placeholder="DV"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {personType === 'Juridica' ? (
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social *</label>
                                         <input
                                             type="text"
                                             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={newCustomer.taxId}
-                                            onChange={(e) => setNewCustomer({ ...newCustomer, taxId: e.target.value })}
+                                            value={newCustomer.firstName1}
+                                            onChange={(e) => setNewCustomer({...newCustomer, firstName1: e.target.value})}
+                                            required
                                         />
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newCustomer.firstName1}
+                                                    onChange={(e) => setNewCustomer({...newCustomer, firstName1: e.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newCustomer.firstName2}
+                                                    onChange={(e) => setNewCustomer({...newCustomer, firstName2: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newCustomer.lastName1}
+                                                    onChange={(e) => setNewCustomer({...newCustomer, lastName1: e.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={newCustomer.lastName2}
+                                                    onChange={(e) => setNewCustomer({...newCustomer, lastName2: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -692,11 +844,28 @@ const POS = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newCustomer.address}
-                                        onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                                            value={newCustomer.address}
+                                            readOnly
+                                            placeholder="Haga clic en el ícono para generar la dirección"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddressBuilder(true)}
+                                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-lg border border-blue-200 transition-colors"
+                                            title="Generador de Direcciones DIAN"
+                                        >
+                                            <MapPin size={20} />
+                                        </button>
+                                    </div>
+                                    <AddressBuilder
+                                        isOpen={showAddressBuilder}
+                                        onClose={() => setShowAddressBuilder(false)}
+                                        onConfirm={(addr) => setNewCustomer({...newCustomer, address: addr})}
+                                        initialValue={newCustomer.address}
                                     />
                                 </div>
                             </div>

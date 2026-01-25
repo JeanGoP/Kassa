@@ -5,8 +5,11 @@ using TPV.Domain.Interfaces;
 using TPV.Infrastructure.Identity;
 using TPV.Infrastructure.Persistence;
 using TPV.Infrastructure.Repositories;
+using TPV.Infrastructure.Services;
+using TPV.Application.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.Threading.Tasks;
 
 namespace TPV.Infrastructure
 {
@@ -22,7 +25,33 @@ namespace TPV.Infrastructure
                 .AddErrorDescriber<SpanishIdentityErrorDescriber>()
                 .AddDefaultTokenProviders();
 
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = 401;
+                        return Task.CompletedTask;
+                    }
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = 403;
+                        return Task.CompletedTask;
+                    }
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                };
+            });
+
             services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, ApplicationUserClaimsPrincipalFactory>();
+
+            services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

@@ -1,5 +1,7 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
 
 BEGIN TRANSACTION;
 
@@ -13,15 +15,15 @@ WHERE NormalizedEmail = UPPER(@AdminEmail);
 
 IF @AdminId IS NULL
 BEGIN
-    RAISERROR('No se encontrÛ el usuario administrador con email %s.', 16, 1, @AdminEmail);
-    ROLLBACK TRANSACTION;
-    RETURN;
-END;
-
-PRINT 'Id del usuario administrador: ' + @AdminId;
+    PRINT 'No se encontr√≥ el usuario administrador con email ' + @AdminEmail + '. Se proceder√° a borrar todos los usuarios.';
+END
+ELSE
+BEGIN
+    PRINT 'Id del usuario administrador: ' + @AdminId;
+END
 
 ------------------------------------------------------------
--- 2) DESHABILITAR TODAS LAS CLAVES FOR¡NEAS
+-- 2) DESHABILITAR TODAS LAS CLAVES FOR√ÅNEAS
 ------------------------------------------------------------
 DECLARE @sql NVARCHAR(MAX) = N'';
 
@@ -32,9 +34,7 @@ SELECT @sql = @sql +
 FROM sys.foreign_keys
 WHERE is_ms_shipped = 0;
 
-PRINT 'Deshabilitando claves for·neas...';
-PRINT @sql;
-
+PRINT 'Deshabilitando claves for√°neas...';
 EXEC sp_executesql @sql;
 
 ------------------------------------------------------------
@@ -42,6 +42,7 @@ EXEC sp_executesql @sql;
 ------------------------------------------------------------
 SET @sql = N'';
 
+-- Generar DELETE para todas las tablas que NO sean de Identity ni de Migraciones
 SELECT @sql = @sql + 
     N'DELETE FROM [' + s.name + N'].[' + t.name + N'];' + CHAR(13)
 FROM sys.tables t
@@ -50,36 +51,78 @@ WHERE t.name NOT LIKE 'AspNet%'              -- excluir tab. Identity
   AND t.name <> '__EFMigrationsHistory';     -- conservar migraciones
 
 PRINT 'Eliminando datos de tablas de dominio...';
-PRINT @sql;
-
 EXEC sp_executesql @sql;
 
 ------------------------------------------------------------
--- 4) LIMPIAR IDENTITY PARA USUARIOS QUE NO SON EL ADMIN
+-- 4) LIMPIAR IDENTITY
 ------------------------------------------------------------
 
--- Tokens de usuarios no admin
-DELETE FROM AspNetUserTokens
-WHERE UserId <> @AdminId;
+-- A) Renombrar rol Ventas a Vendedor si existe (para migraci√≥n)
+IF EXISTS (SELECT 1 FROM AspNetRoles WHERE Name = 'Vendedor')
+BEGIN
+    -- Vendedor ya existe, borramos Ventas si existe para evitar duplicados
+    DELETE FROM AspNetRoles WHERE Name = 'Ventas';
+END
+ELSE
+BEGIN
+    -- Renombrar Ventas a Vendedor
+    UPDATE AspNetRoles
+    SET Name = 'Vendedor', NormalizedName = 'VENDEDOR'
+    WHERE Name = 'Ventas';
+END
 
--- Logins externos de usuarios no admin
-DELETE FROM AspNetUserLogins
-WHERE UserId <> @AdminId;
+-- B) Borrar roles que no sean los de sistema (Admin, Vendedor, Supervisor)
+-- Se elimina "Host" ya que se ha unificado en Admin
+DELETE FROM AspNetRoles
+WHERE Name NOT IN ('Admin', 'Vendedor', 'Supervisor');
 
--- Claims de usuarios no admin
-DELETE FROM AspNetUserClaims
-WHERE UserId <> @AdminId;
+PRINT 'Roles no esenciales eliminados.';
 
--- Roles asignados a usuarios no admin
-DELETE FROM AspNetUserRoles
-WHERE UserId <> @AdminId;
+IF @AdminId IS NOT NULL
+BEGIN
+    -- Asegurar que el admin no apunte a datos borrados (Tenant, Branch, etc.)
+    UPDATE AspNetUsers
+    SET TenantId = NULL, CurrentBranchId = NULL
+    WHERE Id = @AdminId;
 
--- Usuarios no admin
-DELETE FROM AspNetUsers
-WHERE Id <> @AdminId;
+    -- Preservar solo al admin
+    
+    -- Tokens de usuarios no admin
+    DELETE FROM AspNetUserTokens
+    WHERE UserId <> @AdminId;
+
+    -- Logins externos de usuarios no admin
+    DELETE FROM AspNetUserLogins
+    WHERE UserId <> @AdminId;
+
+    -- Claims de usuarios no admin
+    DELETE FROM AspNetUserClaims
+    WHERE UserId <> @AdminId;
+
+    -- Roles asignados a usuarios no admin
+    DELETE FROM AspNetUserRoles
+    WHERE UserId <> @AdminId;
+
+    -- Usuarios no admin
+    DELETE FROM AspNetUsers
+    WHERE Id <> @AdminId;
+    
+    PRINT 'Usuarios eliminados (excepto admin).';
+END
+ELSE
+BEGIN
+    -- Borrar todo si no hay admin
+    DELETE FROM AspNetUserTokens;
+    DELETE FROM AspNetUserLogins;
+    DELETE FROM AspNetUserClaims;
+    DELETE FROM AspNetUserRoles;
+    DELETE FROM AspNetUsers;
+    DELETE FROM AspNetRoles; -- Borrar roles tambien si no hay admin (se recrearan)
+    PRINT 'Todos los usuarios y roles eliminados.';
+END
 
 ------------------------------------------------------------
--- 5) REHABILITAR TODAS LAS CLAVES FOR¡NEAS
+-- 5) REHABILITAR TODAS LAS CLAVES FOR√ÅNEAS
 ------------------------------------------------------------
 SET @sql = N'';
 
@@ -90,31 +133,9 @@ SELECT @sql = @sql +
 FROM sys.foreign_keys
 WHERE is_ms_shipped = 0;
 
-PRINT 'Rehabilitando claves for·neas...';
-PRINT @sql;
-
+PRINT 'Rehabilitando claves for√°neas...';
 EXEC sp_executesql @sql;
 
 COMMIT TRANSACTION;
 
-PRINT 'Base de datos reseteada. Solo queda el usuario administrador.';
-
-
--- Reiniciar IDENTITY de todas tus tablas de negocio e identity que usan IDENTITY
-DBCC CHECKIDENT ('dbo.Branches', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Categories', RESEED, 0);
-DBCC CHECKIDENT ('dbo.AspNetRoleClaims', RESEED, 0);
-DBCC CHECKIDENT ('dbo.AspNetUserClaims', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Sales', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Products', RESEED, 0);
-DBCC CHECKIDENT ('dbo.SaleDetails', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Stocks', RESEED, 0);
-DBCC CHECKIDENT ('dbo.CashSessions', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Suppliers', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Purchases', RESEED, 0);
-DBCC CHECKIDENT ('dbo.PurchaseDetails', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Customers', RESEED, 0);
-DBCC CHECKIDENT ('dbo.ServiceOrders', RESEED, 0);
-DBCC CHECKIDENT ('dbo.ServiceOrderWorks', RESEED, 0);
-DBCC CHECKIDENT ('dbo.Technicians', RESEED, 0);
-DBCC CHECKIDENT ('dbo.ServiceOrderParts', RESEED, 0);
+PRINT 'Limpieza completada. La base de datos ha quedado vac√≠a excepto por el usuario administrador y los roles base.';

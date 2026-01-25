@@ -7,6 +7,7 @@ namespace TPV.Application.Interfaces
     {
         Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId);
         Task<SaleResultDto> GetSaleAsync(int saleId);
+        Task<SaleResultDto> EmitInvoiceAsync(int saleId);
     }
 }
 

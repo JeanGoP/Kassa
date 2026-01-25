@@ -29,6 +29,9 @@ namespace TPV.Application.Services
                 Description = p.Description,
                 Price = p.Price,
                 Cost = p.Cost,
+                IvaType = p.IvaType,
+                IvaRate = p.IvaRate,
+                ImpoconsumoRate = p.ImpoconsumoRate,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name,
                 StockQuantity = p.Stocks?.Where(s => !branchId.HasValue || s.BranchId == branchId.Value).Sum(s => s.Quantity) ?? 0
@@ -49,6 +52,9 @@ namespace TPV.Application.Services
                 Description = p.Description,
                 Price = p.Price,
                 Cost = p.Cost,
+                IvaType = p.IvaType,
+                IvaRate = p.IvaRate,
+                ImpoconsumoRate = p.ImpoconsumoRate,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name,
                 StockQuantity = p.Stocks?.Sum(s => s.Quantity) ?? 0
@@ -57,6 +63,16 @@ namespace TPV.Application.Services
 
         public async Task<ProductDto> CreateProductAsync(ProductDto productDto)
         {
+            if (!string.IsNullOrEmpty(productDto.SKU))
+            {
+                productDto.SKU = productDto.SKU.Trim();
+                var existing = await _productRepository.GetAsync(p => p.SKU.Trim() == productDto.SKU);
+                if (existing.Any())
+                {
+                    throw new System.Exception($"Ya existe un producto con el código {productDto.SKU}");
+                }
+            }
+
             var product = new Product
             {
                 Name = productDto.Name,
@@ -77,11 +93,27 @@ namespace TPV.Application.Services
             var product = await _productRepository.GetByIdAsync(productDto.Id);
             if (product != null)
             {
+                if (!string.IsNullOrEmpty(productDto.SKU))
+                {
+                    productDto.SKU = productDto.SKU.Trim();
+                    if (productDto.SKU != product.SKU)
+                    {
+                        var existing = await _productRepository.GetAsync(p => p.SKU.Trim() == productDto.SKU && p.Id != productDto.Id);
+                        if (existing.Any())
+                        {
+                            throw new System.Exception($"Ya existe otro producto con el código {productDto.SKU}");
+                        }
+                    }
+                }
+
                 product.Name = productDto.Name;
                 product.SKU = productDto.SKU;
                 product.Description = productDto.Description ?? string.Empty;
                 product.Price = productDto.Price;
                 product.Cost = productDto.Cost;
+                product.IvaType = productDto.IvaType;
+                product.IvaRate = productDto.IvaRate;
+                product.ImpoconsumoRate = productDto.ImpoconsumoRate;
                 product.CategoryId = productDto.CategoryId;
                 
                 await _productRepository.UpdateAsync(product);

@@ -74,5 +74,19 @@ namespace TPV.Web.Controllers.Api
             if (sale == null) return NotFound();
             return Ok(sale);
         }
+
+        [HttpPost("{id}/emit-invoice")]
+        public async Task<IActionResult> EmitInvoice(int id)
+        {
+            try
+            {
+                var result = await _salesService.EmitInvoiceAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

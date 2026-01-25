@@ -5,27 +5,53 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TPV.Infrastructure.Identity;
+using TPV.Application.Interfaces;
 
 namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = Permissions.AdminUsersManage)]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ICurrentTenantService _currentTenantService;
 
-        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public UsersController(
+            UserManager<ApplicationUser> userManager, 
+            RoleManager<IdentityRole> roleManager,
+            ICurrentTenantService currentTenantService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _currentTenantService = currentTenantService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            var users = _userManager.Users.ToList();
+            // If current user has a tenant, filter users by that tenant
+            var currentTenantId = _currentTenantService.TenantId;
+            
+            // Note: _userManager.Users is IQueryable.
+            // If we want to filter by tenant manually (since IdentityUser doesn't have global filter automatically unless configured)
+            // ApplicationUser inherits IdentityUser, and we added TenantId.
+            // Check if global filter is applied to ApplicationUser in DbContext.
+            // Based on my read of ApplicationDbContext, it applies filter to entities implementing IMustHaveTenant.
+            // ApplicationUser does NOT implement IMustHaveTenant explicitly in the code I saw.
+            // Let's check ApplicationUser again.
+            // It has TenantId property but does not implement IMustHaveTenant interface.
+            // So global filter is NOT applied automatically!
+            
+            var query = _userManager.Users.AsQueryable();
+
+            if (currentTenantId.HasValue)
+            {
+                query = query.Where(u => u.TenantId == currentTenantId.Value);
+            }
+
+            var users = query.ToList();
             var result = new List<UserDto>();
 
             foreach (var user in users)
@@ -38,6 +64,7 @@ namespace TPV.Web.Controllers.Api
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     IsActive = user.IsActive,
+                    TenantId = user.TenantId,
                     Roles = roles.ToArray()
                 });
             }
@@ -54,6 +81,13 @@ namespace TPV.Web.Controllers.Api
                 return NotFound();
             }
 
+            // Security check: cannot access users from other tenants
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            {
+                return NotFound(); // Hide existence
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
             var dto = new UserDto
             {
@@ -62,6 +96,7 @@ namespace TPV.Web.Controllers.Api
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 IsActive = user.IsActive,
+                TenantId = user.TenantId,
                 Roles = roles.ToArray()
             };
 
@@ -69,12 +104,24 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpPost]
+        [Authorize(Policy = Permissions.AdminUsersManage)]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             {
                 return BadRequest();
             }
+
+            // Tenant logic
+            int? targetTenantId = request.TenantId;
+            var currentTenantId = _currentTenantService.TenantId;
+
+            if (currentTenantId.HasValue)
+            {
+                // If I am a tenant admin, I can only create users for my tenant
+                targetTenantId = currentTenantId.Value;
+            }
+            // If I am super admin (currentTenantId is null), I can assign any tenant (or null for host users)
 
             var existing = await _userManager.FindByEmailAsync(request.Email);
             if (existing != null)
@@ -88,7 +135,8 @@ namespace TPV.Web.Controllers.Api
                 Email = request.Email,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                IsActive = true
+                IsActive = true,
+                TenantId = targetTenantId
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -118,6 +166,7 @@ namespace TPV.Web.Controllers.Api
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 IsActive = user.IsActive,
+                TenantId = user.TenantId,
                 Roles = createdRoles.ToArray()
             };
 
@@ -125,12 +174,20 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpPut("{id}/roles")]
+        [Authorize(Policy = Permissions.AdminUsersManage)]
         public async Task<IActionResult> SetUserRoles(string id, [FromBody] IEnumerable<string> roles)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
+            }
+
+            // Security check: cannot manage users from other tenants
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            {
+                return NotFound(); // Hide existence
             }
 
             var currentRoles = await _userManager.GetRolesAsync(user);
@@ -145,6 +202,7 @@ namespace TPV.Web.Controllers.Api
                 var rolesToAssign = roles.Distinct().ToArray();
                 foreach (var roleName in rolesToAssign)
                 {
+                    // Prevent tenant admins from assigning Host role
                     if (!await _roleManager.RoleExistsAsync(roleName))
                     {
                         continue;
@@ -156,13 +214,60 @@ namespace TPV.Web.Controllers.Api
             return NoContent();
         }
 
+        [HttpPut("{id}")]
+        [Authorize(Policy = Permissions.AdminUsersManage)]
+        public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            {
+                return NotFound();
+            }
+
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.IsActive = request.IsActive;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return Ok(new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                IsActive = user.IsActive,
+                TenantId = user.TenantId,
+                Roles = roles.ToArray()
+            });
+        }
+
         [HttpDelete("{id}")]
+        [Authorize(Policy = Permissions.AdminUsersManage)]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
+            }
+
+            // Security check: cannot delete users from other tenants
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            {
+                return NotFound(); // Hide existence
             }
 
             var result = await _userManager.DeleteAsync(user);
@@ -181,6 +286,7 @@ namespace TPV.Web.Controllers.Api
             public string FirstName { get; set; }
             public string LastName { get; set; }
             public bool IsActive { get; set; }
+            public int? TenantId { get; set; }
             public string[] Roles { get; set; }
         }
 
@@ -190,7 +296,15 @@ namespace TPV.Web.Controllers.Api
             public string Password { get; set; }
             public string FirstName { get; set; }
             public string LastName { get; set; }
+            public int? TenantId { get; set; }
             public string[] Roles { get; set; }
+        }
+
+        public class UpdateUserRequest
+        {
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+            public bool IsActive { get; set; }
         }
     }
 }

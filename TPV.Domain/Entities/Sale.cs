@@ -4,8 +4,9 @@ using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
 {
-    public class Sale : BaseEntity
+    public class Sale : BaseEntity, IMustHaveTenant
     {
+        public int TenantId { get; set; }
         public string InvoiceNumber { get; set; }
         public DateTime Date { get; set; } = DateTime.UtcNow;
         public decimal TotalAmount { get; set; }
@@ -22,6 +23,12 @@ namespace TPV.Domain.Entities
         
         public int? ServiceOrderId { get; set; }
         public ServiceOrder ServiceOrder { get; set; }
+
+        // Electronic Invoicing Fields
+        public string? ElectronicInvoiceId { get; set; } // ID from the provider
+        public string? Cufe { get; set; }
+        public string? QrCode { get; set; }
+        public string ElectronicInvoicingStatus { get; set; } = "Pending"; // Pending, Sent, Error
 
         public ICollection<SaleDetail> SaleDetails { get; set; }
     }

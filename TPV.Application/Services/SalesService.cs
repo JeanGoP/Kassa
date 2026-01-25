@@ -15,17 +15,20 @@ namespace TPV.Application.Services
         private readonly IRepository<SaleDetail> _saleDetailRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Stock> _stockRepository;
+        private readonly IElectronicInvoicingService _electronicInvoicingService;
 
         public SalesService(
             IRepository<Sale> saleRepository,
             IRepository<SaleDetail> saleDetailRepository,
             IRepository<Product> productRepository,
-            IRepository<Stock> stockRepository)
+            IRepository<Stock> stockRepository,
+            IElectronicInvoicingService electronicInvoicingService)
         {
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
             _productRepository = productRepository;
             _stockRepository = stockRepository;
+            _electronicInvoicingService = electronicInvoicingService;
         }
 
         public async Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId)
@@ -86,7 +89,71 @@ namespace TPV.Application.Services
                 await _stockRepository.UpdateAsync(stock);
             }
 
+            // Facturación Electrónica
+            try 
+            {
+                // Recargar venta completa con relaciones necesarias
+                // Nota: Dependiendo de la implementación del repo, "SaleDetails.Product" podría requerir configuración.
+                // Si falla, se podría necesitar cargar explícitamente.
+                var fullSaleList = await _saleRepository.GetAsync(s => s.Id == sale.Id, null, "Customer,SaleDetails.Product");
+                var fullSale = fullSaleList.FirstOrDefault();
+
+                if (fullSale != null)
+                {
+                    var invoiceResult = await _electronicInvoicingService.GenerateInvoiceAsync(fullSale);
+                    if (invoiceResult.Success)
+                    {
+                        fullSale.Cufe = invoiceResult.Cufe;
+                        fullSale.QrCode = invoiceResult.QrCode;
+                        fullSale.ElectronicInvoiceId = invoiceResult.ElectronicInvoiceId;
+                        fullSale.ElectronicInvoicingStatus = "Sent";
+                    }
+                    else
+                    {
+                        fullSale.ElectronicInvoicingStatus = "Error";
+                        // Podríamos guardar el mensaje de error si hubiera un campo para ello
+                    }
+                    await _saleRepository.UpdateAsync(fullSale);
+                }
+            }
+            catch (Exception ex)
+            {
+                // No detener la venta si falla la facturación, solo loguear (o marcar error)
+                Console.WriteLine($"Error en facturación electrónica: {ex.Message}");
+            }
+
             return await GetSaleAsync(sale.Id);
+        }
+
+        public async Task<SaleResultDto> EmitInvoiceAsync(int saleId)
+        {
+            var fullSaleList = await _saleRepository.GetAsync(s => s.Id == saleId, null, "Customer,SaleDetails.Product");
+            var sale = fullSaleList.FirstOrDefault();
+
+            if (sale == null)
+                throw new InvalidOperationException("Venta no encontrada.");
+
+            var invoiceResult = await _electronicInvoicingService.GenerateInvoiceAsync(sale);
+            
+            if (invoiceResult.Success)
+            {
+                sale.Cufe = invoiceResult.Cufe;
+                sale.QrCode = invoiceResult.QrCode;
+                sale.ElectronicInvoiceId = invoiceResult.ElectronicInvoiceId;
+                sale.ElectronicInvoicingStatus = "Sent";
+            }
+            else
+            {
+                sale.ElectronicInvoicingStatus = "Error";
+                // Could throw exception if we want the controller to report 500/400, 
+                // but returning the object with "Error" status allows the UI to show "Failed".
+                // However, the caller might want the error message.
+                // For now, let's just update status.
+            }
+
+            await _saleRepository.UpdateAsync(sale);
+
+            return await GetSaleAsync(saleId);
         }
 
         public async Task<SaleResultDto> GetSaleAsync(int saleId)
@@ -106,6 +173,8 @@ namespace TPV.Application.Services
                 CustomerName = sale.Customer != null ? $"{sale.Customer.FirstName} {sale.Customer.LastName}".Trim() : null,
                 TotalAmount = sale.TotalAmount,
                 PaymentMethod = sale.PaymentMethod,
+                Cufe = sale.Cufe,
+                QrCode = sale.QrCode,
                 Items = details.Select(d => new SaleItemDto
                 {
                     ProductId = d.ProductId,

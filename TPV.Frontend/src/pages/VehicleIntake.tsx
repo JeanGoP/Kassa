@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Search, X, UserPlus, Printer } from 'lucide-react';
+import { calculateNitVerificationDigit } from '../utils/nit';
+import AddressBuilder from '../components/AddressBuilder';
+import { Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -14,8 +16,10 @@ interface Customer {
 }
 
 interface NewCustomer {
-    firstName: string;
-    lastName: string;
+    firstName1: string;
+    firstName2: string;
+    lastName1: string;
+    lastName2: string;
     email: string;
     phone: string;
     address: string;
@@ -24,16 +28,16 @@ interface NewCustomer {
 }
 
 const IDENTIFICATION_TYPES = [
-    "(RCN) Registro Civil de Nacimiento",
-    "(TI) Tarjeta de Identidad",
-    "(CC) Cédula de Ciudadanía",
-    "(CD) Cédula Digital",
-    "(CE) Cédula de Extranjería",
-    "(PA) Pasaporte",
-    "(PEP) Permiso Especial de Permanencia",
-    "(PPT) Permiso por Protección Temporal",
-    "(NUIP) Número Único de Identificación Personal",
-    "(NIT) Número de Identificación Tributaria"
+    "RCN Registro Civil de Nacimiento",
+    "TI Tarjeta de Identidad",
+    "CC Cédula de Ciudadanía",
+    "CD Cédula Digital",
+    "CE Cédula de Extranjería",
+    "PA Pasaporte",
+    "PEP Permiso Especial de Permanencia",
+    "PPT Permiso por Protección Temporal",
+    "NUIP Número Único de Identificación Personal",
+    "NIT Número de Identificación Tributaria"
 ];
 
 const VehicleIntake = () => {
@@ -58,9 +62,13 @@ const VehicleIntake = () => {
 
     // Create Customer Modal State
     const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+    const [showAddressBuilder, setShowAddressBuilder] = useState(false);
+    const [personType, setPersonType] = useState<'Natural' | 'Juridica'>('Natural');
     const [newCustomer, setNewCustomer] = useState<NewCustomer>({
-        firstName: '',
-        lastName: '',
+        firstName1: '',
+        firstName2: '',
+        lastName1: '',
+        lastName2: '',
         email: '',
         phone: '',
         address: '',
@@ -72,6 +80,9 @@ const VehicleIntake = () => {
     const [orderSearch, setOrderSearch] = useState('');
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
+
+    // Warranty State
+    const [activeWarranties, setActiveWarranties] = useState<any[]>([]);
 
     // Effects
     useEffect(() => {
@@ -118,37 +129,100 @@ const VehicleIntake = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleCheckTaxId = async () => {
+        if (!newCustomer.taxId || newCustomer.taxId.trim().length < 3) return;
+        
+        try {
+            const response = await api.get(`/customers?search=${newCustomer.taxId.trim()}`);
+            if (response.data && response.data.length > 0) {
+                // Check if exact match
+                const match = response.data.find((c: Customer) => c.taxId === newCustomer.taxId.trim());
+                if (match) {
+                    alert(`Advertencia: Ya existe un cliente registrado con la identificación ${newCustomer.taxId}.\nNombre: ${match.firstName} ${match.lastName}`);
+                }
+            }
+        } catch (error) {
+            console.error("Error checking taxId", error);
+        }
+    };
+
     const handleCreateCustomer = async () => {
-        if (!newCustomer.firstName || !newCustomer.lastName) {
-            alert("Nombre y Apellido son obligatorios");
-            return;
+        const isJuridica = personType === 'Juridica';
+
+        if (isJuridica) {
+            if (!newCustomer.firstName1) {
+                alert("Razón Social es obligatoria");
+                return;
+            }
+        } else {
+            if (!newCustomer.firstName1 || !newCustomer.lastName1) {
+                alert("Primer Nombre y Primer Apellido son obligatorios");
+                return;
+            }
         }
 
         setCreatingCustomer(true);
         try {
-            const response = await api.post('/customers', newCustomer);
+            const payload = {
+                firstName: isJuridica 
+                    ? newCustomer.firstName1.trim()
+                    : `${newCustomer.firstName1} ${newCustomer.firstName2}`.trim(),
+                lastName: isJuridica
+                    ? "."
+                    : `${newCustomer.lastName1} ${newCustomer.lastName2}`.trim(),
+                email: newCustomer.email,
+                phone: newCustomer.phone,
+                address: newCustomer.address,
+                taxId: newCustomer.taxId,
+                identificationType: newCustomer.identificationType
+            };
+
+            const response = await api.post('/customers', payload);
             const createdCustomer = response.data;
             
             setCustomers([createdCustomer]);
             setSelectedCustomer(createdCustomer);
             setShowCreateCustomerModal(false);
             setCustomerSearch('');
+            setPersonType('Natural');
             setNewCustomer({
-                firstName: '',
-                lastName: '',
+                firstName1: '',
+                firstName2: '',
+                lastName1: '',
+                lastName2: '',
                 email: '',
                 phone: '',
                 address: '',
                 taxId: '',
                 identificationType: ''
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating customer", error);
-            alert("Error al crear el cliente.");
+            const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Error al crear el cliente.";
+            alert(errorMessage);
         } finally {
             setCreatingCustomer(false);
         }
     };
+
+    // Check for warranties when plate changes
+    useEffect(() => {
+        const checkWarranties = async () => {
+            if (formData.plate.length >= 3) {
+                try {
+                    const response = await api.get(`/warranties/active/${formData.plate}`);
+                    setActiveWarranties(response.data);
+                } catch (error) {
+                    console.error("Error fetching warranties", error);
+                }
+            } else {
+                setActiveWarranties([]);
+            }
+        };
+
+        const timeoutId = setTimeout(checkWarranties, 500);
+        return () => clearTimeout(timeoutId);
+    }, [formData.plate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -469,6 +543,135 @@ const VehicleIntake = () => {
         printWindow.close();
     };
 
+    const handlePrintThermal = (orderToPrint = lastServiceOrder) => {
+        if (!orderToPrint) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Tirilla de Ingreso</title>
+    <style>
+        @page {
+            margin: 0;
+            size: 80mm auto;
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 80mm;
+            margin: 0;
+            padding: 5px;
+            font-size: 12px;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-size: 10px;
+            margin-top: 5px;
+        }
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 8px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        .label {
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 10px;
+        }
+        .text-wrap {
+            white-space: pre-wrap;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">INGRESO DE VEHICULO</div>
+        <div class="subtitle">Fecha: ${new Date(orderToPrint.intakeDateTime).toLocaleString()}</div>
+        <div class="subtitle">Orden #: ${orderToPrint.id || '---'}</div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div>
+        <div class="label">CLIENTE:</div>
+        <div>${orderToPrint.customerName}</div>
+    </div>
+    
+    <div class="divider"></div>
+
+    <div class="info-row">
+        <span class="label">PLACA:</span>
+        <span style="font-size: 14px; font-weight: bold;">${orderToPrint.plate}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">MARCA:</span>
+        <span>${orderToPrint.brand}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">MODELO:</span>
+        <span>${orderToPrint.model}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">AÑO:</span>
+        <span>${orderToPrint.year}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">KM:</span>
+        <span>${orderToPrint.mileage}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">COMB:</span>
+        <span>${orderToPrint.fuelLevel}</span>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="label">OBSERVACIONES:</div>
+    <div class="text-wrap">${orderToPrint.initialObservations || 'Ninguna'}</div>
+    
+    <br/>
+    <div class="label">ESTADO VISUAL:</div>
+    <div class="text-wrap">${orderToPrint.visualCondition || 'Sin novedades'}</div>
+
+    <div class="footer">
+        <div class="divider"></div>
+        <div>Recibido por: ${orderToPrint.workshopManager || 'Taller'}</div>
+        <br/>
+        <div>*** CONSERVE ESTE TIQUETE ***</div>
+    </div>
+</body>
+</html>`;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    };
+
     const handleSearchOrders = async () => {
         if (!orderSearch || orderSearch.trim().length < 2) {
             alert('Ingrese al menos 2 caracteres para buscar.');
@@ -581,6 +784,59 @@ const VehicleIntake = () => {
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             required
                         />
+                        {activeWarranties.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                                {activeWarranties.map((w: any) => {
+                                    const currentMileage = parseFloat(formData.mileage) || 0;
+                                    const limits = [w.limitMileage1, w.limitMileage2, w.limitMileage3]
+                                        .filter(l => l != null && l > 0)
+                                        .sort((a, b) => a - b);
+                                    
+                                    const maxLimit = limits.length > 0 ? limits[limits.length - 1] : null;
+                                    const isMileageExpired = maxLimit !== null && currentMileage > maxLimit;
+
+                                    if (isMileageExpired) {
+                                        return (
+                                            <div key={w.id} className="bg-red-50 border border-red-200 rounded-lg p-2">
+                                                <p className="text-xs font-bold text-red-800 flex items-center gap-1">
+                                                    <X size={12} />
+                                                    Garantía Expirada por Kilometraje
+                                                </p>
+                                                <p className="text-xs text-red-700">{w.type} - {w.description}</p>
+                                                <p className="text-xs text-red-600">
+                                                    Límites: {limits.join(', ')} km (Actual: {currentMileage})
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div key={w.id} className="bg-green-50 border border-green-200 rounded-lg p-2">
+                                            <p className="text-xs font-bold text-green-800 flex items-center gap-1">
+                                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                                Garantía Activa
+                                            </p>
+                                            <p className="text-xs text-green-700">{w.type} - {w.description}</p>
+                                            {limits.length > 0 && (
+                                                <div className="text-xs text-green-600">
+                                                    Límites: 
+                                                    <div className="flex gap-1 flex-wrap mt-1">
+                                                        {limits.map((l, idx) => {
+                                                            const isPassed = currentMileage >= l;
+                                                            return (
+                                                                <span key={idx} className={`px-1.5 py-0.5 rounded border ${isPassed ? 'bg-gray-100 text-gray-500 border-gray-200 line-through' : 'bg-green-100 text-green-700 border-green-200'}`}>
+                                                                    {l} km
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
@@ -687,14 +943,26 @@ const VehicleIntake = () => {
                         >
                             Guardar ingreso
                         </button>
-                        <button
-                            type="button"
-                            onClick={handlePrint}
-                            disabled={!lastServiceOrder}
-                            className={`px-6 py-2 rounded-lg font-semibold transition-colors ${lastServiceOrder ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                        >
-                            Imprimir ingreso
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handlePrint(lastServiceOrder)}
+                                disabled={!lastServiceOrder}
+                                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${lastServiceOrder ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                title="Imprimir Formato Carta"
+                            >
+                                <Printer size={18} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handlePrintThermal(lastServiceOrder)}
+                                disabled={!lastServiceOrder}
+                                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${lastServiceOrder ? 'bg-slate-600 text-white hover:bg-slate-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                title="Imprimir Tirilla"
+                            >
+                                <ScrollText size={18} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -754,13 +1022,22 @@ const VehicleIntake = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <button
-                                                onClick={() => handlePrint(order)}
-                                                className="text-blue-600 hover:text-blue-900"
-                                                title="Imprimir comprobante"
-                                            >
-                                                <Printer size={18} />
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handlePrint(order)}
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                    title="Imprimir Carta"
+                                                >
+                                                    <Printer size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePrintThermal(order)}
+                                                    className="text-slate-600 hover:text-slate-900"
+                                                    title="Imprimir Tirilla"
+                                                >
+                                                    <ScrollText size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -784,51 +1061,127 @@ const VehicleIntake = () => {
                         </div>
                         
                         <div className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newCustomer.firstName}
-                                        onChange={e => setNewCustomer({...newCustomer, firstName: e.target.value})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido *</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newCustomer.lastName}
-                                        onChange={e => setNewCustomer({...newCustomer, lastName: e.target.value})}
-                                    />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Persona</label>
+                                <div className="flex space-x-4 mt-2">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="Natural"
+                                            checked={personType === 'Natural'}
+                                            onChange={() => setPersonType('Natural')}
+                                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                        />
+                                        <span className="text-gray-700">Natural</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="Juridica"
+                                            checked={personType === 'Juridica'}
+                                            onChange={() => setPersonType('Juridica')}
+                                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                        />
+                                        <span className="text-gray-700">Jurídica</span>
+                                    </label>
                                 </div>
                             </div>
-                            
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Identificación</label>
-                                        <select
-                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={newCustomer.identificationType}
-                                            onChange={e => setNewCustomer({ ...newCustomer, identificationType: e.target.value })}
-                                        >
-                                            <option value="">Seleccione...</option>
-                                            {IDENTIFICATION_TYPES.map(type => (
-                                                <option key={type} value={type}>{type}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Número de Identificación</label>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Identificación</label>
+                                    <select
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={newCustomer.identificationType}
+                                        onChange={e => setNewCustomer({ ...newCustomer, identificationType: e.target.value })}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {IDENTIFICATION_TYPES.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Número de Identificación</label>
+                                    <div className="flex gap-2">
                                         <input 
                                             type="text" 
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={newCustomer.taxId}
                                             onChange={e => setNewCustomer({ ...newCustomer, taxId: e.target.value })}
+                                            onBlur={handleCheckTaxId}
                                         />
+                                        {newCustomer.identificationType.includes('NIT') && (
+                                            <div className="w-20">
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-3 py-2 border rounded-lg text-center bg-gray-50 text-gray-500 outline-none"
+                                                    value={calculateNitVerificationDigit(newCustomer.taxId)}
+                                                    readOnly
+                                                    title="Dígito de Verificación"
+                                                    placeholder="DV"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
+                            </div>
+
+                            {personType === 'Juridica' ? (
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Razón Social *</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={newCustomer.firstName1}
+                                        onChange={e => setNewCustomer({ ...newCustomer, firstName1: e.target.value })}
+                                    />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primer Nombre *</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={newCustomer.firstName1}
+                                                onChange={e => setNewCustomer({...newCustomer, firstName1: e.target.value})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Segundo Nombre</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={newCustomer.firstName2}
+                                                onChange={e => setNewCustomer({...newCustomer, firstName2: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primer Apellido *</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={newCustomer.lastName1}
+                                                onChange={e => setNewCustomer({...newCustomer, lastName1: e.target.value})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Segundo Apellido</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={newCustomer.lastName2}
+                                                onChange={e => setNewCustomer({...newCustomer, lastName2: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -853,10 +1206,27 @@ const VehicleIntake = () => {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección</label>
-                                <textarea 
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none h-20"
-                                    value={newCustomer.address}
-                                    onChange={e => setNewCustomer({...newCustomer, address: e.target.value})}
+                                <div className="flex gap-2">
+                                    <textarea 
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none h-20 bg-gray-50"
+                                        value={newCustomer.address}
+                                        readOnly
+                                        placeholder="Use el generador de direcciones"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddressBuilder(true)}
+                                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-lg border border-blue-200 transition-colors h-fit"
+                                        title="Generador de Direcciones DIAN"
+                                    >
+                                        <MapPin size={20} />
+                                    </button>
+                                </div>
+                                <AddressBuilder
+                                    isOpen={showAddressBuilder}
+                                    onClose={() => setShowAddressBuilder(false)}
+                                    onConfirm={(addr) => setNewCustomer({...newCustomer, address: addr})}
+                                    initialValue={newCustomer.address}
                                 />
                             </div>
                         </div>

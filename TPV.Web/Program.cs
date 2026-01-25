@@ -33,7 +33,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<IBranchService, BranchService>();
 
@@ -49,7 +49,8 @@ using (var scope = app.Services.CreateScope())
         DbInitializer.Initialize(context);
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        await IdentitySeeder.SeedAsync(userManager, roleManager, context);
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        await IdentitySeeder.SeedAsync(userManager, roleManager, context, logger);
     }
     catch (Exception ex)
     {

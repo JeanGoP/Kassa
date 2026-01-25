@@ -2,16 +2,29 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TPV.Domain.Entities;
 using TPV.Infrastructure.Identity;
+using TPV.Application.Interfaces;
+using TPV.Domain.Common;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TPV.Infrastructure.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly ICurrentTenantService _currentTenantService;
+
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            ICurrentTenantService currentTenantService)
             : base(options)
         {
+            _currentTenantService = currentTenantService;
         }
 
+        public int? CurrentTenantId => _currentTenantService.TenantId;
+
+        public DbSet<Tenant> Tenants { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Branch> Branches { get; set; }
@@ -27,10 +40,23 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
         public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
         public DbSet<Technician> Technicians { get; set; }
+        public DbSet<Warranty> Warranties { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Apply Global Query Filter for Multi-Tenancy
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+                {
+                    var method = typeof(ApplicationDbContext)
+                        .GetMethod(nameof(SetGlobalQueryFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.MakeGenericMethod(entityType.ClrType);
+                    method?.Invoke(this, new object[] { builder });
+                }
+            }
 
             // Configuraciones adicionales de Fluent API
 
@@ -52,6 +78,16 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(s => new { s.ProductId, s.BranchId })
                 .IsUnique();
 
+            // Unique Index for Customer (TenantId + TaxId)
+            builder.Entity<Customer>()
+                .HasIndex(c => new { c.TenantId, c.TaxId })
+                .IsUnique();
+
+            // Unique Index for Supplier (TenantId + TaxId)
+            builder.Entity<Supplier>()
+                .HasIndex(s => new { s.TenantId, s.TaxId })
+                .IsUnique();
+
             // Precisiones decimales para dinero (SQL Server requiere esto)
             builder.Entity<Product>()
                 .Property(p => p.Price)
@@ -60,6 +96,14 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Product>()
                 .Property(p => p.Cost)
                 .HasColumnType("decimal(18,2)");
+            
+            builder.Entity<Product>()
+                .Property(p => p.IvaRate)
+                .HasColumnType("decimal(5,4)");
+            
+            builder.Entity<Product>()
+                .Property(p => p.ImpoconsumoRate)
+                .HasColumnType("decimal(5,4)");
 
             builder.Entity<Sale>()
                 .Property(s => s.TotalAmount)
@@ -93,6 +137,9 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<ServiceOrderWork>()
                 .Property(w => w.LaborCost)
                 .HasColumnType("decimal(18,2)");
+            builder.Entity<ServiceOrderWork>()
+                .Property(w => w.EstimatedTimeHours)
+                .HasColumnType("decimal(9,2)");
 
             builder.Entity<ServiceOrderPart>()
                 .Property(p => p.UnitPrice)
@@ -134,6 +181,41 @@ namespace TPV.Infrastructure.Persistence
                 .WithOne(s => s.ServiceOrder)
                 .HasForeignKey<Sale>(s => s.ServiceOrderId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Warranty Configuration
+            builder.Entity<Warranty>()
+                .Property(w => w.StartMileage)
+                .HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>()
+                .Property(w => w.LimitMileage1)
+                .HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>()
+                .Property(w => w.LimitMileage2)
+                .HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>()
+                .Property(w => w.LimitMileage3)
+                .HasColumnType("decimal(18,2)");
+        }
+        private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
+        {
+            // If CurrentTenantId is null (Host/SuperAdmin), show all data.
+            // Otherwise, filter by the current tenant.
+            builder.Entity<T>().HasQueryFilter(e => !CurrentTenantId.HasValue || e.TenantId == CurrentTenantId);
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        {
+            foreach (var entry in ChangeTracker.Entries<IMustHaveTenant>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    if (CurrentTenantId.HasValue)
+                    {
+                        entry.Entity.TenantId = CurrentTenantId.Value;
+                    }
+                }
+            }
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

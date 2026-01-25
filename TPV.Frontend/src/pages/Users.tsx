@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 interface User {
     id: string;
@@ -8,6 +9,7 @@ interface User {
     lastName: string | null;
     isActive: boolean;
     roles: string[];
+    tenantId?: number | null;
 }
 
 interface Role {
@@ -15,9 +17,16 @@ interface Role {
     name: string;
 }
 
+interface Tenant {
+    id: number;
+    name: string;
+}
+
 const Users = () => {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
+    const [tenants, setTenants] = useState<Tenant[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
@@ -29,17 +38,29 @@ const Users = () => {
     const [newLastName, setNewLastName] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newRoles, setNewRoles] = useState<string[]>([]);
+    const [newTenantId, setNewTenantId] = useState<string>('');
     const [createError, setCreateError] = useState<string | null>(null);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const [usersResponse, rolesResponse] = await Promise.all([
+            const promises = [
                 api.get('/users'),
                 api.get('/roles')
-            ]);
-            setUsers(usersResponse.data);
-            setRoles(rolesResponse.data);
+            ];
+
+            // Only fetch tenants if user is superadmin (no tenantId)
+            if (!currentUser?.tenantId) {
+                promises.push(api.get('/tenants'));
+            }
+
+            const results = await Promise.all(promises);
+            setUsers(results[0].data);
+            setRoles(results[1].data);
+            
+            if (!currentUser?.tenantId && results[2]) {
+                setTenants(results[2].data);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -97,7 +118,8 @@ const Users = () => {
                 password: newPassword.trim(),
                 firstName: newFirstName.trim() || null,
                 lastName: newLastName.trim() || null,
-                roles: newRoles
+                roles: newRoles,
+                tenantId: newTenantId ? parseInt(newTenantId) : null
             });
 
             setNewEmail('');
@@ -105,6 +127,7 @@ const Users = () => {
             setNewLastName('');
             setNewPassword('');
             setNewRoles([]);
+            setNewTenantId('');
 
             await loadData();
         } catch (error: unknown) {
@@ -168,6 +191,27 @@ const Users = () => {
                                 placeholder="usuario@empresa.com"
                             />
                         </div>
+
+                        {!currentUser?.tenantId && (
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Empresa (Tenant)
+                                </label>
+                                <select
+                                    value={newTenantId}
+                                    onChange={(e) => setNewTenantId(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                >
+                                    <option value="">-- Sin empresa (Host User) --</option>
+                                    {tenants.map(t => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-gray-700">
@@ -259,6 +303,11 @@ const Users = () => {
                                     <span className="text-xs text-slate-500">
                                         {user.firstName || ''} {user.lastName || ''}
                                     </span>
+                                    {!currentUser?.tenantId && (
+                                        <span className="text-xs text-purple-600 font-medium">
+                                            {user.tenantId ? (tenants.find(t => t.id === user.tenantId)?.name || `Tenant ${user.tenantId}`) : 'Host User'}
+                                        </span>
+                                    )}
                                     <span className="mt-1 flex flex-wrap gap-1">
                                         {user.roles.map(role => (
                                             <span

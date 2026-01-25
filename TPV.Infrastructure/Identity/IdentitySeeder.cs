@@ -4,27 +4,32 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using TPV.Infrastructure.Persistence;
 
+using Microsoft.Extensions.Logging;
+
 namespace TPV.Infrastructure.Identity
 {
     public static class IdentitySeeder
     {
-        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
+        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, ILogger logger)
         {
+            logger.LogInformation("Seeding database...");
             var roles = new[] { "Admin", "Vendedor", "Supervisor" };
             foreach (var roleName in roles)
             {
                 if (!await roleManager.RoleExistsAsync(roleName))
                 {
+                    logger.LogInformation($"Creating role {roleName}...");
                     await roleManager.CreateAsync(new IdentityRole(roleName));
                 }
             }
 
-            await SeedRolePermissions(roleManager);
+            await SeedRolePermissions(roleManager, logger);
 
             // Seed default admin user
             var adminEmail = "admin@tpv.com";
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
+                logger.LogInformation("Creating default admin user...");
                 var user = new ApplicationUser
                 {
                     UserName = adminEmail,
@@ -41,16 +46,18 @@ namespace TPV.Infrastructure.Identity
             }
         }
 
-        private static async Task SeedRolePermissions(RoleManager<IdentityRole> roleManager)
+        private static async Task SeedRolePermissions(RoleManager<IdentityRole> roleManager, ILogger logger)
         {
             var adminRole = await roleManager.FindByNameAsync("Admin");
             if (adminRole != null)
             {
                 var adminClaims = await roleManager.GetClaimsAsync(adminRole);
+                
                 foreach (var permission in Permissions.All)
                 {
                     if (!adminClaims.Any(c => c.Type == "permission" && c.Value == permission))
                     {
+                        logger.LogInformation($"Adding permission {permission} to Admin role...");
                         await roleManager.AddClaimAsync(adminRole, new Claim("permission", permission));
                     }
                 }

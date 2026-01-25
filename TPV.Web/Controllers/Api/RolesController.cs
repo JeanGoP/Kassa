@@ -11,20 +11,24 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = Permissions.AdminRolesManage)]
+    [Authorize]
     public class RolesController : ControllerBase
     {
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly TPV.Application.Interfaces.ICurrentTenantService _currentTenantService;
 
-        public RolesController(RoleManager<IdentityRole> roleManager)
+        public RolesController(RoleManager<IdentityRole> roleManager, TPV.Application.Interfaces.ICurrentTenantService currentTenantService)
         {
             _roleManager = roleManager;
+            _currentTenantService = currentTenantService;
         }
 
         [HttpGet]
         public ActionResult<IEnumerable<object>> GetRoles()
         {
-            var roles = _roleManager.Roles
+            var query = _roleManager.Roles.AsQueryable();
+            
+            var roles = query
                 .Select(r => new { r.Id, r.Name })
                 .ToList();
 
@@ -60,6 +64,7 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpPut("{id}/permissions")]
+        [Authorize(Policy = Permissions.AdminRolesManage)]
         public async Task<IActionResult> SetRolePermissions(string id, [FromBody] IEnumerable<string> permissions)
         {
             var role = await _roleManager.FindByIdAsync(id);
@@ -86,6 +91,7 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpPost]
+        [Authorize(Policy = Permissions.AdminRolesManage)]
         public async Task<IActionResult> CreateRole([FromBody] RoleRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Name))
@@ -110,6 +116,7 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = Permissions.AdminRolesManage)]
         public async Task<IActionResult> UpdateRole(string id, [FromBody] RoleRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Name))
@@ -135,6 +142,7 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = Permissions.AdminRolesManage)]
         public async Task<IActionResult> DeleteRole(string id)
         {
             var role = await _roleManager.FindByIdAsync(id);

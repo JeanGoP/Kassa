@@ -3,8 +3,9 @@ using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
 {
-    public class Branch : BaseEntity
+    public class Branch : BaseEntity, IMustHaveTenant
     {
+        public int TenantId { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }
         public string Phone { get; set; }

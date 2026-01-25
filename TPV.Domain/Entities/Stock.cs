@@ -2,8 +2,9 @@ using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
 {
-    public class Stock : BaseEntity
+    public class Stock : BaseEntity, IMustHaveTenant
     {
+        public int TenantId { get; set; }
         public int ProductId { get; set; }
         public Product Product { get; set; }
 

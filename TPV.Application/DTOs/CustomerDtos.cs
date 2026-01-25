@@ -10,6 +10,8 @@ namespace TPV.Application.DTOs
         public string? Address { get; set; }
         public string? IdentificationType { get; set; }
         public string? TaxId { get; set; }
+        public string? Department { get; set; }
+        public string? City { get; set; }
 
         public string FullName => $"{FirstName} {LastName}".Trim();
     }
@@ -23,5 +25,7 @@ namespace TPV.Application.DTOs
         public string? Address { get; set; }
         public string? IdentificationType { get; set; }
         public string? TaxId { get; set; }
+        public string? Department { get; set; }
+        public string? City { get; set; }
     }
 }

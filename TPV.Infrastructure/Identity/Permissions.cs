@@ -6,6 +6,7 @@ namespace TPV.Infrastructure.Identity
     {
         public const string AdminRolesManage = "Admin.Roles.Manage";
         public const string AdminUsersManage = "Admin.Users.Manage";
+        public const string HostTenantsManage = "Host.Tenants.Manage";
 
         public const string MenusDashboardView = "Menus.Dashboard.View";
         public const string MenusPosView = "Menus.POS.View";
@@ -19,10 +20,12 @@ namespace TPV.Infrastructure.Identity
         public const string MenusCustomersView = "Menus.Customers.View";
         public const string MenusTechniciansView = "Menus.Technicians.View";
         public const string MenusWorkshopView = "Menus.Workshop.View";
+        public const string MenusWarrantiesView = "Menus.Warranties.View";
 
         public static IReadOnlyCollection<string> All =>
             new[]
             {
+                HostTenantsManage,
                 AdminRolesManage,
                 AdminUsersManage,
                 MenusDashboardView,
@@ -36,7 +39,8 @@ namespace TPV.Infrastructure.Identity
                 MenusProductsView,
                 MenusCustomersView,
                 MenusTechniciansView,
-                MenusWorkshopView
+                MenusWorkshopView,
+                MenusWarrantiesView
             };
     }
 }

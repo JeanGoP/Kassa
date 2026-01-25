@@ -4,8 +4,9 @@ using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
 {
-    public class Purchase : BaseEntity
+    public class Purchase : BaseEntity, IMustHaveTenant
     {
+        public int TenantId { get; set; }
         public int SupplierId { get; set; }
         public Supplier Supplier { get; set; } = null!;
 

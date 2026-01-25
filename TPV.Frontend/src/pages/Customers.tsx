@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { Users, Plus, Edit, Trash, X, Search } from 'lucide-react';
+import { calculateNitVerificationDigit } from '../utils/nit';
+import AddressBuilder from '../components/AddressBuilder';
+import { departments, cities } from '../utils/colombiaLocations';
+import { Users, Plus, Edit, Trash, X, Search, MapPin } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -14,16 +17,16 @@ interface Customer {
 }
 
 const IDENTIFICATION_TYPES = [
-    "(RCN) Registro Civil de Nacimiento",
-    "(TI) Tarjeta de Identidad",
-    "(CC) Cédula de Ciudadanía",
-    "(CD) Cédula Digital",
-    "(CE) Cédula de Extranjería",
-    "(PA) Pasaporte",
-    "(PEP) Permiso Especial de Permanencia",
-    "(PPT) Permiso por Protección Temporal",
-    "(NUIP) Número Único de Identificación Personal",
-    "(NIT) Número de Identificación Tributaria"
+    "RCN Registro Civil de Nacimiento",
+    "TI Tarjeta de Identidad",
+    "CC Cédula de Ciudadanía",
+    "CD Cédula Digital",
+    "CE Cédula de Extranjería",
+    "PA Pasaporte",
+    "PEP Permiso Especial de Permanencia",
+    "PPT Permiso por Protección Temporal",
+    "NUIP Número Único de Identificación Personal",
+    "NIT Número de Identificación Tributaria"
 ];
 
 const Customers = () => {
@@ -32,9 +35,13 @@ const Customers = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [personType, setPersonType] = useState<'Natural' | 'Juridica'>('Natural');
+    const [showAddressBuilder, setShowAddressBuilder] = useState(false);
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
+        firstName1: '',
+        firstName2: '',
+        lastName1: '',
+        lastName2: '',
         email: '',
         phone: '',
         address: '',
@@ -57,44 +64,112 @@ const Customers = () => {
         }
     };
 
+    const handleCheckTaxId = async () => {
+        if (!formData.taxId || formData.taxId.trim().length < 3) return;
+        
+        try {
+            const response = await api.get(`/customers?search=${formData.taxId.trim()}`);
+            if (response.data && response.data.length > 0) {
+                // Check if exact match and exclude current customer if editing
+                const match = response.data.find((c: Customer) => 
+                    c.taxId === formData.taxId.trim() && 
+                    (!currentCustomer || c.id !== currentCustomer.id)
+                );
+                
+                if (match) {
+                    alert(`Advertencia: Ya existe un cliente registrado con la identificación ${formData.taxId}.\nNombre: ${match.firstName} ${match.lastName}`);
+                }
+            }
+        } catch (error) {
+            console.error("Error checking taxId", error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const isJuridica = personType === 'Juridica';
+            const payload = {
+                firstName: isJuridica 
+                    ? formData.firstName1.trim()
+                    : `${formData.firstName1} ${formData.firstName2}`.trim(),
+                lastName: isJuridica
+                    ? "."
+                    : `${formData.lastName1} ${formData.lastName2}`.trim(),
+                email: formData.email,
+                phone: formData.phone,
+                address: formData.address,
+                taxId: formData.taxId,
+                identificationType: formData.identificationType
+            };
+
             if (currentCustomer) {
-                await api.put(`/customers/${currentCustomer.id}`, formData);
+                await api.put(`/customers/${currentCustomer.id}`, payload);
             } else {
-                await api.post('/customers', formData);
+                await api.post('/customers', payload);
             }
             fetchCustomers();
             handleCloseModal();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Error al guardar cliente');
+            const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Error al guardar cliente';
+            alert(errorMessage);
         }
     };
 
     const handleOpenModal = (customer?: Customer) => {
         if (customer) {
+            // Determine person type from data. If lastName is '.', it's likely Juridica.
+            // Or if ID type is NIT (though natural persons can have NIT too, in this system context NIT often implies business if used as such).
+            // But checking lastName === '.' is the most reliable way given how we save it.
+            const isJuridica = customer.lastName === '.';
+            setPersonType(isJuridica ? 'Juridica' : 'Natural');
+
+            let firstName1 = '';
+            let firstName2 = '';
+            let lastName1 = '';
+            let lastName2 = '';
+
+            if (isJuridica) {
+                firstName1 = customer.firstName || '';
+            } else {
+                const firstParts = (customer.firstName || '').split(' ');
+                const lastParts = (customer.lastName || '').split(' ');
+                firstName1 = firstParts[0] || '';
+                firstName2 = firstParts.slice(1).join(' ') || '';
+                lastName1 = lastParts[0] || '';
+                lastName2 = lastParts.slice(1).join(' ') || '';
+            }
+
             setCurrentCustomer(customer);
             setFormData({
-                firstName: customer.firstName,
-                lastName: customer.lastName,
+                firstName1,
+                firstName2,
+                lastName1,
+                lastName2,
                 email: customer.email || '',
                 phone: customer.phone || '',
                 address: customer.address || '',
                 taxId: customer.taxId || '',
-                identificationType: customer.identificationType || ''
+                identificationType: customer.identificationType || '',
+                department: customer.department || '',
+                city: customer.city || ''
             });
         } else {
             setCurrentCustomer(null);
+            setPersonType('Natural');
             setFormData({
-                firstName: '',
-                lastName: '',
+                firstName1: '',
+                firstName2: '',
+                lastName1: '',
+                lastName2: '',
                 email: '',
                 phone: '',
                 address: '',
                 taxId: '',
-                identificationType: ''
+                identificationType: '',
+                department: '',
+                city: ''
             });
         }
         setIsModalOpen(true);
@@ -210,29 +285,32 @@ const Customers = () => {
                             </button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.firstName}
-                                        onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.lastName}
-                                        onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                                        required
-                                    />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Persona</label>
+                                <div className="flex space-x-4 mt-2">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="Natural"
+                                            checked={personType === 'Natural'}
+                                            onChange={() => setPersonType('Natural')}
+                                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                        />
+                                        <span className="text-gray-700">Natural</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            value="Juridica"
+                                            checked={personType === 'Juridica'}
+                                            onChange={() => setPersonType('Juridica')}
+                                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                        />
+                                        <span className="text-gray-700">Jurídica</span>
+                                    </label>
                                 </div>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
@@ -250,13 +328,117 @@ const Customers = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Número de Identificación</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={formData.taxId}
+                                            onChange={(e) => setFormData({...formData, taxId: e.target.value})}
+                                            onBlur={handleCheckTaxId}
+                                            required
+                                        />
+                                        {formData.identificationType.includes('NIT') && (
+                                            <div className="w-20">
+                                                <input
+                                                    type="text"
+                                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center bg-gray-50 text-gray-500 outline-none"
+                                                    value={calculateNitVerificationDigit(formData.taxId)}
+                                                    readOnly
+                                                    title="Dígito de Verificación"
+                                                    placeholder="DV"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {personType === 'Juridica' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social *</label>
                                     <input 
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.taxId}
-                                        onChange={(e) => setFormData({...formData, taxId: e.target.value})}
+                                        value={formData.firstName1}
+                                        onChange={(e) => setFormData({...formData, firstName1: e.target.value})}
                                         required
                                     />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.firstName1}
+                                                onChange={(e) => setFormData({...formData, firstName1: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Nombre</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.firstName2}
+                                                onChange={(e) => setFormData({...formData, firstName2: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.lastName1}
+                                                onChange={(e) => setFormData({...formData, lastName1: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Apellido</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.lastName2}
+                                                onChange={(e) => setFormData({...formData, lastName2: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.department}
+                                        onChange={(e) => setFormData({...formData, department: e.target.value, city: ''})}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {departments.map(dept => (
+                                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.city}
+                                        onChange={(e) => setFormData({...formData, city: e.target.value})}
+                                        disabled={!formData.department}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {cities.filter(c => c.departmentId === formData.department).map(city => (
+                                            <option key={city.id} value={city.id}>{city.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 
@@ -271,23 +453,40 @@ const Customers = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input 
-                                        type="email" 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                                            value={formData.address}
+                                            readOnly
+                                            placeholder="Use el generador"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddressBuilder(true)}
+                                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-lg border border-blue-200 transition-colors"
+                                            title="Generador de Direcciones DIAN"
+                                        >
+                                            <MapPin size={20} />
+                                        </button>
+                                    </div>
+                                    <AddressBuilder
+                                        isOpen={showAddressBuilder}
+                                        onClose={() => setShowAddressBuilder(false)}
+                                        onConfirm={(addr) => setFormData({...formData, address: addr})}
+                                        initialValue={formData.address}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                 <input 
-                                    type="text" 
+                                    type="email" 
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                                 />
                             </div>
 

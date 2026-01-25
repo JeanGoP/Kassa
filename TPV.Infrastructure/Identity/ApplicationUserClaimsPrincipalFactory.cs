@@ -25,6 +25,11 @@ namespace TPV.Infrastructure.Identity
         {
             var identity = await base.GenerateClaimsAsync(user);
 
+            if (user.TenantId.HasValue)
+            {
+                identity.AddClaim(new Claim("tenant_id", user.TenantId.Value.ToString()));
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
             foreach (var roleName in roles)
             {

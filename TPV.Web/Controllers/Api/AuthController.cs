@@ -41,6 +41,7 @@ namespace TPV.Web.Controllers.Api
                     user = new { 
                         user.Email, 
                         user.Id,
+                        user.TenantId,
                         Permissions = permissions,
                         Roles = roles
                     } 
@@ -69,6 +70,7 @@ namespace TPV.Web.Controllers.Api
                 return Ok(new { 
                     user.Email, 
                     user.Id,
+                    user.TenantId,
                     Permissions = permissions,
                     Roles = roles
                 });

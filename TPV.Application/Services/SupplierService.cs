@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,10 +12,12 @@ namespace TPV.Application.Services
     public class SupplierService : ISupplierService
     {
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly ILogger<SupplierService> _logger;
 
-        public SupplierService(IRepository<Supplier> supplierRepository)
+        public SupplierService(IRepository<Supplier> supplierRepository, ILogger<SupplierService> logger)
         {
             _supplierRepository = supplierRepository;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<SupplierDto>> GetAllAsync()
@@ -52,6 +55,17 @@ namespace TPV.Application.Services
 
         public async Task<SupplierDto> CreateAsync(CreateSupplierDto dto)
         {
+            if (!string.IsNullOrEmpty(dto.TaxId))
+            {
+                dto.TaxId = dto.TaxId.Trim();
+                var existing = await _supplierRepository.GetAsync(s => s.TaxId.Trim() == dto.TaxId);
+                if (existing.Any())
+                {
+                    _logger.LogWarning("Intento de crear proveedor duplicado (App Check) con identificación {TaxId}", dto.TaxId);
+                    throw new System.Exception($"Ya existe un proveedor con la identificación {dto.TaxId}");
+                }
+            }
+
             var supplier = new Supplier
             {
                 Name = dto.Name,
@@ -63,18 +77,32 @@ namespace TPV.Application.Services
                 TaxId = dto.TaxId,
                 IsActive = true
             };
-            var created = await _supplierRepository.AddAsync(supplier);
-            return new SupplierDto
+
+            try
             {
-                Id = created.Id,
-                Name = created.Name,
-                ContactName = created.ContactName,
-                Phone = created.Phone,
-                Email = created.Email,
-                Address = created.Address,
-                IdentificationType = created.IdentificationType,
-                TaxId = created.TaxId
-            };
+                var created = await _supplierRepository.AddAsync(supplier);
+                return new SupplierDto
+                {
+                    Id = created.Id,
+                    Name = created.Name,
+                    ContactName = created.ContactName,
+                    Phone = created.Phone,
+                    Email = created.Email,
+                    Address = created.Address,
+                    IdentificationType = created.IdentificationType,
+                    TaxId = created.TaxId
+                };
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.InnerException != null && (ex.InnerException.Message.Contains("IX_Suppliers_TenantId_TaxId") || ex.InnerException.Message.Contains("IX_Suppliers_TaxId")))
+                {
+                    _logger.LogWarning("Intento de duplicar proveedor con identificación {TaxId} (DB Constraint)", dto.TaxId);
+                    throw new System.Exception($"Ya existe un proveedor con la identificación {dto.TaxId} (Error de base de datos)");
+                }
+                _logger.LogError(ex, "Error al crear proveedor con identificación {TaxId}", dto.TaxId);
+                throw;
+            }
         }
 
         public async Task UpdateAsync(int id, CreateSupplierDto dto)
@@ -82,6 +110,20 @@ namespace TPV.Application.Services
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier != null)
             {
+                if (!string.IsNullOrEmpty(dto.TaxId))
+                {
+                    dto.TaxId = dto.TaxId.Trim();
+                    if (dto.TaxId != supplier.TaxId)
+                    {
+                        var existing = await _supplierRepository.GetAsync(s => s.TaxId.Trim() == dto.TaxId && s.Id != id);
+                        if (existing.Any())
+                        {
+                            _logger.LogWarning("Intento de actualizar a proveedor duplicado (App Check) con identificación {TaxId}", dto.TaxId);
+                            throw new System.Exception($"Ya existe otro proveedor con la identificación {dto.TaxId}");
+                        }
+                    }
+                }
+
                 supplier.Name = dto.Name;
                 supplier.ContactName = dto.ContactName;
                 supplier.Phone = dto.Phone;
@@ -89,7 +131,21 @@ namespace TPV.Application.Services
                 supplier.Address = dto.Address;
                 supplier.IdentificationType = dto.IdentificationType;
                 supplier.TaxId = dto.TaxId;
-                await _supplierRepository.UpdateAsync(supplier);
+
+                try
+                {
+                    await _supplierRepository.UpdateAsync(supplier);
+                }
+                catch (System.Exception ex)
+                {
+                    if (ex.InnerException != null && (ex.InnerException.Message.Contains("IX_Suppliers_TenantId_TaxId") || ex.InnerException.Message.Contains("IX_Suppliers_TaxId")))
+                    {
+                        _logger.LogWarning("Intento de duplicar proveedor con identificación {TaxId} en actualización", dto.TaxId);
+                        throw new System.Exception($"Ya existe otro proveedor con la identificación {dto.TaxId} (Error de base de datos)");
+                    }
+                    _logger.LogError(ex, "Error al actualizar proveedor {Id}", id);
+                    throw;
+                }
             }
         }
 

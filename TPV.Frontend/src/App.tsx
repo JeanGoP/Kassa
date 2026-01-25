@@ -24,7 +24,9 @@ import ServiceOrderClosure from './pages/ServiceOrderClosure';
 import Technicians from './pages/Technicians';
 import Roles from './pages/Roles';
 import Users from './pages/Users';
+import Tenants from './pages/Tenants';
 import WorkshopDashboard from './pages/WorkshopDashboard';
+import Warranties from './pages/Warranties';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
@@ -61,10 +63,12 @@ const AppRoutes = () => {
                 <Route path="service-orders/trabajos" element={<ServiceOrderWorks />} />
                 <Route path="service-orders/repuestos" element={<ServiceOrderParts />} />
                 <Route path="service-orders/cierre" element={<ServiceOrderClosure />} />
+                <Route path="warranties" element={<Warranties />} />
                 <Route path="cash" element={<Cash />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="users" element={<Users />} />
                 <Route path="roles" element={<Roles />} />
+                <Route path="tenants" element={<Tenants />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Route>

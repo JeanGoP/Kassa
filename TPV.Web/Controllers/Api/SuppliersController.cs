@@ -34,15 +34,37 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<SupplierDto>> Create(CreateSupplierDto dto)
         {
-            var created = await _supplierService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var created = await _supplierService.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("Ya existe"))
+                {
+                    return Conflict(new { message = ex.Message });
+                }
+                return StatusCode(500, new { message = "Error al guardar el proveedor." });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, CreateSupplierDto dto)
         {
-            await _supplierService.UpdateAsync(id, dto);
-            return NoContent();
+            try
+            {
+                await _supplierService.UpdateAsync(id, dto);
+                return NoContent();
+            }
+            catch (System.Exception ex)
+            {
+                if (ex.Message.Contains("Ya existe"))
+                {
+                    return Conflict(new { message = ex.Message });
+                }
+                return StatusCode(500, new { message = "Error al actualizar el proveedor." });
+            }
         }
 
         [HttpDelete("{id}")]
