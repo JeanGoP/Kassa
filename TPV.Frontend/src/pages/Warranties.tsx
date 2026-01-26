@@ -22,7 +22,6 @@ interface Warranty {
 const Warranties = () => {
     const [warranties, setWarranties] = useState<Warranty[]>([]);
     const [loading, setLoading] = useState(true);
-    console.log(loading); // Avoid unused variable warning
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentWarranty, setCurrentWarranty] = useState<Warranty | null>(null);
@@ -136,6 +135,8 @@ const Warranties = () => {
             }
         }
     };
+
+    if (loading) return <div className="p-6">Cargando...</div>;
 
     return (
         <div className="p-6">
