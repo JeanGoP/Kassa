@@ -378,13 +378,13 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("ImpoconsumoRate")
-                        .HasColumnType("decimal(5,4)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("IvaRate")
-                        .HasColumnType("decimal(5,4)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("IvaType")
                         .IsRequired()
@@ -396,6 +396,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("PriceIncludesIva")
+                        .HasColumnType("bit");
 
                     b.Property<string>("SKU")
                         .IsRequired()

@@ -99,11 +99,11 @@ namespace TPV.Infrastructure.Persistence
             
             builder.Entity<Product>()
                 .Property(p => p.IvaRate)
-                .HasColumnType("decimal(5,4)");
+                .HasColumnType("decimal(18,2)");
             
             builder.Entity<Product>()
                 .Property(p => p.ImpoconsumoRate)
-                .HasColumnType("decimal(5,4)");
+                .HasColumnType("decimal(18,2)");
 
             builder.Entity<Sale>()
                 .Property(s => s.TotalAmount)

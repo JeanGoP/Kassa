@@ -12,6 +12,7 @@ interface Product {
     ivaType: string;
     ivaRate: number;
     impoconsumoRate: number;
+    priceIncludesIva: boolean;
     categoryId: number;
     categoryName?: string;
 }
@@ -44,6 +45,7 @@ const Products = () => {
         ivaType: 'Excluido',
         ivaRate: 0,
         impoconsumoRate: 0,
+        priceIncludesIva: false,
         categoryId: 0
     });
 
@@ -242,6 +244,7 @@ const Products = () => {
                 ivaType: product.ivaType || 'Excluido',
                 ivaRate: product.ivaRate || 0,
                 impoconsumoRate: product.impoconsumoRate || 0,
+                priceIncludesIva: product.priceIncludesIva,
                 categoryId: product.categoryId
             });
         } else {
@@ -252,6 +255,10 @@ const Products = () => {
                 description: '',
                 price: 0,
                 cost: 0,
+                ivaType: 'Excluido',
+                ivaRate: 0,
+                impoconsumoRate: 0,
+                priceIncludesIva: false,
                 categoryId: categories.length > 0 ? categories[0].id : 0
             });
         }
@@ -450,6 +457,18 @@ const Products = () => {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div className="flex items-center">
+                                        <input
+                                            id="priceIncludesIva"
+                                            type="checkbox"
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
+                                            checked={formData.priceIncludesIva}
+                                            onChange={(e) => setFormData({ ...formData, priceIncludesIva: e.target.checked })}
+                                        />
+                                        <label htmlFor="priceIncludesIva" className="text-sm font-medium text-gray-700">
+                                            Precio incluye IVA
+                                        </label>
+                                    </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Impuesto al Consumo (%)</label>
                                         <input 

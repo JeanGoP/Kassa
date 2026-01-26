@@ -32,6 +32,7 @@ namespace TPV.Application.Services
                 IvaType = p.IvaType,
                 IvaRate = p.IvaRate,
                 ImpoconsumoRate = p.ImpoconsumoRate,
+                PriceIncludesIva = p.PriceIncludesIva,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name,
                 StockQuantity = p.Stocks?.Where(s => !branchId.HasValue || s.BranchId == branchId.Value).Sum(s => s.Quantity) ?? 0
@@ -55,6 +56,7 @@ namespace TPV.Application.Services
                 IvaType = p.IvaType,
                 IvaRate = p.IvaRate,
                 ImpoconsumoRate = p.ImpoconsumoRate,
+                PriceIncludesIva = p.PriceIncludesIva,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name,
                 StockQuantity = p.Stocks?.Sum(s => s.Quantity) ?? 0
@@ -80,7 +82,11 @@ namespace TPV.Application.Services
                 Description = productDto.Description ?? string.Empty,
                 Price = productDto.Price,
                 CategoryId = productDto.CategoryId,
-                Cost = productDto.Cost
+                Cost = productDto.Cost,
+                IvaType = productDto.IvaType,
+                IvaRate = productDto.IvaRate,
+                ImpoconsumoRate = productDto.ImpoconsumoRate,
+                PriceIncludesIva = productDto.PriceIncludesIva
             };
 
             var newProduct = await _productRepository.AddAsync(product);
@@ -114,6 +120,7 @@ namespace TPV.Application.Services
                 product.IvaType = productDto.IvaType;
                 product.IvaRate = productDto.IvaRate;
                 product.ImpoconsumoRate = productDto.ImpoconsumoRate;
+                product.PriceIncludesIva = productDto.PriceIncludesIva;
                 product.CategoryId = productDto.CategoryId;
                 
                 await _productRepository.UpdateAsync(product);

@@ -37,7 +37,7 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("No hay ítems en la venta.");
 
             // Validar stock disponible y obtener precios reales
-            var processedItems = new List<(int ProductId, int Quantity, decimal UnitPrice, string ProductName)>();
+            var processedItems = new List<(int ProductId, int Quantity, decimal UnitPrice, string ProductName, decimal IvaRate, string IvaType, bool PriceIncludesIva)>();
 
             foreach (var item in dto.Items)
             {
@@ -54,7 +54,7 @@ namespace TPV.Application.Services
                 if (stock.Quantity < item.Quantity)
                     throw new InvalidOperationException($"Stock insuficiente para '{product.Name}' en sucursal {dto.BranchId}. Disponible: {stock.Quantity}, Solicitado: {item.Quantity}.");
                 
-                processedItems.Add((item.ProductId, item.Quantity, product.Price, product.Name));
+                processedItems.Add((item.ProductId, item.Quantity, product.Price, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
             }
 
             var sale = new Sale
@@ -65,22 +65,49 @@ namespace TPV.Application.Services
                 PaymentMethod = dto.PaymentMethod,
                 InvoiceNumber = $"V-{DateTime.UtcNow:yyyyMMddHHmmss}-{dto.BranchId}",
                 UserId = userId,
-                TotalAmount = processedItems.Sum(i => i.Quantity * i.UnitPrice) // Recalcular con precio real
+                TotalAmount = 0 // Se recalcula más abajo con IVA discriminado
             };
 
             sale = await _saleRepository.AddAsync(sale);
 
+            decimal total = 0;
+
             foreach (var item in processedItems)
             {
+                decimal lineBase;
+                decimal lineTax;
+
+                if (item.IvaType == "Exento" || item.IvaType == "Excluido" || item.IvaRate <= 0)
+                {
+                    lineBase = item.UnitPrice * item.Quantity;
+                    lineTax = 0;
+                }
+                else if (item.PriceIncludesIva)
+                {
+                    var divisor = 1 + (item.IvaRate / 100m);
+                    var gross = item.UnitPrice * item.Quantity;
+                    var baseAmount = decimal.Round(gross / divisor, 2);
+                    var taxAmount = gross - baseAmount;
+                    lineBase = baseAmount;
+                    lineTax = taxAmount;
+                }
+                else
+                {
+                    lineBase = item.UnitPrice * item.Quantity;
+                    lineTax = decimal.Round(lineBase * (item.IvaRate / 100m), 2);
+                }
+
                 var detail = new SaleDetail
                 {
                     SaleId = sale.Id,
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice, // Usar precio verificado
-                    SubTotal = item.UnitPrice * item.Quantity
+                    SubTotal = lineBase
                 };
                 await _saleDetailRepository.AddAsync(detail);
+
+                total += lineBase + lineTax;
 
                 // Descontar del stock
                 var stockList = await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId);
@@ -88,6 +115,9 @@ namespace TPV.Application.Services
                 stock.Quantity -= item.Quantity;
                 await _stockRepository.UpdateAsync(stock);
             }
+
+            sale.TotalAmount = total;
+            await _saleRepository.UpdateAsync(sale);
 
             // Facturación Electrónica
             try 
@@ -189,4 +219,3 @@ namespace TPV.Application.Services
         }
     }
 }
-

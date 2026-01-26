@@ -123,14 +123,28 @@ namespace TPV.Application.Services
                     line.TaxRate = rate;
                     line.TaxType = "01"; // IVA default
 
-                    // Simple calculation: Tax = SubTotal * (Rate / 100)
-                    // Note: Ideally, we should know if UnitPrice includes tax.
-                    // Assuming UnitPrice is before tax for simplicity, or we treat it as such.
-                    // If TPV usually shows "Total", then SubTotal might be inclusive.
-                    // Let's assume SubTotal is the Line Extension Amount (base).
-                    
-                    line.TaxAmount = line.SubTotal * (rate / 100m);
-                    line.TotalAmount = line.SubTotal + line.TaxAmount;
+                    if (detail.Product.IvaType == "Exento" || detail.Product.IvaType == "Excluido" || rate <= 0)
+                    {
+                        line.TaxAmount = 0;
+                        line.TotalAmount = line.SubTotal;
+                    }
+                    else
+                    {
+                        if (detail.Product.PriceIncludesIva)
+                        {
+                            var divisor = 1 + (rate / 100m);
+                            var baseAmount = decimal.Round(line.SubTotal / divisor, 2);
+                            var taxAmount = line.SubTotal - baseAmount;
+                            line.SubTotal = baseAmount;
+                            line.TaxAmount = taxAmount;
+                            line.TotalAmount = baseAmount + taxAmount;
+                        }
+                        else
+                        {
+                            line.TaxAmount = line.SubTotal * (rate / 100m);
+                            line.TotalAmount = line.SubTotal + line.TaxAmount;
+                        }
+                    }
                 }
                 else
                 {

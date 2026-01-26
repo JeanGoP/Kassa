@@ -11,6 +11,7 @@ namespace TPV.Application.DTOs
         public string IvaType { get; set; } = "Excluido";
         public decimal IvaRate { get; set; }
         public decimal ImpoconsumoRate { get; set; }
+        public bool PriceIncludesIva { get; set; }
         public int CategoryId { get; set; }
         public string? CategoryName { get; set; }
         public int StockQuantity { get; set; }

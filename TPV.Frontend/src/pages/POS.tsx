@@ -255,7 +255,7 @@ const POS = () => {
         setProcessing(true);
         try {
             const payload = {
-                branchId: 1, // Default branch
+                branchId: 0, // 0 lets the backend use the default branch
                 customerId: selectedCustomer?.id || null,
                 items: cart.map(item => ({
                     productId: item.id,
@@ -271,9 +271,10 @@ const POS = () => {
             setShowPaymentModal(false);
             setShowTicketModal(true);
             fetchProducts();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating sale:", error);
-            alert("Error al procesar la venta");
+            const errorMessage = error.response?.data || error.message || "Error desconocido";
+            alert(`Error al procesar la venta: ${errorMessage}`);
         } finally {
             setProcessing(false);
         }

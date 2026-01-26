@@ -16,6 +16,8 @@ namespace TPV.Domain.Entities
         public decimal IvaRate { get; set; }
         public decimal ImpoconsumoRate { get; set; }
 
+        public bool PriceIncludesIva { get; set; }
+
         public int CategoryId { get; set; }
         public Category Category { get; set; }
 
