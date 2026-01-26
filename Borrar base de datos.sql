@@ -76,7 +76,14 @@ END
 DELETE FROM AspNetRoles
 WHERE Name NOT IN ('Admin', 'Vendedor', 'Supervisor');
 
-PRINT 'Roles no esenciales eliminados.';
+-- C) Limpiar Claims de roles para forzar regeneración desde código (Seeder)
+DELETE FROM AspNetRoleClaims;
+
+-- D) Limpiar asignaciones de roles huérfanos (por si el Admin tenía un rol eliminado)
+DELETE FROM AspNetUserRoles 
+WHERE RoleId NOT IN (SELECT Id FROM AspNetRoles);
+
+PRINT 'Roles no esenciales eliminados y permisos reseteados.';
 
 IF @AdminId IS NOT NULL
 BEGIN

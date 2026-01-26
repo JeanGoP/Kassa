@@ -6,4 +6,6 @@ cd "c:\Desarrollos propios\TPV\TPV.Frontend"
 npm install
 npm run dev
 
+Publicar:
+dotnet publish TPV.Web -c Release -o publish
 
