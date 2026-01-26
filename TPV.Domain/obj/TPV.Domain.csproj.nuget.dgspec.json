@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {}
+    "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
+    "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
+        "projectUniqueName": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
         "projectName": "TPV.Domain",
-        "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
+        "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
         "packagesPath": "C:\\Users\\Jean Sidecil\\.nuget\\packages\\",
-        "outputPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\obj\\",
+        "outputPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

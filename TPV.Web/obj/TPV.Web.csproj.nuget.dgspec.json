@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj": {}
+    "c:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj": {}
   },
   "projects": {
-    "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
+    "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
+        "projectUniqueName": "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
         "projectName": "TPV.Application",
-        "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
+        "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj",
         "packagesPath": "C:\\Users\\Jean Sidecil\\.nuget\\packages\\",
-        "outputPath": "C:\\Desarrollos propios\\TPV\\TPV.Application\\obj\\",
+        "outputPath": "c:\\Desarrollos propios\\TPV\\TPV.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,8 +32,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
-                "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj"
+              "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
+                "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj"
               }
             }
           }
@@ -95,14 +95,14 @@
         }
       }
     },
-    "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
+    "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
+        "projectUniqueName": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
         "projectName": "TPV.Domain",
-        "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
+        "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj",
         "packagesPath": "C:\\Users\\Jean Sidecil\\.nuget\\packages\\",
-        "outputPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\obj\\",
+        "outputPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -160,14 +160,14 @@
         }
       }
     },
-    "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj": {
+    "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj",
+        "projectUniqueName": "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj",
         "projectName": "TPV.Infrastructure",
-        "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj",
+        "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\Jean Sidecil\\.nuget\\packages\\",
-        "outputPath": "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\obj\\",
+        "outputPath": "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -188,11 +188,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
-                "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj"
+              "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
+                "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj"
               },
-              "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
-                "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj"
+              "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj": {
+                "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Domain\\TPV.Domain.csproj"
               }
             }
           }
@@ -249,14 +249,14 @@
         }
       }
     },
-    "C:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj": {
+    "c:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj",
+        "projectUniqueName": "c:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj",
         "projectName": "TPV.Web",
-        "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj",
+        "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Web\\TPV.Web.csproj",
         "packagesPath": "C:\\Users\\Jean Sidecil\\.nuget\\packages\\",
-        "outputPath": "C:\\Desarrollos propios\\TPV\\TPV.Web\\obj\\",
+        "outputPath": "c:\\Desarrollos propios\\TPV\\TPV.Web\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -277,11 +277,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
-                "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj"
+              "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj": {
+                "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Application\\TPV.Application.csproj"
               },
-              "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj": {
-                "projectPath": "C:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj"
+              "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj": {
+                "projectPath": "c:\\Desarrollos propios\\TPV\\TPV.Infrastructure\\TPV.Infrastructure.csproj"
               }
             }
           }
