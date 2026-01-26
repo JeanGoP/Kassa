@@ -8,6 +8,7 @@ using TPV.Domain.Entities;
 using TPV.Domain.Interfaces;
 using TPV.Infrastructure.Persistence;
 using TPV.Infrastructure.Repositories;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 app.UseCors("AllowFrontend");
 
 app.UseSession();

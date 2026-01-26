@@ -27,6 +27,10 @@ namespace TPV.Infrastructure
 
             services.ConfigureApplicationCookie(options =>
             {
+                options.Cookie.Path = "/";
+                options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+
                 options.Events.OnRedirectToLogin = context =>
                 {
                     if (context.Request.Path.StartsWithSegments("/api"))
