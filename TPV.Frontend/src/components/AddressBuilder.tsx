@@ -45,7 +45,7 @@ const COMPLEMENTS = [
     { value: 'IN', label: 'Interior' },
 ];
 
-const AddressBuilder: React.FC<AddressBuilderProps> = ({ initialValue, isOpen, onClose, onConfirm }) => {
+const AddressBuilder: React.FC<AddressBuilderProps> = ({ isOpen, onClose, onConfirm }) => {
     // Via Principal
     const [viaType, setViaType] = useState('CL');
     const [viaNumber, setViaNumber] = useState('');

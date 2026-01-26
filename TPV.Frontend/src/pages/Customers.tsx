@@ -14,6 +14,8 @@ interface Customer {
     address: string;
     taxId: string;
     identificationType: string;
+    department?: string;
+    city?: string;
 }
 
 const IDENTIFICATION_TYPES = [
@@ -37,7 +39,19 @@ const Customers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [personType, setPersonType] = useState<'Natural' | 'Juridica'>('Natural');
     const [showAddressBuilder, setShowAddressBuilder] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        firstName1: string;
+        firstName2: string;
+        lastName1: string;
+        lastName2: string;
+        email: string;
+        phone: string;
+        address: string;
+        taxId: string;
+        identificationType: string;
+        department: string;
+        city: string;
+    }>({
         firstName1: '',
         firstName2: '',
         lastName1: '',
@@ -46,7 +60,9 @@ const Customers = () => {
         phone: '',
         address: '',
         taxId: '',
-        identificationType: ''
+        identificationType: '',
+        department: '',
+        city: ''
     });
 
     useEffect(() => {

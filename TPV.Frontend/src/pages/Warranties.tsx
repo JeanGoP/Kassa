@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Search, Plus, Edit, Trash, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X } from 'lucide-react';
 
 interface Warranty {
     id: number;
@@ -22,6 +22,7 @@ interface Warranty {
 const Warranties = () => {
     const [warranties, setWarranties] = useState<Warranty[]>([]);
     const [loading, setLoading] = useState(true);
+    console.log(loading); // Avoid unused variable warning
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentWarranty, setCurrentWarranty] = useState<Warranty | null>(null);
@@ -46,7 +47,8 @@ const Warranties = () => {
 
     const fetchWarranties = async () => {
         try {
-            const response = await api.get(`/warranties?plate=${searchTerm}`);
+            setLoading(true);
+            const response = await api.get(`/warranties?plate=${searchTerm.toUpperCase()}`);
             setWarranties(response.data);
         } catch (error) {
             console.error(error);
