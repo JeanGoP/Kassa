@@ -117,6 +117,7 @@ namespace TPV.Application.Services
                 product.Description = productDto.Description ?? string.Empty;
                 product.Price = productDto.Price;
                 product.Cost = productDto.Cost;
+                product.ProfitabilityPercentage = productDto.ProfitabilityPercentage;
                 product.IvaType = productDto.IvaType;
                 product.IvaRate = productDto.IvaRate;
                 product.ImpoconsumoRate = productDto.ImpoconsumoRate;

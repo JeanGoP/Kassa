@@ -9,6 +9,7 @@ interface Product {
     description: string;
     price: number;
     cost: number;
+    profitabilityPercentage?: number;
     ivaType: string;
     ivaRate: number;
     impoconsumoRate: number;
@@ -42,12 +43,15 @@ const Products = () => {
         description: '',
         price: 0,
         cost: 0,
+        profitabilityPercentage: 0,
         ivaType: 'Excluido',
         ivaRate: 0,
         impoconsumoRate: 0,
         priceIncludesIva: false,
         categoryId: 0
     });
+
+    const [activeTab, setActiveTab] = useState('features');
 
     // New state for hierarchical category selector
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -233,6 +237,7 @@ const Products = () => {
         };
 
     const handleOpenModal = (product?: Product) => {
+        setActiveTab('features');
         if (product) {
             setCurrentProduct(product);
             setFormData({
@@ -241,6 +246,7 @@ const Products = () => {
                 description: product.description || '',
                 price: product.price,
                 cost: product.cost || 0,
+                profitabilityPercentage: product.profitabilityPercentage || 0,
                 ivaType: product.ivaType || 'Excluido',
                 ivaRate: product.ivaRate || 0,
                 impoconsumoRate: product.impoconsumoRate || 0,
@@ -255,6 +261,7 @@ const Products = () => {
                 description: '',
                 price: 0,
                 cost: 0,
+                profitabilityPercentage: 0,
                 ivaType: 'Excluido',
                 ivaRate: 0,
                 impoconsumoRate: 0,
@@ -268,6 +275,34 @@ const Products = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setCurrentProduct(null);
+    };
+
+    // Logic for profitability
+    const handleCostChange = (val: number) => {
+        const newCost = val;
+        let newPrice = formData.price;
+        
+        if (formData.profitabilityPercentage && formData.profitabilityPercentage > 0) {
+            newPrice = newCost * (1 + formData.profitabilityPercentage / 100);
+        }
+        
+        setFormData({ ...formData, cost: newCost, price: parseFloat(newPrice.toFixed(2)) });
+    };
+
+    const handleProfitabilityChange = (val: number) => {
+        const profit = val;
+        const newPrice = formData.cost * (1 + profit / 100);
+        setFormData({ ...formData, profitabilityPercentage: profit, price: parseFloat(newPrice.toFixed(2)) });
+    };
+
+    const handlePriceChange = (val: number) => {
+        // If price changes manually, we could update profitability or just leave it.
+        // For now, let's update profitability to reflect the new margin
+        let profit = 0;
+        if (formData.cost > 0) {
+            profit = ((val - formData.cost) / formData.cost) * 100;
+        }
+        setFormData({ ...formData, price: val, profitabilityPercentage: parseFloat(profit.toFixed(2)) });
     };
 
     const handleDelete = async (id: number) => {
@@ -374,8 +409,8 @@ const Products = () => {
             {/* Modal producto */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
                             <h3 className="font-bold text-lg text-slate-800">
                                 {currentProduct ? 'Editar Producto' : 'Nuevo Producto'}
                             </h3>
@@ -383,146 +418,204 @@ const Products = () => {
                                 <X size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.sku}
-                                        onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Costo</label>
-                                    <input 
-                                        type="number" 
-                                        step="0.01"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.cost}
-                                        onChange={(e) => setFormData({...formData, cost: parseFloat(e.target.value)})}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio Venta</label>
-                                    <input 
-                                        type="number" 
-                                        step="0.01"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.price}
-                                        onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Sección de Impuestos */}
-                            <div className="border-t border-gray-100 pt-4 mt-2">
-                                <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Impuestos</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de IVA</label>
-                                        <select 
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={formData.ivaType}
-                                            onChange={(e) => {
-                                                const newType = e.target.value;
-                                                setFormData({
-                                                    ...formData, 
-                                                    ivaType: newType,
-                                                    ivaRate: (newType === 'Exento' || newType === 'Excluido') ? 0 : formData.ivaRate
-                                                });
-                                            }}
-                                        >
-                                            <option value="Excluido">Excluido</option>
-                                            <option value="Exento">Exento</option>
-                                            <option value="Gravado">Gravado (IVA)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa IVA (%)</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={formData.ivaRate}
-                                            onChange={(e) => setFormData({...formData, ivaRate: parseFloat(e.target.value)})}
-                                            disabled={formData.ivaType === 'Exento' || formData.ivaType === 'Excluido'}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 mt-4">
-                                    <div className="flex items-center">
-                                        <input
-                                            id="priceIncludesIva"
-                                            type="checkbox"
-                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded mr-2"
-                                            checked={formData.priceIncludesIva}
-                                            onChange={(e) => setFormData({ ...formData, priceIncludesIva: e.target.checked })}
-                                        />
-                                        <label htmlFor="priceIncludesIva" className="text-sm font-medium text-gray-700">
-                                            Precio incluye IVA
-                                        </label>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Impuesto al Consumo (%)</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                            value={formData.impoconsumoRate}
-                                            onChange={(e) => setFormData({...formData, impoconsumoRate: parseFloat(e.target.value)})}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                                <input 
-                                    type="text" 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                                <textarea 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    rows={3}
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                        <form onSubmit={handleSubmit} className="p-6">
+                            {/* Tabs Navigation */}
+                            <div className="flex border-b border-gray-200 mb-6">
                                 <button
                                     type="button"
-                                    onClick={() => setIsCategoryModalOpen(true)}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-left bg-white focus:ring-2 focus:ring-blue-500 outline-none flex justify-between items-center"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'features' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('features')}
                                 >
-                                    <span className={formData.categoryId ? 'text-gray-900' : 'text-gray-400'}>
-                                        {categories.find(c => c.id === formData.categoryId)?.name || 'Seleccione una categoría'}
-                                    </span>
-                                    <ChevronDown size={16} className="text-gray-500" />
+                                    Características
                                 </button>
-                                {categories.length === 0 && (
-                                    <p className="text-xs text-red-500 mt-1">
-                                        No hay categorías disponibles. Cree categorías desde la pantalla de gestión.
-                                    </p>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pricing' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('pricing')}
+                                >
+                                    Precios y Rentabilidad
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'taxes' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('taxes')}
+                                >
+                                    Impuestos
+                                </button>
+                            </div>
+
+                            <div className="min-h-[300px]">
+                                {/* Features Tab */}
+                                {activeTab === 'features' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fadeIn">
+                                        {/* SKU & Name */}
+                                        <div className="md:col-span-3">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.sku}
+                                                onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="md:col-span-9">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                required
+                                            />
+                                        </div>
+
+                                        {/* Description */}
+                                        <div className="md:col-span-12">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                            <textarea 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                rows={4}
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                            />
+                                        </div>
+
+                                        {/* Category */}
+                                        <div className="md:col-span-12">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCategoryModalOpen(true)}
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-left bg-white focus:ring-2 focus:ring-blue-500 outline-none flex justify-between items-center"
+                                            >
+                                                <span className={formData.categoryId ? 'text-gray-900' : 'text-gray-400'}>
+                                                    {categories.find(c => c.id === formData.categoryId)?.name || 'Seleccione una categoría'}
+                                                </span>
+                                                <ChevronDown size={16} className="text-gray-500" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Pricing Tab */}
+                                {activeTab === 'pricing' && (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                                            <h4 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide">Cálculo de Precios</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Costo</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                                        <input 
+                                                            type="number" 
+                                                            step="0.01"
+                                                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            value={formData.cost}
+                                                            onChange={(e) => handleCostChange(parseFloat(e.target.value) || 0)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rentabilidad (%)</label>
+                                                    <div className="relative">
+                                                        <input 
+                                                            type="number" 
+                                                            step="0.01"
+                                                            className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            value={formData.profitabilityPercentage}
+                                                            onChange={(e) => handleProfitabilityChange(parseFloat(e.target.value) || 0)}
+                                                            placeholder="Opcional"
+                                                        />
+                                                        <span className="absolute right-3 top-2 text-gray-500">%</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio Venta</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                                        <input 
+                                                            type="number" 
+                                                            step="0.01"
+                                                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
+                                                            value={formData.price}
+                                                            onChange={(e) => handlePriceChange(parseFloat(e.target.value) || 0)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="mt-6 flex items-center bg-white p-3 rounded border border-gray-200">
+                                                <input
+                                                    id="priceIncludesIva"
+                                                    type="checkbox"
+                                                    className="h-5 w-5 text-blue-600 border-gray-300 rounded mr-3"
+                                                    checked={formData.priceIncludesIva}
+                                                    onChange={(e) => setFormData({ ...formData, priceIncludesIva: e.target.checked })}
+                                                />
+                                                <label htmlFor="priceIncludesIva" className="text-sm font-medium text-gray-700 cursor-pointer">
+                                                    El precio de venta incluye IVA
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Taxes Tab */}
+                                {activeTab === 'taxes' && (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                                            <h4 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Configuración de Impuestos</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de IVA</label>
+                                                    <select 
+                                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={formData.ivaType}
+                                                        onChange={(e) => {
+                                                            const newType = e.target.value;
+                                                            setFormData({
+                                                                ...formData, 
+                                                                ivaType: newType,
+                                                                ivaRate: (newType === 'Exento' || newType === 'Excluido') ? 0 : formData.ivaRate
+                                                            });
+                                                        }}
+                                                    >
+                                                        <option value="Excluido">Excluido</option>
+                                                        <option value="Exento">Exento</option>
+                                                        <option value="Gravado">Gravado (IVA)</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa IVA (%)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01"
+                                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={formData.ivaRate}
+                                                        onChange={(e) => setFormData({...formData, ivaRate: parseFloat(e.target.value)})}
+                                                        disabled={formData.ivaType === 'Exento' || formData.ivaType === 'Excluido'}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Impuesto Consumo (%)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01"
+                                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={formData.impoconsumoRate}
+                                                        onChange={(e) => setFormData({...formData, impoconsumoRate: parseFloat(e.target.value)})}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-end pt-4">
+                            <div className="flex justify-end pt-6 border-t border-gray-100 mt-6">
                                 <button 
                                     type="button" 
                                     onClick={handleCloseModal}
@@ -532,9 +625,9 @@ const Products = () => {
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md transition-all"
+                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium"
                                 >
-                                    Guardar
+                                    Guardar Producto
                                 </button>
                             </div>
                         </form>

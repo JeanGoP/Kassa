@@ -7,8 +7,10 @@ namespace TPV.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Price { get; set; }
-        public decimal Cost { get; set; }
-        public string IvaType { get; set; } = "Excluido";
+    public decimal Cost { get; set; }
+    public decimal? ProfitabilityPercentage { get; set; }
+
+    public string IvaType { get; set; } = "Excluido";
         public decimal IvaRate { get; set; }
         public decimal ImpoconsumoRate { get; set; }
         public bool PriceIncludesIva { get; set; }

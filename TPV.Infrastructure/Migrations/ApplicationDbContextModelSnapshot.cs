@@ -406,6 +406,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<bool>("PriceIncludesIva")
                         .HasColumnType("bit");
 
+                    b.Property<decimal?>("ProfitabilityPercentage")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("SKU")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

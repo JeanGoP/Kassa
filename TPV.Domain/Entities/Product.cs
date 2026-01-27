@@ -10,9 +10,10 @@ namespace TPV.Domain.Entities
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; } // Precio de venta
-        public decimal Cost { get; set; }  // Costo para reportes de ganancia
-        
-        public string IvaType { get; set; } = "Excluido"; // Gravado, Exento, Excluido
+    public decimal Cost { get; set; }  // Costo para reportes de ganancia
+    public decimal? ProfitabilityPercentage { get; set; } // Porcentaje de rentabilidad opcional
+
+    public string IvaType { get; set; } = "Excluido"; // Gravado, Exento, Excluido
         public decimal IvaRate { get; set; }
         public decimal ImpoconsumoRate { get; set; }
 
