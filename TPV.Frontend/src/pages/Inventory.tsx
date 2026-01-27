@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { Package, AlertTriangle, Edit, Save, X, MapPin } from 'lucide-react';
+import { Package, AlertTriangle, Edit, Save, X, MapPin, Search } from 'lucide-react';
 
 interface StockItem {
     id: number;
@@ -26,6 +26,7 @@ const Inventory = () => {
     const [editingItem, setEditingItem] = useState<StockItem | null>(null);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+    const [inventorySearch, setInventorySearch] = useState('');
 
     useEffect(() => {
         const init = async () => {
@@ -96,6 +97,14 @@ const Inventory = () => {
         await fetchData(id);
     };
 
+    const filteredStock = stock.filter(item => {
+        const q = inventorySearch.toLowerCase().trim();
+        if (!q) return true;
+        const name = (item.productName || '').toLowerCase();
+        const sku = (item.sku || '').toLowerCase();
+        return name.includes(q) || sku.includes(q);
+    });
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -144,6 +153,16 @@ const Inventory = () => {
                     <h2 className="font-bold text-lg flex items-center">
                         <Package className="mr-2" /> Inventario General
                     </h2>
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            value={inventorySearch}
+                            onChange={(e) => setInventorySearch(e.target.value)}
+                            placeholder="Buscar por nombre o SKU..."
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        />
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -160,7 +179,7 @@ const Inventory = () => {
                             </tr>
                         </thead>
                         <tbody className="text-gray-700">
-                            {stock.map((item) => (
+                            {filteredStock.map((item) => (
                                 <tr key={item.id} className="hover:bg-gray-50 border-b last:border-0">
                                     <td className="p-4">{item.productName}</td>
                                     <td className="p-4 text-sm text-gray-500">{item.sku}</td>

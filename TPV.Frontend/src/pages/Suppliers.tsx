@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Users, Plus, Edit, Trash, X, MapPin } from 'lucide-react';
+import { Users, Plus, Edit, Trash, X, MapPin, Search } from 'lucide-react';
 
 interface Supplier {
     id: number;
@@ -48,6 +48,8 @@ const Suppliers = () => {
         taxId: ''
     });
 
+    const [searchTerm, setSearchTerm] = useState('');
+
     useEffect(() => {
         fetchSuppliers();
     }, []);
@@ -62,6 +64,13 @@ const Suppliers = () => {
             setLoading(false);
         }
     };
+
+    const filteredSuppliers = suppliers.filter(supplier => 
+        (supplier.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (supplier.taxId || '').includes(searchTerm) ||
+        (supplier.contactName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (supplier.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleCheckTaxId = () => {
         if (!formData.taxId || formData.taxId.trim().length < 3) return;
@@ -207,6 +216,18 @@ const Suppliers = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <div className="p-4 border-b border-gray-100">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar por nombre, identificación, contacto o email..." 
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider">
@@ -220,7 +241,7 @@ const Suppliers = () => {
                             </tr>
                         </thead>
                         <tbody className="text-gray-700 divide-y divide-gray-100">
-                            {suppliers.map((item) => (
+                            {filteredSuppliers.map((item) => (
                                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="p-4 font-medium">{item.name}</td>
                                     <td className="p-4 text-sm">
@@ -246,10 +267,10 @@ const Suppliers = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {suppliers.length === 0 && !loading && (
+                            {filteredSuppliers.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-gray-400">
-                                        No hay proveedores registrados.
+                                    <td colSpan={6} className="p-8 text-center text-gray-400">
+                                        {searchTerm ? 'No se encontraron proveedores con ese criterio.' : 'No hay proveedores registrados.'}
                                     </td>
                                 </tr>
                             )}

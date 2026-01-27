@@ -11,6 +11,8 @@ namespace TPV.Domain.Entities
         public string Phone { get; set; }
         public string Email { get; set; }
         public string? ManagerName { get; set; }
+        public string? Department { get; set; }
+        public string? City { get; set; }
 
         // Navigation properties
         public ICollection<Stock> Stocks { get; set; }

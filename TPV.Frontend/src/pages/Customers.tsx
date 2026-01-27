@@ -67,11 +67,11 @@ const Customers = () => {
 
     useEffect(() => {
         fetchCustomers();
-    }, [searchTerm]);
+    }, []);
 
     const fetchCustomers = async () => {
         try {
-            const response = await api.get(`/customers?search=${searchTerm}`);
+            const response = await api.get(`/customers`);
             setCustomers(response.data);
         } catch (error) {
             console.error(error);
@@ -79,6 +79,13 @@ const Customers = () => {
             setLoading(false);
         }
     };
+
+    const filteredCustomers = customers.filter(customer => 
+        (customer.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (customer.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (customer.taxId || '').includes(searchTerm) ||
+        (customer.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleCheckTaxId = async () => {
         if (!formData.taxId || formData.taxId.trim().length < 3) return;
@@ -226,7 +233,7 @@ const Customers = () => {
                     <Search className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input 
                         type="text" 
-                        placeholder="Buscar por nombre o DNI..." 
+                        placeholder="Buscar por nombre, identificación o email..." 
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -244,7 +251,7 @@ const Customers = () => {
                             </tr>
                         </thead>
                         <tbody className="text-gray-700 divide-y divide-gray-100">
-                            {customers.map((customer) => (
+                            {filteredCustomers.map((customer) => (
                                 <tr key={customer.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="p-4 font-medium">
                                         <div>{customer.firstName} {customer.lastName}</div>
@@ -276,10 +283,10 @@ const Customers = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {customers.length === 0 && !loading && (
+                            {filteredCustomers.length === 0 && !loading && (
                                 <tr>
                                     <td colSpan={4} className="p-8 text-center text-gray-400">
-                                        No se encontraron clientes.
+                                        {searchTerm ? 'No se encontraron clientes con ese criterio.' : 'No hay clientes registrados.'}
                                     </td>
                                 </tr>
                             )}

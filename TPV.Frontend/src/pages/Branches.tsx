@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { MapPin, Plus, Edit, Trash, X } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash, X, Search } from 'lucide-react';
+import { departments, cities } from '../utils/colombiaLocations';
 
 interface Branch {
     id: number;
@@ -9,11 +10,14 @@ interface Branch {
     phone: string;
     email: string;
     managerName?: string;
+    department?: string;
+    city?: string;
 }
 
 const Branches = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentBranch, setCurrentBranch] = useState<Branch | null>(null);
     const [formData, setFormData] = useState({
@@ -21,7 +25,9 @@ const Branches = () => {
         address: '',
         phone: '',
         email: '',
-        managerName: ''
+        managerName: '',
+        department: '',
+        city: ''
     });
 
     useEffect(() => {
@@ -63,11 +69,21 @@ const Branches = () => {
                 address: branch.address || '',
                 phone: branch.phone || '',
                 email: branch.email || '',
-                managerName: branch.managerName || ''
+                managerName: branch.managerName || '',
+                department: branch.department || '',
+                city: branch.city || ''
             });
         } else {
             setCurrentBranch(null);
-            setFormData({ name: '', address: '', phone: '', email: '', managerName: '' });
+            setFormData({ 
+                name: '', 
+                address: '', 
+                phone: '', 
+                email: '', 
+                managerName: '',
+                department: '',
+                city: ''
+            });
         }
         setIsModalOpen(true);
     };
@@ -89,6 +105,16 @@ const Branches = () => {
         }
     };
 
+    const filteredBranches = branches.filter(branch => 
+        branch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        branch.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (branch.phone && branch.phone.includes(searchTerm)) ||
+        (branch.email && branch.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (branch.managerName && branch.managerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (branch.city && branch.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (branch.department && branch.department.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     if (loading) return <div>Cargando...</div>;
 
     return (
@@ -105,15 +131,34 @@ const Branches = () => {
                 </button>
             </div>
 
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                    type="text"
+                    placeholder="Buscar sucursal por nombre, dirección, ciudad, encargado..."
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {branches.map((branch) => (
+                {filteredBranches.map((branch) => (
                     <div key={branch.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-800">{branch.name}</h3>
-                                <div className="text-slate-500 text-sm flex items-center mt-1">
-                                    <MapPin size={14} className="mr-1" />
-                                    {branch.address}
+                                <div className="text-slate-500 text-sm flex items-start mt-1">
+                                    <MapPin size={14} className="mr-1 mt-0.5 shrink-0" />
+                                    <span>
+                                        {branch.address}
+                                        {branch.city && (
+                                            <>
+                                                <br />
+                                                {branch.city}{branch.department ? `, ${branch.department}` : ''}
+                                            </>
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="flex space-x-2">
@@ -171,6 +216,43 @@ const Branches = () => {
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Departamento</label>
+                                    <select
+                                        className="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        value={formData.department}
+                                        onChange={(e) => setFormData({ ...formData, department: e.target.value, city: '' })}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept.id} value={dept.name}>
+                                                {dept.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
+                                    <select
+                                        className="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        value={formData.city}
+                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                        disabled={!formData.department}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {cities
+                                            .filter(c => c.departmentId === departments.find(d => d.name === formData.department)?.id)
+                                            .map((city) => (
+                                                <option key={city.id} value={city.name}>
+                                                    {city.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
                                 <input

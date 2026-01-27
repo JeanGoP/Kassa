@@ -280,23 +280,124 @@ namespace TPV.Web.Controllers.Api
                 return NotFound();
             }
 
-            var currentTenantId = _currentTenantService.TenantId;
-            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            // Validar permisos estrictos: Solo admin@tpv.com puede realizar esta edición completa
+            // Opcionalmente, permitir a otros admins editar solo info básica si fuera necesario, 
+            // pero el requerimiento dice "exclusivamente al administrador general".
+            var currentUserEmail = User.Identity?.Name;
+            if (currentUserEmail != "admin@tpv.com")
             {
-                return NotFound();
+                return Forbid();
             }
 
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
+            // 1. Actualizar Información Básica
+            user.FirstName = request.FirstName?.Trim();
+            user.LastName = request.LastName?.Trim();
             user.IsActive = request.IsActive;
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
+            
+            // 2. Actualizar Tenant (Empresa)
+            if (request.TenantId != user.TenantId)
             {
-                return BadRequest(result.Errors);
+                 user.TenantId = request.TenantId;
             }
 
-            var roles = await _userManager.GetRolesAsync(user);
+            // 3. Actualizar Email y UserName
+            // Aseguramos que siempre estén normalizados y consistentes
+            var newEmail = request.Email?.Trim();
+            if (!string.IsNullOrEmpty(newEmail))
+            {
+                if (newEmail != user.Email)
+                {
+                    // Cambio de email detectado
+                    user.Email = newEmail;
+                    user.UserName = newEmail;
+                    user.SecurityStamp = Guid.NewGuid().ToString(); // Invalidar sesiones anteriores
+                }
+                
+                // Siempre asegurar normalización correcta (corrige datos antiguos/malformados)
+                user.NormalizedEmail = _userManager.NormalizeEmail(newEmail);
+                user.NormalizedUserName = _userManager.NormalizeName(newEmail);
+            }
+
+            // Guardar cambios en usuario (Información, Email, Tenant)
+            IdentityResult updateResult;
+            try 
+            {
+                updateResult = await _userManager.UpdateAsync(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error crítico al actualizar usuario {UserId}", id);
+                return StatusCode(500, "Error interno al guardar los cambios del usuario: " + ex.Message);
+            }
+
+            if (!updateResult.Succeeded)
+            {
+                var errorMsg = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                _logger.LogWarning("UpdateUser failed for user {UserId}. Errors: {Errors}", id, errorMsg);
+                return BadRequest(updateResult.Errors);
+            }
+
+            // 4. Actualizar Contraseña (si se proporciona)
+            // Se realiza después de guardar el usuario para asegurar consistencia
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var passwordResult = await _userManager.ResetPasswordAsync(user, token, request.Password);
+                if (!passwordResult.Succeeded) return BadRequest(passwordResult.Errors);
+            }
+
+            // 5. Actualizar Roles (asegurar rol único)
+            if (request.Roles != null && request.Roles.Any())
+            {
+                // Tomamos SOLO el primer rol enviado, ignorando los demás si hubiere
+                var roleToAssign = request.Roles.First();
+                
+                if (await _roleManager.RoleExistsAsync(roleToAssign))
+                {
+                    var currentRoles = await _userManager.GetRolesAsync(user);
+                    
+                    // Si ya tiene ese rol único, no hacemos nada. 
+                    // Si tiene otros, o no tiene ninguno, limpiamos y asignamos.
+                    if (currentRoles.Count != 1 || currentRoles.First() != roleToAssign)
+                    {
+                        // Remover TODOS los roles actuales
+                        if (currentRoles.Any())
+                        {
+                            var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                            if (!removeResult.Succeeded)
+                            {
+                                return BadRequest(removeResult.Errors);
+                            }
+                        }
+
+                        // Asignar el nuevo rol único
+                        var addResult = await _userManager.AddToRoleAsync(user, roleToAssign);
+                        if (!addResult.Succeeded)
+                        {
+                            return BadRequest(addResult.Errors);
+                        }
+                    }
+                }
+            }
+            // Si request.Roles es vacío pero no nulo, podríamos querer borrar roles. 
+            // Pero la lógica actual mantiene roles si se envía lista vacía para evitar borrados accidentales
+            // a menos que el requerimiento sea explícito sobre "quitar rol".
+            // Asumiremos que si se envía vacío, se quitan todos los roles (usuario sin rol).
+            else if (request.Roles != null && !request.Roles.Any())
+            {
+                 var currentRoles = await _userManager.GetRolesAsync(user);
+                 if (currentRoles.Any())
+                 {
+                     await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                 }
+            }
+
+            // Log de Auditoría
+            var adminId = _userManager.GetUserId(User);
+            _logger.LogInformation("AUDITORIA: Usuario {TargetUserId} ({TargetUserEmail}) actualizado por Administrador General {AdminId} el {Date}. Campos: {Fields}", 
+                id, user.Email, adminId, DateTime.UtcNow, "FullUpdate");
+
+            var finalRoles = await _userManager.GetRolesAsync(user);
             return Ok(new UserDto
             {
                 Id = user.Id,
@@ -305,7 +406,7 @@ namespace TPV.Web.Controllers.Api
                 LastName = user.LastName,
                 IsActive = user.IsActive,
                 TenantId = user.TenantId,
-                Roles = roles.ToArray()
+                Roles = finalRoles.ToArray()
             });
         }
 
@@ -334,9 +435,13 @@ namespace TPV.Web.Controllers.Api
 
         public class UpdateUserRequest
         {
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
+            public string? FirstName { get; set; }
+            public string? LastName { get; set; }
+            public string? Email { get; set; }
+            public string? Password { get; set; }
+            public int? TenantId { get; set; }
             public bool IsActive { get; set; }
+            public string[]? Roles { get; set; }
         }
     }
 }

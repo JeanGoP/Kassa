@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle, Search } from 'lucide-react';
 
 interface User {
     id: string;
@@ -29,19 +29,34 @@ const Users = () => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
+    const [selectedUserRole, setSelectedUserRole] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [savingRoles, setSavingRoles] = useState(false);
     const [creating, setCreating] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [userSearch, setUserSearch] = useState('');
 
+    // Create User State
     const [newEmail, setNewEmail] = useState('');
     const [newFirstName, setNewFirstName] = useState('');
     const [newLastName, setNewLastName] = useState('');
     const [newPassword, setNewPassword] = useState('');
-    const [newRoles, setNewRoles] = useState<string[]>([]);
+    const [newRole, setNewRole] = useState<string>('');
     const [newTenantId, setNewTenantId] = useState<string>('');
     const [createError, setCreateError] = useState<string | null>(null);
+
+    // Edit User State
+    const [editEmail, setEditEmail] = useState('');
+    const [editFirstName, setEditFirstName] = useState('');
+    const [editLastName, setEditLastName] = useState('');
+    const [editPassword, setEditPassword] = useState(''); // Only if changing
+    const [editTenantId, setEditTenantId] = useState<string>('');
+    const [editIsActive, setEditIsActive] = useState(true);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [editSuccess, setEditSuccess] = useState<string | null>(null);
+    const [savingUser, setSavingUser] = useState(false);
+
+    const isAdmin = currentUser?.email === 'admin@tpv.com';
 
     const loadData = async () => {
         setLoading(true);
@@ -72,32 +87,86 @@ const Users = () => {
 
     const loadUserRoles = (user: User) => {
         setSelectedUserId(user.id);
-        setSelectedUserRoles(user.roles || []);
+        // Take the first role or empty
+        const primaryRole = user.roles && user.roles.length > 0 ? user.roles[0] : '';
+        setSelectedUserRole(primaryRole);
+        
+        // Populate edit fields
+        setEditEmail(user.email || '');
+        setEditFirstName(user.firstName || '');
+        setEditLastName(user.lastName || '');
+        setEditTenantId(user.tenantId ? user.tenantId.toString() : '');
+        setEditIsActive(user.isActive);
+        setEditPassword(''); // Reset password field
+        setEditError(null);
+        setEditSuccess(null);
     };
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const toggleUserRole = (roleName: string) => {
-        if (!selectedUserId) return;
-        if (selectedUserRoles.includes(roleName)) {
-            setSelectedUserRoles(selectedUserRoles.filter(r => r !== roleName));
-        } else {
-            setSelectedUserRoles([...selectedUserRoles, roleName]);
-        }
-    };
+    // No longer toggling, just setting
+    // const toggleUserRole... removed
 
     const handleSaveUserRoles = async () => {
         if (!selectedUserId) return;
         setSavingRoles(true);
         try {
-            await api.put(`/users/${selectedUserId}/roles`, selectedUserRoles);
+            // Send as array of 1
+            await api.put(`/users/${selectedUserId}/roles`, selectedUserRole ? [selectedUserRole] : []);
             await loadData();
+            alert("Roles actualizados correctamente.");
         } catch (error) {
             console.error(error);
+            alert("Error al actualizar roles.");
         } finally {
             setSavingRoles(false);
+        }
+    };
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserId) return;
+        
+        setSavingUser(true);
+        setEditError(null);
+        setEditSuccess(null);
+
+        try {
+            await api.put(`/users/${selectedUserId}`, {
+                firstName: editFirstName,
+                lastName: editLastName,
+                email: editEmail,
+                password: editPassword || undefined, // Only send if not empty
+                tenantId: editTenantId ? parseInt(editTenantId) : null,
+                isActive: editIsActive,
+                roles: selectedUserRole ? [selectedUserRole] : []
+            });
+            
+            await loadData();
+            setEditSuccess("Usuario actualizado correctamente.");
+            setEditPassword(''); // Clear password field
+        } catch (error: any) {
+            console.error("Error updating user:", error);
+            if (error.response) {
+                console.error("Server Response Data:", error.response.data);
+                if (error.response.data && error.response.data.errors) {
+                     console.error("Validation Errors:", JSON.stringify(error.response.data.errors, null, 2));
+                }
+                console.error("Server Response Status:", error.response.status);
+            }
+            
+            const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response.data : "Error al actualizar usuario.");
+            let finalMsg = "Error al actualizar usuario.";
+             if (error.response?.data && Array.isArray(error.response.data)) {
+                 finalMsg = error.response.data.map((e: any) => e.description).join(' ');
+             } else {
+                 finalMsg = msg;
+             }
+            setEditError(finalMsg);
+        } finally {
+            setSavingUser(false);
         }
     };
 
@@ -109,7 +178,7 @@ const Users = () => {
         try {
             await api.delete(`/users/${selectedUserId}`);
             setSelectedUserId(null);
-            setSelectedUserRoles([]);
+            setSelectedUserRole('');
             await loadData();
             alert("Usuario eliminado correctamente.");
         } catch (error: any) {
@@ -121,13 +190,7 @@ const Users = () => {
         }
     };
 
-    const toggleNewUserRole = (roleName: string) => {
-        if (newRoles.includes(roleName)) {
-            setNewRoles(newRoles.filter(r => r !== roleName));
-        } else {
-            setNewRoles([...newRoles, roleName]);
-        }
-    };
+    // toggleNewUserRole removed
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,7 +203,7 @@ const Users = () => {
                 password: newPassword.trim(),
                 firstName: newFirstName.trim() || null,
                 lastName: newLastName.trim() || null,
-                roles: newRoles,
+                roles: newRole ? [newRole] : [],
                 tenantId: newTenantId ? parseInt(newTenantId) : null
             });
 
@@ -148,7 +211,7 @@ const Users = () => {
             setNewFirstName('');
             setNewLastName('');
             setNewPassword('');
-            setNewRoles([]);
+            setNewRole('');
             setNewTenantId('');
 
             await loadData();
@@ -179,6 +242,15 @@ const Users = () => {
             setCreating(false);
         }
     };
+
+    const filteredUsers = users.filter(user => {
+        const q = userSearch.toLowerCase().trim();
+        if (!q) return true;
+        const name = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+        const email = (user.email || '').toLowerCase();
+        const rolesText = (user.roles || []).join(' ').toLowerCase();
+        return name.includes(q) || email.includes(q) || rolesText.includes(q);
+    });
 
     return (
         <div className="space-y-6">
@@ -273,16 +345,16 @@ const Users = () => {
 
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">
-                                Roles del nuevo usuario
+                                Rol del nuevo usuario
                             </label>
                             <div className="flex flex-wrap gap-2">
                                 {roles.map(role => (
                                     <button
                                         key={role.id}
                                         type="button"
-                                        onClick={() => toggleNewUserRole(role.name)}
+                                        onClick={() => setNewRole(role.name)}
                                         className={`px-3 py-1 rounded-full text-xs border ${
-                                            newRoles.includes(role.name)
+                                            newRole === role.name
                                                 ? 'bg-blue-600 text-white border-blue-600'
                                                 : 'bg-gray-50 text-gray-700 border-gray-300'
                                         }`}
@@ -309,8 +381,18 @@ const Users = () => {
 
                     <div className="bg-white p-4 rounded-xl shadow-md">
                         <h2 className="text-lg font-semibold text-slate-800 mb-3">Usuarios existentes</h2>
+                        <div className="relative mb-3">
+                            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                value={userSearch}
+                                onChange={(e) => setUserSearch(e.target.value)}
+                                placeholder="Buscar por nombre, correo o rol..."
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            />
+                        </div>
                         <div className="space-y-1 max-h-80 overflow-y-auto">
-                            {users.map(user => (
+                            {filteredUsers.map(user => (
                                 <button
                                     key={user.id}
                                     type="button"
@@ -342,7 +424,7 @@ const Users = () => {
                                     </span>
                                 </button>
                             ))}
-                            {users.length === 0 && (
+                            {filteredUsers.length === 0 && (
                                 <div className="text-xs text-slate-400">
                                     No hay usuarios registrados aparte del administrador inicial.
                                 </div>
@@ -352,19 +434,145 @@ const Users = () => {
                 </div>
 
                 <div className="lg:col-span-2 space-y-4">
-                    <h2 className="text-xl font-bold text-slate-800">Roles por usuario</h2>
+                    <h2 className="text-xl font-bold text-slate-800">
+                        {isAdmin ? 'Editar Información de Usuario' : 'Roles por usuario'}
+                    </h2>
 
                     {!selectedUserId && (
                         <div className="bg-white p-6 rounded-xl shadow-md text-gray-500 text-sm">
-                            Seleccione un usuario para gestionar sus roles.
+                            Seleccione un usuario para gestionar su información.
                         </div>
                     )}
 
-                    {selectedUserId && (
+                    {selectedUserId && isAdmin && (
+                        <form onSubmit={handleUpdateUser} className="bg-white p-6 rounded-xl shadow-md space-y-6">
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                    <input
+                                        type="text"
+                                        value={editFirstName}
+                                        onChange={(e) => setEditFirstName(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Apellidos</label>
+                                    <input
+                                        type="text"
+                                        value={editLastName}
+                                        onChange={(e) => setEditLastName(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                    <input
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={(e) => setEditEmail(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Nueva Contraseña (Opcional)</label>
+                                    <input
+                                        type="password"
+                                        value={editPassword}
+                                        onChange={(e) => setEditPassword(e.target.value)}
+                                        placeholder="Dejar en blanco para no cambiar"
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Estado</label>
+                                    <label className="flex items-center space-x-2 mt-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={editIsActive}
+                                            onChange={(e) => setEditIsActive(e.target.checked)}
+                                            className="rounded text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm text-gray-700">Usuario Activo</span>
+                                    </label>
+                                </div>
+
+                                {/* Tenant selection only for SuperAdmin */}
+                                {!currentUser?.tenantId && (
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Empresa (Tenant)</label>
+                                        <select
+                                            value={editTenantId}
+                                            onChange={(e) => setEditTenantId(e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="">-- Sin empresa (Host User) --</option>
+                                            {tenants.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2 border-t pt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Rol Asignado</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    {roles.map(role => (
+                                        <label key={role.id} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border hover:bg-gray-100 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="userRole"
+                                                className="rounded-full text-blue-600 focus:ring-blue-500"
+                                                checked={selectedUserRole === role.name}
+                                                onChange={() => setSelectedUserRole(role.name)}
+                                            />
+                                            <span>{role.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 pt-4 border-t">
+                                <button
+                                    type="submit"
+                                    disabled={savingUser}
+                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 transition-colors shadow-sm"
+                                >
+                                    {savingUser ? 'Guardando...' : 'Guardar Cambios'}
+                                </button>
+                                {editSuccess && <span className="text-sm text-green-600 font-medium">{editSuccess}</span>}
+                                {editError && <span className="text-sm text-red-600 font-medium">{editError}</span>}
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-red-100">
+                                <h3 className="text-sm font-semibold text-red-800 mb-2 flex items-center">
+                                    <AlertTriangle size={16} className="mr-2" />
+                                    Zona de Peligro
+                                </h3>
+                                <p className="text-xs text-red-600 mb-3">
+                                    Eliminar un usuario es una acción irreversible.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteUser}
+                                    disabled={deleteLoading}
+                                    className="flex items-center bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 text-sm disabled:opacity-50 transition-colors"
+                                >
+                                    <Trash2 size={16} className="mr-2" />
+                                    {deleteLoading ? 'Eliminando...' : 'Eliminar Usuario'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {selectedUserId && !isAdmin && (
                         <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm text-gray-600">
-                                    Marque los roles que desea asignar al usuario seleccionado.
+                                    Marque el rol que desea asignar al usuario seleccionado.
                                 </p>
                                 <button
                                     type="button"
@@ -372,7 +580,7 @@ const Users = () => {
                                     disabled={savingRoles}
                                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50"
                                 >
-                                    {savingRoles ? 'Guardando...' : 'Guardar roles'}
+                                    {savingRoles ? 'Guardando...' : 'Guardar rol'}
                                 </button>
                             </div>
 
@@ -383,33 +591,15 @@ const Users = () => {
                                         className="flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50"
                                     >
                                         <input
-                                            type="checkbox"
-                                            className="rounded"
-                                            checked={selectedUserRoles.includes(role.name)}
-                                            onChange={() => toggleUserRole(role.name)}
+                                            type="radio"
+                                            name="userRolePanel"
+                                            className="rounded-full"
+                                            checked={selectedUserRole === role.name}
+                                            onChange={() => setSelectedUserRole(role.name)}
                                         />
                                         <span>{role.name}</span>
                                     </label>
                                 ))}
-                            </div>
-
-                            <div className="mt-6 pt-6 border-t border-red-100">
-                                <h3 className="text-sm font-semibold text-red-800 mb-2 flex items-center">
-                                    <AlertTriangle size={16} className="mr-2" />
-                                    Zona de Peligro
-                                </h3>
-                                <p className="text-xs text-red-600 mb-3">
-                                    Eliminar un usuario es una acción irreversible. Asegúrese de que el usuario no tenga actividad reciente.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={handleDeleteUser}
-                                    disabled={deleteLoading}
-                                    className="flex items-center bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 text-sm disabled:opacity-50 transition-colors w-full justify-center sm:w-auto"
-                                >
-                                    <Trash2 size={16} className="mr-2" />
-                                    {deleteLoading ? 'Eliminando...' : 'Eliminar Usuario permanentemente'}
-                                </button>
                             </div>
                         </div>
                     )}

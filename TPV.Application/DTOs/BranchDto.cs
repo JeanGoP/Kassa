@@ -8,6 +8,8 @@ namespace TPV.Application.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? ManagerName { get; set; }
+        public string? Department { get; set; }
+        public string? City { get; set; }
     }
 
     public class CreateBranchDto
@@ -17,5 +19,7 @@ namespace TPV.Application.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? ManagerName { get; set; }
+        public string? Department { get; set; }
+        public string? City { get; set; }
     }
 }

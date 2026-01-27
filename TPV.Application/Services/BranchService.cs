@@ -38,7 +38,9 @@ namespace TPV.Application.Services
                 Address = dto.Address,
                 Phone = dto.Phone,
                 Email = dto.Email,
-                ManagerName = dto.ManagerName
+                ManagerName = dto.ManagerName,
+                Department = dto.Department,
+                City = dto.City
             };
 
             await _branchRepository.AddAsync(branch);
@@ -55,6 +57,8 @@ namespace TPV.Application.Services
             branch.Phone = dto.Phone;
             branch.Email = dto.Email;
             branch.ManagerName = dto.ManagerName;
+            branch.Department = dto.Department;
+            branch.City = dto.City;
 
             await _branchRepository.UpdateAsync(branch);
         }
@@ -76,7 +80,9 @@ namespace TPV.Application.Services
                 Address = branch.Address,
                 Phone = branch.Phone,
                 Email = branch.Email,
-                ManagerName = branch.ManagerName
+                ManagerName = branch.ManagerName,
+                Department = branch.Department,
+                City = branch.City
             };
         }
     }
