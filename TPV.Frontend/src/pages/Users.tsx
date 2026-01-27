@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { Trash2, AlertTriangle } from 'lucide-react';
 
 interface User {
     id: string;
@@ -32,6 +33,7 @@ const Users = () => {
     const [loading, setLoading] = useState(false);
     const [savingRoles, setSavingRoles] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const [newEmail, setNewEmail] = useState('');
     const [newFirstName, setNewFirstName] = useState('');
@@ -96,6 +98,26 @@ const Users = () => {
             console.error(error);
         } finally {
             setSavingRoles(false);
+        }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!selectedUserId) return;
+        if (!window.confirm("¿Está seguro de que desea eliminar este usuario permanentemente? Esta acción no se puede deshacer.")) return;
+        
+        setDeleteLoading(true);
+        try {
+            await api.delete(`/users/${selectedUserId}`);
+            setSelectedUserId(null);
+            setSelectedUserRoles([]);
+            await loadData();
+            alert("Usuario eliminado correctamente.");
+        } catch (error: any) {
+            console.error(error);
+            const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response.data : "Error al eliminar usuario.");
+            alert("Error: " + msg);
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -369,6 +391,25 @@ const Users = () => {
                                         <span>{role.name}</span>
                                     </label>
                                 ))}
+                            </div>
+
+                            <div className="mt-6 pt-6 border-t border-red-100">
+                                <h3 className="text-sm font-semibold text-red-800 mb-2 flex items-center">
+                                    <AlertTriangle size={16} className="mr-2" />
+                                    Zona de Peligro
+                                </h3>
+                                <p className="text-xs text-red-600 mb-3">
+                                    Eliminar un usuario es una acción irreversible. Asegúrese de que el usuario no tenga actividad reciente.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteUser}
+                                    disabled={deleteLoading}
+                                    className="flex items-center bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 text-sm disabled:opacity-50 transition-colors w-full justify-center sm:w-auto"
+                                >
+                                    <Trash2 size={16} className="mr-2" />
+                                    {deleteLoading ? 'Eliminando...' : 'Eliminar Usuario permanentemente'}
+                                </button>
                             </div>
                         </div>
                     )}

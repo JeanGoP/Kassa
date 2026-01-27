@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2, Key } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const Layout = () => {
     const { logout, user } = useAuth();
@@ -11,6 +12,7 @@ const Layout = () => {
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
 
     const handleLogout = async () => {
         await logout();
@@ -200,7 +202,11 @@ const Layout = () => {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-700/50 bg-slate-900/50">
+                <div className="p-4 border-t border-slate-700/50 bg-slate-900/50 space-y-2">
+                     <button onClick={() => setIsChangePasswordOpen(true)} className="flex items-center px-3 py-2 text-slate-400 hover:bg-slate-700/50 hover:text-white rounded-lg w-full transition-colors group">
+                        <Key size={22} className="group-hover:text-blue-400 transition-colors" />
+                        {isSidebarOpen && <span className="ml-3 font-medium text-sm">Cambiar Contraseña</span>}
+                    </button>
                      <button onClick={handleLogout} className="flex items-center px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg w-full transition-colors group">
                         <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
                         {isSidebarOpen && <span className="ml-3 font-medium text-sm">Cerrar Sesión</span>}
@@ -226,6 +232,11 @@ const Layout = () => {
                     <Outlet />
                 </div>
             </main>
+            
+            <ChangePasswordModal 
+                isOpen={isChangePasswordOpen} 
+                onClose={() => setIsChangePasswordOpen(false)} 
+            />
         </div>
     );
 };

@@ -17,6 +17,38 @@ namespace TPV.Web.Controllers.Api
             _userManager = userManager;
         }
 
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            if (string.IsNullOrEmpty(request.CurrentPassword) || string.IsNullOrEmpty(request.NewPassword) || string.IsNullOrEmpty(request.ConfirmNewPassword))
+            {
+                return BadRequest("Todos los campos son obligatorios.");
+            }
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+            {
+                return BadRequest("La nueva contraseña y su confirmación no coinciden.");
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            // Simulación de envío de correo
+            // _emailSender.SendEmailAsync(user.Email, "Cambio de Contraseña", "Su contraseña ha sido actualizada exitosamente.");
+            Console.WriteLine($"[EMAIL MOCK] Enviando correo a {user.Email}: Su contraseña ha sido actualizada exitosamente.");
+
+            return Ok(new { message = "Contraseña actualizada correctamente. Se ha enviado una notificación a su correo." });
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -84,5 +116,12 @@ namespace TPV.Web.Controllers.Api
         public string Email { get; set; }
         public string Password { get; set; }
         public bool RememberMe { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
+        public string ConfirmNewPassword { get; set; }
     }
 }

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using TPV.Infrastructure.Identity;
 using TPV.Application.Interfaces;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
@@ -17,15 +19,69 @@ namespace TPV.Web.Controllers.Api
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ICurrentTenantService _currentTenantService;
+        private readonly TPV.Infrastructure.Persistence.ApplicationDbContext _context;
+        private readonly Microsoft.Extensions.Logging.ILogger<UsersController> _logger;
 
         public UsersController(
             UserManager<ApplicationUser> userManager, 
             RoleManager<IdentityRole> roleManager,
-            ICurrentTenantService currentTenantService)
+            ICurrentTenantService currentTenantService,
+            TPV.Infrastructure.Persistence.ApplicationDbContext context,
+            Microsoft.Extensions.Logging.ILogger<UsersController> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _currentTenantService = currentTenantService;
+            _context = context;
+            _logger = logger;
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Policy = Permissions.AdminUsersManage)]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Security check: cannot delete users from other tenants
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
+            {
+                return NotFound(); // Hide existence
+            }
+
+            // Validar que no sea el propio usuario
+            var currentUserId = _userManager.GetUserId(User);
+            if (currentUserId == id)
+            {
+                return BadRequest("No puede eliminar su propio usuario.");
+            }
+
+            // Validar inactividad (sin movimientos)
+            // Verificar Ventas
+            var hasSales = await _context.Sales.AnyAsync(s => s.UserId == id);
+            if (hasSales) return BadRequest("El usuario tiene ventas registradas y no puede ser eliminado.");
+
+            // Verificar Sesiones de Caja
+            var hasCashSessions = await _context.CashSessions.AnyAsync(cs => cs.UserId == id);
+            if (hasCashSessions) return BadRequest("El usuario tiene sesiones de caja registradas y no puede ser eliminado.");
+
+            // Proceder con eliminación
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            // Log de Auditoría
+            var adminId = _userManager.GetUserId(User);
+            _logger.LogInformation("AUDITORIA: Usuario {DeletedUserId} ({DeletedUserEmail}) eliminado permanentemente por Administrador {AdminId} el {Date}", 
+                id, user.Email, adminId, DateTime.UtcNow);
+
+            return NoContent();
         }
 
         [HttpGet]
@@ -253,31 +309,7 @@ namespace TPV.Web.Controllers.Api
             });
         }
 
-        [HttpDelete("{id}")]
-        [Authorize(Policy = Permissions.AdminUsersManage)]
-        public async Task<IActionResult> DeleteUser(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
 
-            // Security check: cannot delete users from other tenants
-            var currentTenantId = _currentTenantService.TenantId;
-            if (currentTenantId.HasValue && user.TenantId != currentTenantId.Value)
-            {
-                return NotFound(); // Hide existence
-            }
-
-            var result = await _userManager.DeleteAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
-
-            return NoContent();
-        }
 
         public class UserDto
         {
