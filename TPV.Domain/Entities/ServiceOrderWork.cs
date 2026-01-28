@@ -6,6 +6,8 @@ namespace TPV.Domain.Entities
     {
         public int ServiceOrderId { get; set; }
         public ServiceOrder ServiceOrder { get; set; }
+        public int? ProductId { get; set; }
+        public Product? Product { get; set; }
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }

@@ -18,6 +18,8 @@ namespace TPV.Application.Services
         private readonly IRepository<Sale> _saleRepository;
         private readonly IRepository<SaleDetail> _saleDetailRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<Category> _categoryRepository;
+        private readonly IRepository<Branch> _branchRepository;
 
         public ServiceOrderService(
             IRepository<ServiceOrder> repository,
@@ -27,7 +29,9 @@ namespace TPV.Application.Services
             ISalesService salesService,
             IRepository<Sale> saleRepository,
             IRepository<SaleDetail> saleDetailRepository,
-            IRepository<Product> productRepository)
+            IRepository<Product> productRepository,
+            IRepository<Category> categoryRepository,
+            IRepository<Branch> branchRepository)
         {
             _repository = repository;
             _customerRepository = customerRepository;
@@ -37,6 +41,8 @@ namespace TPV.Application.Services
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
             _productRepository = productRepository;
+            _categoryRepository = categoryRepository;
+            _branchRepository = branchRepository;
         }
 
         public async Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search)
@@ -97,7 +103,14 @@ namespace TPV.Application.Services
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return null;
 
+            if (entity.Status == "FINALIZADA" || entity.Status == "CANCELADA" || entity.Status == "CERRADA")
+            {
+                throw new InvalidOperationException("No se puede modificar el diagnóstico de una orden finalizada o cerrada.");
+            }
+
             entity.Status = "EN DIAGNOSTICO";
+            // TODO: Save diagnosis fields if they exist in entity
+            
             await _repository.UpdateAsync(entity);
 
             var customer = await _customerRepository.GetByIdAsync(entity.CustomerId);
@@ -113,6 +126,7 @@ namespace TPV.Application.Services
             {
                 Id = w.Id,
                 ServiceOrderId = w.ServiceOrderId,
+                ProductId = w.ProductId,
                 Description = w.Description,
                 Technician = w.Technician,
                 EstimatedTimeHours = w.EstimatedTimeHours,
@@ -129,6 +143,7 @@ namespace TPV.Application.Services
             var entity = new ServiceOrderWork
             {
                 ServiceOrderId = serviceOrderId,
+                ProductId = dto.ProductId,
                 Description = dto.Description,
                 Technician = dto.Technician,
                 EstimatedTimeHours = dto.EstimatedTimeHours,
@@ -142,6 +157,7 @@ namespace TPV.Application.Services
             {
                 Id = entity.Id,
                 ServiceOrderId = entity.ServiceOrderId,
+                ProductId = entity.ProductId,
                 Description = entity.Description,
                 Technician = entity.Technician,
                 EstimatedTimeHours = entity.EstimatedTimeHours,
@@ -155,6 +171,7 @@ namespace TPV.Application.Services
             var entity = await _workRepository.GetByIdAsync(workId);
             if (entity == null || entity.ServiceOrderId != serviceOrderId) return null;
 
+            entity.ProductId = dto.ProductId;
             entity.Description = dto.Description;
             entity.Technician = dto.Technician;
             entity.EstimatedTimeHours = dto.EstimatedTimeHours;
@@ -167,6 +184,7 @@ namespace TPV.Application.Services
             {
                 Id = entity.Id,
                 ServiceOrderId = entity.ServiceOrderId,
+                ProductId = entity.ProductId,
                 Description = entity.Description,
                 Technician = entity.Technician,
                 EstimatedTimeHours = entity.EstimatedTimeHours,
@@ -311,7 +329,7 @@ namespace TPV.Application.Services
             var entity = await _repository.GetByIdAsync(serviceOrderId);
             if (entity == null) return null;
 
-            if (entity.Status == "FINALIZADA" || entity.Status == "CANCELADA")
+            if (entity.Status == "FINALIZADA" || entity.Status == "CANCELADA" || entity.Status == "CERRADA")
             {
                 return null;
             }
@@ -351,6 +369,12 @@ namespace TPV.Application.Services
             var existingSale = existingSales.FirstOrDefault();
             if (existingSale != null)
             {
+                // Ensure status is updated if for some reason it wasn't
+                if (serviceOrder.Status != "CERRADA")
+                {
+                    serviceOrder.Status = "CERRADA";
+                    await _repository.UpdateAsync(serviceOrder);
+                }
                 return await _salesService.GetSaleAsync(existingSale.Id);
             }
 
@@ -358,15 +382,48 @@ namespace TPV.Application.Services
             var laborProduct = (await _productRepository.GetAsync(p => p.SKU == "MANO_OBRA" || p.Name == "Mano de Obra")).FirstOrDefault();
             if (laborProduct == null)
             {
-                throw new InvalidOperationException("No se encontró el producto 'Mano de Obra' (SKU: MANO_OBRA) en el sistema. Por favor créelo antes de facturar.");
+                // Create MANO_OBRA product if not exists
+                // 1. Find or create category
+                var categories = await _categoryRepository.GetAllAsync();
+                var category = categories.FirstOrDefault(c => c.Name.Equals("Servicios", StringComparison.OrdinalIgnoreCase)) 
+                            ?? categories.FirstOrDefault();
+                
+                if (category == null)
+                {
+                    category = new Category { Name = "Servicios", Description = "Servicios generales", TenantId = serviceOrder.TenantId };
+                    await _categoryRepository.AddAsync(category);
+                }
+
+                laborProduct = new Product
+                {
+                    SKU = "MANO_OBRA",
+                    Name = "Mano de Obra",
+                    Description = "Servicio de mano de obra en taller",
+                    Price = 0, // Price is variable
+                    CategoryId = category.Id,
+                    TenantId = serviceOrder.TenantId,
+                    UnitOfMeasure = "UND",
+                    IvaType = "Excluido",
+                    IvaRate = 0,
+                    ImpoconsumoRate = 0,
+                    PriceIncludesIva = false
+                };
+                await _productRepository.AddAsync(laborProduct);
             }
 
-            var parts = await _partRepository.GetAsync(p => p.ServiceOrderId == serviceOrderId);
+            var parts = await _partRepository.GetAsync(
+                predicate: p => p.ServiceOrderId == serviceOrderId,
+                includeString: "Product");
+
+            // Find Branch
+            var branches = await _branchRepository.GetAsync(b => b.TenantId == serviceOrder.TenantId);
+            var branchId = branches.FirstOrDefault()?.Id ?? 1;
 
             // Create Sale
             var sale = new Sale
             {
-                BranchId = 1, // Default branch
+                BranchId = branchId,
+                TenantId = serviceOrder.TenantId,
                 CustomerId = serviceOrder.CustomerId,
                 Date = DateTime.Now,
                 PaymentMethod = dto.PaymentMethod,
@@ -375,39 +432,87 @@ namespace TPV.Application.Services
                 ServiceOrderId = serviceOrderId
             };
 
-            // Calculate Totals
-            decimal partsTotal = parts.Sum(p => p.SubTotal);
-            decimal subTotal = partsTotal + dto.LaborCost;
-            decimal taxRate = 0.21m; // 21% VAT hardcoded for now
-            decimal taxAmount = subTotal * taxRate;
-            sale.TotalAmount = subTotal + taxAmount;
-
             await _saleRepository.AddAsync(sale);
+
+            decimal totalSaleAmount = 0;
 
             // Add Sale Details (Parts)
             foreach (var part in parts)
             {
+                // Calculate Taxes for Part
+                decimal taxRate = 0;
+                decimal taxAmount = 0;
+                decimal subTotal = part.SubTotal;
+
+                if (part.Product != null)
+                {
+                    taxRate = (part.Product.IvaRate + part.Product.ImpoconsumoRate) / 100m;
+                    
+                    if (part.Product.PriceIncludesIva)
+                    {
+                        // Back-calculate base
+                        decimal baseAmount = subTotal / (1 + taxRate);
+                        taxAmount = subTotal - baseAmount;
+                        // SubTotal in SaleDetail is typically the total line amount in this system?
+                        // Let's check SaleDetail definition. It says "SubTotal // Base + Impuestos (Total línea)" in comments.
+                    }
+                    else
+                    {
+                        // Add tax on top
+                        taxAmount = subTotal * taxRate;
+                        subTotal = subTotal + taxAmount; // Total line
+                    }
+                }
+
                 var detail = new SaleDetail
                 {
                     SaleId = sale.Id,
                     ProductId = part.ProductId,
                     Quantity = part.Quantity,
                     UnitPrice = part.UnitPrice,
-                    SubTotal = part.SubTotal
+                    TaxRate = taxRate * 100, // Store as percentage
+                    TaxAmount = taxAmount,
+                    SubTotal = subTotal
                 };
                 await _saleDetailRepository.AddAsync(detail);
+                totalSaleAmount += subTotal;
             }
 
             // Add Sale Detail (Labor)
-            var laborDetail = new SaleDetail
             {
-                SaleId = sale.Id,
-                ProductId = laborProduct.Id,
-                Quantity = 1,
-                UnitPrice = dto.LaborCost,
-                SubTotal = dto.LaborCost
-            };
-            await _saleDetailRepository.AddAsync(laborDetail);
+                // Calculate Taxes for Labor
+                decimal taxRate = (laborProduct.IvaRate + laborProduct.ImpoconsumoRate) / 100m;
+                decimal subTotal = dto.LaborCost;
+                decimal taxAmount = 0;
+
+                if (laborProduct.PriceIncludesIva)
+                {
+                    decimal baseAmount = subTotal / (1 + taxRate);
+                    taxAmount = subTotal - baseAmount;
+                }
+                else
+                {
+                    taxAmount = subTotal * taxRate;
+                    subTotal = subTotal + taxAmount;
+                }
+
+                var laborDetail = new SaleDetail
+                {
+                    SaleId = sale.Id,
+                    ProductId = laborProduct.Id,
+                    Quantity = 1,
+                    UnitPrice = dto.LaborCost,
+                    TaxRate = taxRate * 100,
+                    TaxAmount = taxAmount,
+                    SubTotal = subTotal
+                };
+                await _saleDetailRepository.AddAsync(laborDetail);
+                totalSaleAmount += subTotal;
+            }
+
+            // Update Sale Total
+            sale.TotalAmount = totalSaleAmount;
+            await _saleRepository.UpdateAsync(sale);
 
             // Update Service Order
             serviceOrder.Status = "CERRADA";

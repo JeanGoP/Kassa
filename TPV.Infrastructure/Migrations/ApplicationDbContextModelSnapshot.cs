@@ -416,6 +416,10 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("UnitOfMeasure")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -810,6 +814,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("LaborCost")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ServiceOrderId")
                         .HasColumnType("int");
 
@@ -825,6 +832,8 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
 
                     b.HasIndex("ServiceOrderId");
 
@@ -1353,11 +1362,17 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderWork", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId");
+
                     b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
                         .WithMany()
                         .HasForeignKey("ServiceOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Product");
 
                     b.Navigation("ServiceOrder");
                 });

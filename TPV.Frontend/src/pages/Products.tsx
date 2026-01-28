@@ -8,6 +8,7 @@ interface Product {
     barcode?: string;
     name: string;
     description: string;
+    type?: string;
     unitOfMeasure?: string;
     price: number;
     profitabilityPercentage?: number;
@@ -43,6 +44,7 @@ const Products = () => {
         barcode: '',
         name: '',
         description: '',
+        type: 'Producto',
         unitOfMeasure: 'UND',
         price: 0,
         profitabilityPercentage: 0,
@@ -247,6 +249,7 @@ const Products = () => {
                 barcode: product.barcode || '',
                 name: product.name,
                 description: product.description || '',
+                type: product.type || 'Producto',
                 unitOfMeasure: product.unitOfMeasure || 'UND',
                 price: product.price,
                 profitabilityPercentage: product.profitabilityPercentage || 0,
@@ -263,6 +266,7 @@ const Products = () => {
                 barcode: '',
                 name: '',
                 description: '',
+                type: 'Producto',
                 unitOfMeasure: 'UND',
                 price: 0,
                 profitabilityPercentage: 0,
@@ -428,7 +432,18 @@ const Products = () => {
                                 {/* Features Tab */}
                                 {activeTab === 'features' && (
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fadeIn">
-                                        {/* SKU, Barcode & Name */}
+                                        {/* Type, SKU, Barcode & Name */}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                                            <select 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.type}
+                                                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                            >
+                                                <option value="Producto">Producto</option>
+                                                <option value="Servicio">Servicio</option>
+                                            </select>
+                                        </div>
                                         <div className="md:col-span-3">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
                                             <input 
@@ -439,7 +454,7 @@ const Products = () => {
                                                 required
                                             />
                                         </div>
-                                        <div className="md:col-span-4">
+                                        <div className="md:col-span-3">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
                                             <input 
                                                 type="text" 
@@ -449,7 +464,7 @@ const Products = () => {
                                                 placeholder="EAN / UPC"
                                             />
                                         </div>
-                                        <div className="md:col-span-5">
+                                        <div className="md:col-span-4">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                             <input 
                                                 type="text" 

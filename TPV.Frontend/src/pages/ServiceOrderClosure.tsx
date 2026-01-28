@@ -568,7 +568,14 @@ const ServiceOrderClosure = () => {
                         </div>
                     </div>
 
-                    {selectedOrder.status === 'FINALIZADA' ? (
+                    {selectedOrder.status === 'CERRADA' ? (
+                        <div className="p-6 bg-green-50 border border-green-200 rounded-lg text-center">
+                            <h3 className="text-lg font-semibold text-green-800 mb-2">Orden Cerrada y Facturada</h3>
+                            <p className="text-green-700">
+                                Esta orden de servicio ha sido completada en su totalidad. No se requieren acciones adicionales.
+                            </p>
+                        </div>
+                    ) : selectedOrder.status === 'FINALIZADA' ? (
                         <div className="space-y-4">
                             <div className="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg">
                                 Esta orden ya está finalizada. Puede generar la factura desde esta pantalla.

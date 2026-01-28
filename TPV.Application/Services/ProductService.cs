@@ -49,6 +49,7 @@ namespace TPV.Application.Services
                     SKU = p.SKU,
                     Barcode = p.Barcode,
                     Description = p.Description,
+                    Type = p.Type,
                     UnitOfMeasure = p.UnitOfMeasure,
                     Price = price,
                     // Cost = p.Cost,
@@ -77,6 +78,7 @@ namespace TPV.Application.Services
                 SKU = p.SKU,
                 Barcode = p.Barcode,
                 Description = p.Description,
+                Type = p.Type,
                 UnitOfMeasure = p.UnitOfMeasure,
                 Price = p.Price,
                 // Cost = p.Cost,
@@ -109,6 +111,7 @@ namespace TPV.Application.Services
                 SKU = productDto.SKU,
                 Barcode = productDto.Barcode,
                 Description = productDto.Description ?? string.Empty,
+                Type = productDto.Type ?? "Producto",
                 UnitOfMeasure = productDto.UnitOfMeasure ?? "UND",
                 Price = productDto.Price,
                 CategoryId = productDto.CategoryId,
@@ -147,6 +150,7 @@ namespace TPV.Application.Services
                 product.SKU = productDto.SKU;
                 product.Barcode = productDto.Barcode;
                 product.Description = productDto.Description ?? string.Empty;
+                product.Type = productDto.Type;
                 product.UnitOfMeasure = productDto.UnitOfMeasure ?? "UND";
                 product.Price = productDto.Price;
                 // product.Cost = productDto.Cost;

@@ -20,6 +20,11 @@ const ServiceOrderDiagnosis = () => {
             return;
         }
 
+        if (selectedOrder.status === 'FINALIZADA' || selectedOrder.status === 'CERRADA' || selectedOrder.status === 'CANCELADA') {
+            alert('No se puede modificar el diagnóstico de una orden cerrada o finalizada.');
+            return;
+        }
+
         const payload = {
             problemDescription,
             technicalDiagnosis,
@@ -114,7 +119,7 @@ const ServiceOrderDiagnosis = () => {
                             type="date"
                             value={approvalDate}
                             onChange={(e) => setApprovalDate(e.target.value)}
-                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            disabled={selectedOrder?.status === 'FINALIZADA' || selectedOrder?.status === 'CERRADA' || selectedOrder?.status === 'CANCELADA'}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                         />
                     </div>
@@ -188,11 +193,12 @@ const ServiceOrderDiagnosis = () => {
                         <div className="text-xs text-blue-800 mt-1">
                             Estado actual: {selectedOrder.status}
                         </div>
-                        {selectedOrder.status === 'FINALIZADA' && (
-                            <div className="mt-2 pt-2 border-t border-blue-200 font-semibold text-red-600">
-                                ⚠ Esta orden está finalizada y no puede ser modificada.
-                            </div>
-                        )}
+                    </div>
+                )}
+
+                {selectedOrder && (selectedOrder.status === 'FINALIZADA' || selectedOrder.status === 'CERRADA' || selectedOrder.status === 'CANCELADA') && (
+                    <div className="mb-6 p-4 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200">
+                        Esta orden se encuentra en estado <strong>{selectedOrder.status}</strong> y no puede ser modificada.
                     </div>
                 )}
 
@@ -204,7 +210,7 @@ const ServiceOrderDiagnosis = () => {
                         <textarea
                             value={problemDescription}
                             onChange={(e) => setProblemDescription(e.target.value)}
-                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            disabled={selectedOrder?.status === 'FINALIZADA' || selectedOrder?.status === 'CERRADA' || selectedOrder?.status === 'CANCELADA'}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                             placeholder="Descripción aportada por el cliente, síntomas, ruidos, etc."
                         />
@@ -216,7 +222,7 @@ const ServiceOrderDiagnosis = () => {
                         <textarea
                             value={technicalDiagnosis}
                             onChange={(e) => setTechnicalDiagnosis(e.target.value)}
-                            disabled={selectedOrder?.status === 'FINALIZADA'}
+                            disabled={selectedOrder?.status === 'FINALIZADA' || selectedOrder?.status === 'CERRADA' || selectedOrder?.status === 'CANCELADA'}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 h-32 resize-none focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                             placeholder="Conclusiones del técnico, posibles causas y trabajos sugeridos."
                         />

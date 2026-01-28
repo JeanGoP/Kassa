@@ -10,6 +10,7 @@ namespace TPV.Domain.Entities
         public string? Barcode { get; set; } // Código de barras EAN/UPC adicional
         public string Name { get; set; }
         public string Description { get; set; }
+        public string Type { get; set; } = "Producto"; // Producto, Servicio
         public string UnitOfMeasure { get; set; } = "UND"; // Unidad de medida, por defecto UND
         public decimal Price { get; set; } // Precio de venta
         // Cost moved to Stock entity per branch

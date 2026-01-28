@@ -23,25 +23,55 @@ const ServiceOrderWorks = () => {
 
     const [selectedWork, setSelectedWork] = useState<any | null>(null);
 
+    // Services State
+    const [services, setServices] = useState<any[]>([]);
+    const [serviceSearch, setServiceSearch] = useState('');
+    const [showServiceSearch, setShowServiceSearch] = useState(false);
+    const [productId, setProductId] = useState<number | null>(null);
+
     // Technicians State
     const [technicians, setTechnicians] = useState<Technician[]>([]);
     const [showTechnicianSearch, setShowTechnicianSearch] = useState(false);
 
     useEffect(() => {
+        fetchServices();
+    }, []);
+
+    const fetchServices = async () => {
+        try {
+            const response = await api.get('/products');
+            // Filter services on client side for now
+            const serviceProducts = response.data.filter((p: any) => p.type === 'Servicio');
+            setServices(serviceProducts);
+        } catch (error) {
+            console.error("Error fetching services", error);
+        }
+    };
+
+    useEffect(() => {
         if (selectedWork) {
+            setProductId(selectedWork.productId || null);
+            // If editing, we might want to show the service name in search, or leave it empty?
+            // Ideally we show the linked service name. But selectedWork usually just has Description.
+            // If we have productId, we can find the name from services list.
+            const linkedService = services.find(s => s.id === selectedWork.productId);
+            setServiceSearch(linkedService ? linkedService.name : '');
+            
             setDescription(selectedWork.description);
             setTechnician(selectedWork.technician);
             setEstimatedTime(selectedWork.estimatedTimeHours ? selectedWork.estimatedTimeHours.toString() : '');
             setLaborCost(selectedWork.laborCost ? selectedWork.laborCost.toString() : '');
             setStatus(selectedWork.status);
         } else {
+            setProductId(null);
+            setServiceSearch('');
             setDescription('');
             setTechnician('');
             setEstimatedTime('');
             setLaborCost('');
             setStatus('PENDIENTE');
         }
-    }, [selectedWork]);
+    }, [selectedWork, services]); // Add services to dependency to resolve name if loaded later
 
     useEffect(() => {
         if (technician.length > 1) {
@@ -106,6 +136,7 @@ const ServiceOrderWorks = () => {
         }
 
         const payload = {
+            productId: productId,
             description,
             technician,
             estimatedTimeHours: estimatedTime ? parseFloat(estimatedTime) : null,
@@ -270,6 +301,49 @@ const ServiceOrderWorks = () => {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Servicio (Catálogo)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={serviceSearch}
+                                                onChange={(e) => {
+                                                    setServiceSearch(e.target.value);
+                                                    setShowServiceSearch(true);
+                                                    if (!e.target.value) setProductId(null);
+                                                }}
+                                                onFocus={() => setShowServiceSearch(true)}
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                                                placeholder="Buscar servicio predefinido..."
+                                            />
+                                            {showServiceSearch && services.length > 0 && selectedOrder.status !== 'FINALIZADA' && (
+                                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg mt-1 border border-gray-100 z-50 max-h-60 overflow-y-auto">
+                                                    {services.filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase())).map(s => (
+                                                        <div
+                                                            key={s.id}
+                                                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                                            onClick={() => {
+                                                                setServiceSearch(s.name);
+                                                                setProductId(s.id);
+                                                                setDescription(s.description || s.name);
+                                                                setLaborCost(s.price.toString());
+                                                                setShowServiceSearch(false);
+                                                            }}
+                                                        >
+                                                            <div className="font-bold text-sm text-gray-800">{s.name}</div>
+                                                            <div className="flex justify-between text-xs text-gray-500">
+                                                                <span>{s.sku}</span>
+                                                                <span className="font-bold text-blue-600">${s.price.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Descripción
                                     </label>
@@ -324,8 +398,8 @@ const ServiceOrderWorks = () => {
                                             </label>
                                             <input
                                                 type="number"
-                                                step="0.1"
-                                                value={estimatedTime}
+                                                step="0.5"
+                                                value={estimatedTime || ''}
                                                 onChange={(e) => setEstimatedTime(e.target.value)}
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                             />
@@ -337,7 +411,7 @@ const ServiceOrderWorks = () => {
                                             <input
                                                 type="number"
                                                 step="0.01"
-                                                value={laborCost}
+                                                value={laborCost || ''}
                                                 onChange={(e) => setLaborCost(e.target.value)}
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                             />

@@ -55,6 +55,7 @@ namespace TPV.Application.DTOs
     {
         public int Id { get; set; }
         public int ServiceOrderId { get; set; }
+        public int? ProductId { get; set; }
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }
@@ -64,6 +65,7 @@ namespace TPV.Application.DTOs
 
     public class CreateServiceOrderWorkDto
     {
+        public int? ProductId { get; set; }
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }
