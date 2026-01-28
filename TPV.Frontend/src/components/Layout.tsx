@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2, Key } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -54,7 +54,13 @@ const Layout = () => {
                 { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },
             ]
         },
-        { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
+        { 
+            label: 'Movimientos', 
+            icon: ArrowLeftRight,
+            submenu: [
+                { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
+            ]
+        },
         { path: '/cash', label: 'Caja', icon: DollarSign, permission: 'Menus.Cash.View' },
         {
             label: 'Seguridad',

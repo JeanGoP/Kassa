@@ -61,9 +61,14 @@ namespace TPV.Application.Services
                 };
                 purchase.PurchaseDetails.Add(detail);
 
-                // Update Stock
+                // Update Stock and Cost (Weighted Average per Branch)
                 var stocks = await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId);
                 var stock = stocks.FirstOrDefault();
+                
+                decimal purchaseQuantity = item.Quantity;
+                decimal purchaseUnitCost = item.UnitCost;
+                decimal newPurchaseValue = purchaseQuantity * purchaseUnitCost;
+
                 if (stock == null)
                 {
                     stock = new Stock
@@ -71,23 +76,42 @@ namespace TPV.Application.Services
                         ProductId = item.ProductId,
                         BranchId = dto.BranchId,
                         Quantity = item.Quantity,
+                        Cost = item.UnitCost,
                         IsActive = true
                     };
                     await _stockRepository.AddAsync(stock);
                 }
                 else
                 {
+                    decimal currentQuantity = stock.Quantity;
+                    decimal currentCost = stock.Cost;
+                    decimal currentTotalValue = currentQuantity * currentCost;
+                    
+                    // Avoid negative quantity logic issues if stock was somehow negative, treat as 0 value for simplicity or handle strictly
+                    if (currentQuantity < 0) currentQuantity = 0;
+                    if (currentTotalValue < 0) currentTotalValue = 0;
+
+                    decimal newTotalQuantity = currentQuantity + purchaseQuantity;
+                    
+                    if (newTotalQuantity > 0)
+                    {
+                        stock.Cost = (currentTotalValue + newPurchaseValue) / newTotalQuantity;
+                    }
+                    else
+                    {
+                        stock.Cost = item.UnitCost; // Fallback if net quantity is 0 or less
+                    }
+
                     stock.Quantity += item.Quantity;
                     await _stockRepository.UpdateAsync(stock);
                 }
 
-                // Update Product Cost (Last Price Strategy)
-                var product = await _productRepository.GetByIdAsync(item.ProductId);
-                if (product != null)
-                {
-                    product.Cost = item.UnitCost;
-                    await _productRepository.UpdateAsync(product);
-                }
+                // Update Product Cost (Optional: Keep global reference as last purchase price or average of all branches? 
+                // User said "Cost should not be in Product", but we might need it for fallback. 
+                // For now, let's NOT update Product.Cost to respect "Cost should be in Stock".
+                // But to avoid confusion, we might want to update it to the latest cost just in case.)
+                // Removing Product.Cost update logic as per user request to move logic to Stock.
+
             }
 
             purchase.TotalAmount = totalAmount;

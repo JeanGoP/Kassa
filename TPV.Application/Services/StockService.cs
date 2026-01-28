@@ -69,7 +69,8 @@ namespace TPV.Application.Services
                 BranchName = stock.Branch?.Name,
                 Quantity = stock.Quantity,
                 MinStockLevel = stock.MinStockLevel,
-                MaxStockLevel = stock.MaxStockLevel
+                MaxStockLevel = stock.MaxStockLevel,
+                Cost = stock.Cost
             };
         }
     }

@@ -12,6 +12,7 @@ namespace TPV.Domain.Entities
         public Branch Branch { get; set; }
 
         public int Quantity { get; set; }
+        public decimal Cost { get; set; } // Costo promedio ponderado por sucursal
         public int MinStockLevel { get; set; } // Para alertas de reposición
         public int MaxStockLevel { get; set; } // Para evitar sobrestock
     }

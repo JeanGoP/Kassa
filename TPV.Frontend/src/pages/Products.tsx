@@ -5,10 +5,11 @@ import { Package, Plus, Edit, Trash, X, Search, ChevronDown, ChevronRight } from
 interface Product {
     id: number;
     sku: string;
+    barcode?: string;
     name: string;
     description: string;
+    unitOfMeasure?: string;
     price: number;
-    cost: number;
     profitabilityPercentage?: number;
     ivaType: string;
     ivaRate: number;
@@ -39,10 +40,11 @@ const Products = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         sku: '',
+        barcode: '',
         name: '',
         description: '',
+        unitOfMeasure: 'UND',
         price: 0,
-        cost: 0,
         profitabilityPercentage: 0,
         ivaType: 'Excluido',
         ivaRate: 0,
@@ -242,10 +244,11 @@ const Products = () => {
             setCurrentProduct(product);
             setFormData({
                 sku: product.sku,
+                barcode: product.barcode || '',
                 name: product.name,
                 description: product.description || '',
+                unitOfMeasure: product.unitOfMeasure || 'UND',
                 price: product.price,
-                cost: product.cost || 0,
                 profitabilityPercentage: product.profitabilityPercentage || 0,
                 ivaType: product.ivaType || 'Excluido',
                 ivaRate: product.ivaRate || 0,
@@ -257,10 +260,11 @@ const Products = () => {
             setCurrentProduct(null);
             setFormData({
                 sku: '',
+                barcode: '',
                 name: '',
                 description: '',
+                unitOfMeasure: 'UND',
                 price: 0,
-                cost: 0,
                 profitabilityPercentage: 0,
                 ivaType: 'Excluido',
                 ivaRate: 0,
@@ -277,32 +281,12 @@ const Products = () => {
         setCurrentProduct(null);
     };
 
-    // Logic for profitability
-    const handleCostChange = (val: number) => {
-        const newCost = val;
-        let newPrice = formData.price;
-        
-        if (formData.profitabilityPercentage && formData.profitabilityPercentage > 0) {
-            newPrice = newCost * (1 + formData.profitabilityPercentage / 100);
-        }
-        
-        setFormData({ ...formData, cost: newCost, price: parseFloat(newPrice.toFixed(2)) });
-    };
-
+    // Simplified handlers without cost dependency
     const handleProfitabilityChange = (val: number) => {
-        const profit = val;
-        const newPrice = formData.cost * (1 + profit / 100);
-        setFormData({ ...formData, profitabilityPercentage: profit, price: parseFloat(newPrice.toFixed(2)) });
+         setFormData({ ...formData, profitabilityPercentage: val });
     };
-
     const handlePriceChange = (val: number) => {
-        // If price changes manually, we could update profitability or just leave it.
-        // For now, let's update profitability to reflect the new margin
-        let profit = 0;
-        if (formData.cost > 0) {
-            profit = ((val - formData.cost) / formData.cost) * 100;
-        }
-        setFormData({ ...formData, price: val, profitabilityPercentage: parseFloat(profit.toFixed(2)) });
+         setFormData({ ...formData, price: val });
     };
 
     const handleDelete = async (id: number) => {
@@ -354,7 +338,6 @@ const Products = () => {
                                 <th className="p-4 border-b">SKU</th>
                                 <th className="p-4 border-b">Nombre</th>
                                 <th className="p-4 border-b">Categoría</th>
-                                <th className="p-4 border-b text-right">Costo</th>
                                 <th className="p-4 border-b text-right">Precio</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
                             </tr>
@@ -369,9 +352,6 @@ const Products = () => {
                                     </td>
                                     <td className="p-4 text-sm">
                                         {categories.find(c => c.id === product.categoryId)?.name || '-'}
-                                    </td>
-                                    <td className="p-4 text-right font-medium text-gray-500">
-                                        ${(product.cost || 0).toFixed(2)}
                                     </td>
                                     <td className="p-4 text-right font-bold text-slate-800">
                                         ${product.price.toFixed(2)}
@@ -433,7 +413,7 @@ const Products = () => {
                                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pricing' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                                     onClick={() => setActiveTab('pricing')}
                                 >
-                                    Precios y Rentabilidad
+                                    Precios
                                 </button>
                                 <button
                                     type="button"
@@ -448,7 +428,7 @@ const Products = () => {
                                 {/* Features Tab */}
                                 {activeTab === 'features' && (
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fadeIn">
-                                        {/* SKU & Name */}
+                                        {/* SKU, Barcode & Name */}
                                         <div className="md:col-span-3">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
                                             <input 
@@ -459,7 +439,17 @@ const Products = () => {
                                                 required
                                             />
                                         </div>
-                                        <div className="md:col-span-9">
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Código de Barras</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={formData.barcode}
+                                                onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+                                                placeholder="EAN / UPC"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-5">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                             <input 
                                                 type="text" 
@@ -481,8 +471,8 @@ const Products = () => {
                                             />
                                         </div>
 
-                                        {/* Category */}
-                                        <div className="md:col-span-12">
+                                        {/* Category & Unit of Measure */}
+                                        <div className="md:col-span-8">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
                                             <button
                                                 type="button"
@@ -495,6 +485,16 @@ const Products = () => {
                                                 <ChevronDown size={16} className="text-gray-500" />
                                             </button>
                                         </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida</label>
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                                value={formData.unitOfMeasure}
+                                                onChange={(e) => setFormData({...formData, unitOfMeasure: e.target.value})}
+                                            >
+                                                <option value="UND">UNIDAD (UND)</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 )}
 
@@ -503,33 +503,18 @@ const Products = () => {
                                     <div className="space-y-6 animate-fadeIn">
                                         <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
                                             <h4 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide">Cálculo de Precios</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Costo</label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-3 top-2 text-gray-500">$</span>
-                                                        <input 
-                                                            type="number" 
-                                                            step="0.01"
-                                                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                                            value={formData.cost}
-                                                            onChange={(e) => handleCostChange(parseFloat(e.target.value) || 0)}
-                                                            required
-                                                        />
-                                                    </div>
-                                                </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Rentabilidad (%)</label>
                                                     <div className="relative">
+                                                        <span className="absolute left-3 top-2 text-gray-500">%</span>
                                                         <input 
                                                             type="number" 
                                                             step="0.01"
-                                                            className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
                                                             value={formData.profitabilityPercentage}
                                                             onChange={(e) => handleProfitabilityChange(parseFloat(e.target.value) || 0)}
-                                                            placeholder="Opcional"
                                                         />
-                                                        <span className="absolute right-3 top-2 text-gray-500">%</span>
                                                     </div>
                                                 </div>
                                                 <div>

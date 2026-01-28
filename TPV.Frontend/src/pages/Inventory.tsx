@@ -12,6 +12,7 @@ interface StockItem {
     sku: string;
     branchId: number;
     branchName: string;
+    cost: number;
 }
 
 interface Branch {
@@ -174,6 +175,7 @@ const Inventory = () => {
                                 <th className="p-4 border-b text-center">Cantidad</th>
                                 <th className="p-4 border-b text-center">Min</th>
                                 <th className="p-4 border-b text-center">Max</th>
+                                <th className="p-4 border-b text-center">Costo Promedio</th>
                                 <th className="p-4 border-b text-center">Estado</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
                             </tr>
@@ -187,8 +189,14 @@ const Inventory = () => {
                                     
                                     {editingItem && editingItem.id === item.id ? (
                                         <>
-                                            <td className="p-4 text-center font-medium bg-gray-50 text-gray-500">
-                                                {editingItem.quantity}
+                                            <td className="p-4 text-center">
+                                                <input 
+                                                    type="number" 
+                                                    name="quantity"
+                                                    value={editingItem.quantity} 
+                                                    onChange={handleChange}
+                                                    className="w-20 p-1 border rounded text-center"
+                                                />
                                             </td>
                                             <td className="p-4 text-center">
                                                 <input 
@@ -216,6 +224,10 @@ const Inventory = () => {
                                             <td className="p-4 text-center text-gray-500">{item.maxStockLevel}</td>
                                         </>
                                     )}
+
+                                    <td className="p-4 text-center font-medium text-gray-700">
+                                        ${(item.cost || 0).toLocaleString('es-CO', { minimumFractionDigits: 2 })}
+                                    </td>
 
                                     <td className="p-4 text-center">
                                         {item.quantity <= item.minStockLevel ? (

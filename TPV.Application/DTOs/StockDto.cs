@@ -13,6 +13,7 @@ namespace TPV.Application.DTOs
         public int Quantity { get; set; }
         public int MinStockLevel { get; set; }
         public int MaxStockLevel { get; set; }
+        public decimal Cost { get; set; }
         
         public bool IsLowStock => Quantity <= MinStockLevel;
     }

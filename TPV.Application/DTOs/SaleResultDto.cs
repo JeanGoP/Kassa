@@ -17,5 +17,17 @@ namespace TPV.Application.DTOs
         public string? QrCode { get; set; }
         public List<SaleItemDto> Items { get; set; } = new();
     }
+
+    public class SaleItemDto
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; }
+        public string SKU { get; set; }
+        public decimal UnitPrice { get; set; }
+        public int Quantity { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+    }
 }
 

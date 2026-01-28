@@ -103,7 +103,9 @@ namespace TPV.Application.Services
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice, // Usar precio verificado
-                    SubTotal = lineBase
+                    SubTotal = lineBase + lineTax,
+                    TaxRate = item.IvaRate,
+                    TaxAmount = lineTax
                 };
                 await _saleDetailRepository.AddAsync(detail);
 
@@ -211,7 +213,10 @@ namespace TPV.Application.Services
                     ProductName = d.Product?.Name,
                     SKU = d.Product?.SKU,
                     UnitPrice = d.UnitPrice,
-                    Quantity = d.Quantity
+                    Quantity = d.Quantity,
+                    SubTotal = d.SubTotal,
+                    TaxRate = d.TaxRate,
+                    TaxAmount = d.TaxAmount
                 }).ToList()
             };
 

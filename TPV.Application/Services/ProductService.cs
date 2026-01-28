@@ -21,21 +21,46 @@ namespace TPV.Application.Services
         {
             var products = await _productRepository.GetAsync(null, null, "Category,Stocks");
             // Manual mapping for now (AutoMapper is better but adding dependency adds complexity)
-            return products.Select(p => new ProductDto
+            return products.Select(p => 
             {
-                Id = p.Id,
-                Name = p.Name,
-                SKU = p.SKU,
-                Description = p.Description,
-                Price = p.Price,
-                Cost = p.Cost,
-                IvaType = p.IvaType,
-                IvaRate = p.IvaRate,
-                ImpoconsumoRate = p.ImpoconsumoRate,
-                PriceIncludesIva = p.PriceIncludesIva,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category?.Name,
-                StockQuantity = p.Stocks?.Where(s => !branchId.HasValue || s.BranchId == branchId.Value).Sum(s => s.Quantity) ?? 0
+                decimal price = p.Price;
+                var branchStock = branchId.HasValue ? p.Stocks?.FirstOrDefault(s => s.BranchId == branchId.Value) : null;
+
+                // Calculate price dynamically if branch has cost and product has profitability
+                if (branchStock != null && branchStock.Cost > 0 && (p.ProfitabilityPercentage ?? 0) > 0)
+                {
+                    decimal basePrice = branchStock.Cost * (1 + (p.ProfitabilityPercentage.Value / 100));
+                    
+                    if (p.PriceIncludesIva && p.IvaRate > 0)
+                    {
+                        price = basePrice * (1 + (p.IvaRate / 100));
+                    }
+                    else
+                    {
+                        price = basePrice;
+                    }
+                    price = System.Math.Round(price, 2);
+                }
+
+                return new ProductDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    SKU = p.SKU,
+                    Barcode = p.Barcode,
+                    Description = p.Description,
+                    UnitOfMeasure = p.UnitOfMeasure,
+                    Price = price,
+                    // Cost = p.Cost,
+                    ProfitabilityPercentage = p.ProfitabilityPercentage,
+                    IvaType = p.IvaType,
+                    IvaRate = p.IvaRate,
+                    ImpoconsumoRate = p.ImpoconsumoRate,
+                    PriceIncludesIva = p.PriceIncludesIva,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category?.Name,
+                    StockQuantity = p.Stocks?.Where(s => !branchId.HasValue || s.BranchId == branchId.Value).Sum(s => s.Quantity) ?? 0
+                };
             });
         }
 
@@ -50,9 +75,12 @@ namespace TPV.Application.Services
                 Id = p.Id,
                 Name = p.Name,
                 SKU = p.SKU,
+                Barcode = p.Barcode,
                 Description = p.Description,
+                UnitOfMeasure = p.UnitOfMeasure,
                 Price = p.Price,
-                Cost = p.Cost,
+                // Cost = p.Cost,
+                ProfitabilityPercentage = p.ProfitabilityPercentage,
                 IvaType = p.IvaType,
                 IvaRate = p.IvaRate,
                 ImpoconsumoRate = p.ImpoconsumoRate,
@@ -79,10 +107,13 @@ namespace TPV.Application.Services
             {
                 Name = productDto.Name,
                 SKU = productDto.SKU,
+                Barcode = productDto.Barcode,
                 Description = productDto.Description ?? string.Empty,
+                UnitOfMeasure = productDto.UnitOfMeasure ?? "UND",
                 Price = productDto.Price,
                 CategoryId = productDto.CategoryId,
-                Cost = productDto.Cost,
+                // Cost = productDto.Cost,
+                ProfitabilityPercentage = productDto.ProfitabilityPercentage,
                 IvaType = productDto.IvaType,
                 IvaRate = productDto.IvaRate,
                 ImpoconsumoRate = productDto.ImpoconsumoRate,
@@ -114,9 +145,11 @@ namespace TPV.Application.Services
 
                 product.Name = productDto.Name;
                 product.SKU = productDto.SKU;
+                product.Barcode = productDto.Barcode;
                 product.Description = productDto.Description ?? string.Empty;
+                product.UnitOfMeasure = productDto.UnitOfMeasure ?? "UND";
                 product.Price = productDto.Price;
-                product.Cost = productDto.Cost;
+                // product.Cost = productDto.Cost;
                 product.ProfitabilityPercentage = productDto.ProfitabilityPercentage;
                 product.IvaType = productDto.IvaType;
                 product.IvaRate = productDto.IvaRate;

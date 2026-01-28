@@ -11,6 +11,9 @@ interface Product {
     sku: string;
     price: number;
     stockQuantity: number;
+    ivaRate: number;
+    impoconsumoRate: number;
+    priceIncludesIva: boolean;
 }
 
 interface CartItem extends Product {
@@ -108,7 +111,36 @@ const POS = () => {
     });
     const [creatingCustomer, setCreatingCustomer] = useState(false);
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const { subTotal, taxAmount, total } = cart.reduce((acc, item) => {
+        const quantity = item.quantity;
+        const price = item.price;
+        const ivaRate = item.ivaRate || 0;
+        const impoRate = item.impoconsumoRate || 0;
+        const totalTaxRate = ivaRate + impoRate;
+        
+        let itemSubTotal = 0;
+        let itemTax = 0;
+        let itemTotal = 0;
+
+        if (item.priceIncludesIva) {
+            // Price is the final price (includes tax)
+            itemTotal = price * quantity;
+            // Base = Total / (1 + Rate)
+            itemSubTotal = itemTotal / (1 + (totalTaxRate / 100));
+            itemTax = itemTotal - itemSubTotal;
+        } else {
+            // Price is the base price (excludes tax)
+            itemSubTotal = price * quantity;
+            itemTax = itemSubTotal * (totalTaxRate / 100);
+            itemTotal = itemSubTotal + itemTax;
+        }
+
+        return {
+            subTotal: acc.subTotal + itemSubTotal,
+            taxAmount: acc.taxAmount + itemTax,
+            total: acc.total + itemTotal
+        };
+    }, { subTotal: 0, taxAmount: 0, total: 0 });
 
     // --- Effects ---
     useEffect(() => {
@@ -473,11 +505,11 @@ const POS = () => {
                 <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
                     <div className="flex justify-between text-gray-500 text-sm mb-1">
                         <span>Subtotal:</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>${subTotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-500 text-sm mb-3">
-                        <span>Impuestos (0%):</span>
-                        <span>$0.00</span>
+                        <span>Impuestos:</span>
+                        <span>${taxAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-2xl font-bold text-slate-800 mb-4 pt-3 border-t border-dashed border-gray-200">
                         <span>Total:</span>

@@ -93,9 +93,7 @@ namespace TPV.Infrastructure.Persistence
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
 
-            builder.Entity<Product>()
-                .Property(p => p.Cost)
-                .HasColumnType("decimal(18,2)");
+            // builder.Entity<Product>().Property(p => p.Cost).HasColumnType("decimal(18,2)");
             
             builder.Entity<Product>()
                 .Property(p => p.IvaRate)
