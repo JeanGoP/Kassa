@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Package, Search, Save, AlertTriangle, MapPin } from 'lucide-react';
+import { Package, Search, Save, MapPin } from 'lucide-react';
 
 interface Branch {
     id: number;

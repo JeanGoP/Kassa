@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Search, Calendar, FileText, Printer, Eye, X, Check, ArrowRight } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Search, Calendar, FileText, Printer, Eye, X, Check } from 'lucide-react';
 
 interface SaleItem {
     productName: string;
