@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Search, Plus, Edit, Trash, X } from 'lucide-react';
+import { Search, Plus, Edit, Trash, X, Loader } from 'lucide-react';
 
 interface Warranty {
     id: number;
@@ -136,8 +136,6 @@ const Warranties = () => {
         }
     };
 
-    if (loading) return <div className="p-6">Cargando...</div>;
-
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -154,7 +152,11 @@ const Warranties = () => {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-4 border-b border-slate-200">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        {loading ? (
+                            <Loader className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" size={20} />
+                        ) : (
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        )}
                         <input
                             type="text"
                             placeholder="Buscar por placa..."
