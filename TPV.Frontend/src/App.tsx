@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import POS from './pages/POS';
 import Inventory from './pages/Inventory';
+import StockAdjustments from './pages/StockAdjustments';
+import StockTransfers from './pages/StockTransfers';
 import Cash from './pages/Cash';
 import Reports from './pages/Reports';
 import Suppliers from './pages/Suppliers';
@@ -13,6 +15,7 @@ import Categories from './pages/Categories';
 import Purchases from './pages/Purchases';
 import CreatePurchase from './pages/CreatePurchase';
 import PurchasePrint from './pages/PurchasePrint';
+import SalesHistory from './pages/SalesHistory';
 import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
@@ -48,7 +51,10 @@ const AppRoutes = () => {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="pos" element={<POS />} />
+                <Route path="sales-history" element={<SalesHistory />} />
                 <Route path="inventory" element={<Inventory />} />
+                <Route path="inventory/adjustments" element={<StockAdjustments />} />
+                <Route path="inventory/transfers" element={<StockTransfers />} />
                 <Route path="products" element={<Products />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="customers" element={<Customers />} />

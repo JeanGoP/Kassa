@@ -14,7 +14,8 @@ namespace TPV.Domain.Entities
         // Actually, TPV.Domain should not reference Microsoft.AspNetCore.Identity usually.
         // So we keep UserId as string.
 
-        public DateTime OpeningTime { get; set; } = DateTime.UtcNow;
+
+        public DateTime OpeningTime { get; set; } = DateTime.Now;
         public DateTime? ClosingTime { get; set; }
 
         public decimal OpeningBalance { get; set; }

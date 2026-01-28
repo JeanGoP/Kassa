@@ -8,7 +8,7 @@ namespace TPV.Domain.Entities
     {
         public int TenantId { get; set; }
         public string InvoiceNumber { get; set; }
-        public DateTime Date { get; set; } = DateTime.UtcNow;
+        public DateTime Date { get; set; } = DateTime.Now;
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } // Efectivo, Tarjeta, etc.
 

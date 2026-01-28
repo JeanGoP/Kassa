@@ -368,9 +368,9 @@ namespace TPV.Application.Services
             {
                 BranchId = 1, // Default branch
                 CustomerId = serviceOrder.CustomerId,
-                Date = DateTime.UtcNow,
+                Date = DateTime.Now,
                 PaymentMethod = dto.PaymentMethod,
-                InvoiceNumber = $"F-{DateTime.UtcNow:yyyyMMdd}-{serviceOrder.Id}",
+                InvoiceNumber = $"F-{DateTime.Now:yyyyMMdd}-{serviceOrder.Id}",
                 UserId = userId,
                 ServiceOrderId = serviceOrderId
             };

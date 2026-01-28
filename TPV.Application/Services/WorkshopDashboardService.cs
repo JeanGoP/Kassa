@@ -30,7 +30,7 @@ namespace TPV.Application.Services
 
         public async Task<WorkshopDashboardDto> GetDashboardDataAsync()
         {
-            var now = DateTime.UtcNow; // Or local time if configured, using Utc for now
+            var now = DateTime.Now; // Using Local time as app is single-tenant local
             var today = now.Date;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
             var last7Days = today.AddDays(-6);

@@ -8,7 +8,7 @@
 <div class="card mb-3">
     <div class="card-body">
         <div><strong>Número:</strong> @Model.InvoiceNumber</div>
-        <div><strong>Fecha:</strong> @Model.Date.ToLocalTime().ToString("g")</div>
+        <div><strong>Fecha:</strong> @Model.Date.ToString("g")</div>
         <div><strong>Sucursal:</strong> @Model.BranchId</div>
         <div><strong>Método de pago:</strong> @Model.PaymentMethod</div>
     </div>

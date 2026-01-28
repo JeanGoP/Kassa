@@ -28,7 +28,7 @@ namespace TPV.Application.Services
             {
                 BranchId = branchId,
                 UserId = userId,
-                OpeningTime = DateTime.UtcNow,
+                OpeningTime = DateTime.Now,
                 OpeningBalance = openingBalance,
                 ClosingBalance = 0,
                 TotalSystemSales = 0,
@@ -55,7 +55,7 @@ namespace TPV.Application.Services
             var sales = await _saleRepository.GetAsync(s => s.BranchId == session.BranchId && s.Date >= session.OpeningTime);
             var totalSales = sales.Sum(s => s.TotalAmount);
 
-            session.ClosingTime = DateTime.UtcNow;
+            session.ClosingTime = DateTime.Now;
             session.ClosingBalance = closingBalance;
             session.TotalSystemSales = totalSales;
             session.Difference = closingBalance - (session.OpeningBalance + totalSales);

@@ -38,6 +38,21 @@ namespace TPV.Web.Controllers.Api
             await _stockService.UpdateStockAsync(id, effectiveBranchId, request.Quantity, request.MinStockLevel, request.MaxStockLevel);
             return Ok();
         }
+
+        [HttpPost("adjust")]
+        public async Task<IActionResult> AdjustStock([FromBody] AdjustStockRequest request)
+        {
+            var effectiveBranchId = request.BranchId.GetValueOrDefault(1);
+            await _stockService.AdjustStockAsync(request.ProductId, effectiveBranchId, request.Quantity, request.Cost, request.Reason);
+            return Ok();
+        }
+
+        [HttpPost("transfer")]
+        public async Task<IActionResult> TransferStock([FromBody] TransferStockRequest request)
+        {
+            await _stockService.TransferStockAsync(request.ProductId, request.SourceBranchId, request.TargetBranchId, request.Quantity, request.Notes);
+            return Ok();
+        }
     }
 
     public class UpdateStockRequest
@@ -46,5 +61,23 @@ namespace TPV.Web.Controllers.Api
         public int Quantity { get; set; }
         public int MinStockLevel { get; set; }
         public int MaxStockLevel { get; set; }
+    }
+
+    public class AdjustStockRequest
+    {
+        public int ProductId { get; set; }
+        public int? BranchId { get; set; }
+        public int? Quantity { get; set; }
+        public decimal? Cost { get; set; }
+        public string Reason { get; set; }
+    }
+
+    public class TransferStockRequest
+    {
+        public int ProductId { get; set; }
+        public int SourceBranchId { get; set; }
+        public int TargetBranchId { get; set; }
+        public int Quantity { get; set; }
+        public string Notes { get; set; }
     }
 }

@@ -54,16 +54,34 @@ namespace TPV.Application.Services
                 if (stock.Quantity < item.Quantity)
                     throw new InvalidOperationException($"Stock insuficiente para '{product.Name}' en sucursal {dto.BranchId}. Disponible: {stock.Quantity}, Solicitado: {item.Quantity}.");
                 
-                processedItems.Add((item.ProductId, item.Quantity, product.Price, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
+                decimal finalPrice = product.Price;
+
+                // Calculate dynamic price if applicable (Cost > 0 and Profitability > 0)
+                if (stock.Cost > 0 && (product.ProfitabilityPercentage ?? 0) > 0)
+                {
+                    decimal basePrice = stock.Cost * (1 + (product.ProfitabilityPercentage.Value / 100));
+                    
+                    if (product.PriceIncludesIva && product.IvaRate > 0)
+                    {
+                        finalPrice = basePrice * (1 + (product.IvaRate / 100));
+                    }
+                    else
+                    {
+                        finalPrice = basePrice;
+                    }
+                    finalPrice = System.Math.Round(finalPrice, 2);
+                }
+
+                processedItems.Add((item.ProductId, item.Quantity, finalPrice, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
             }
 
             var sale = new Sale
             {
                 BranchId = dto.BranchId,
                 CustomerId = dto.CustomerId,
-                Date = DateTime.UtcNow,
+                Date = DateTime.Now,
                 PaymentMethod = dto.PaymentMethod,
-                InvoiceNumber = $"V-{DateTime.UtcNow:yyyyMMddHHmmss}-{dto.BranchId}",
+                InvoiceNumber = $"V-{DateTime.Now:yyyyMMddHHmmss}-{dto.BranchId}",
                 UserId = userId,
                 TotalAmount = 0 // Se recalcula más abajo con IVA discriminado
             };
@@ -186,6 +204,38 @@ namespace TPV.Application.Services
             await _saleRepository.UpdateAsync(sale);
 
             return await GetSaleAsync(saleId);
+        }
+
+        public async Task<IEnumerable<SaleResultDto>> GetSalesAsync(DateTime? fromDate, DateTime? toDate, string? invoiceNumber, string? customerName)
+        {
+            var sales = await _saleRepository.GetAsync(
+                s => (!fromDate.HasValue || s.Date >= fromDate.Value) &&
+                     (!toDate.HasValue || s.Date <= toDate.Value) &&
+                     (string.IsNullOrEmpty(invoiceNumber) || s.InvoiceNumber.Contains(invoiceNumber)) &&
+                     (string.IsNullOrEmpty(customerName) || (s.Customer != null && (s.Customer.FirstName.Contains(customerName) || s.Customer.LastName.Contains(customerName)))),
+                q => q.OrderByDescending(s => s.Date),
+                "Customer,SaleDetails.Product"
+            );
+
+            return sales.Select(s => new SaleResultDto
+            {
+                SaleId = s.Id,
+                InvoiceNumber = s.InvoiceNumber,
+                Date = s.Date,
+                TotalAmount = s.TotalAmount,
+                PaymentMethod = s.PaymentMethod,
+                CustomerName = s.Customer != null ? $"{s.Customer.FirstName} {s.Customer.LastName}" : "Cliente General",
+                Cufe = s.Cufe,
+                QrCode = s.QrCode,
+                ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
+                Items = s.SaleDetails.Select(d => new SaleItemDto
+                {
+                    ProductName = d.Product?.Name ?? "Unknown",
+                    Quantity = d.Quantity,
+                    UnitPrice = d.UnitPrice,
+                    SubTotal = d.SubTotal
+                }).ToList()
+            });
         }
 
         public async Task<SaleResultDto> GetSaleAsync(int saleId)

@@ -22,6 +22,13 @@ namespace TPV.Web.Controllers.Api
             _branchRepository = branchRepository;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetSales([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] string? invoiceNumber, [FromQuery] string? customerName)
+        {
+            var sales = await _salesService.GetSalesAsync(fromDate, toDate, invoiceNumber, customerName);
+            return Ok(sales);
+        }
+
         [HttpGet("products")]
         public async Task<IActionResult> GetProducts(string search = "", int? branchId = null)
         {
