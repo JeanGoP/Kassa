@@ -256,7 +256,7 @@ const CreatePurchase = () => {
                                                 type="number" 
                                                 min="1"
                                                 className="w-full border border-gray-300 rounded px-2 py-1 text-center"
-                                                value={item.quantity}
+                                                value={item.quantity || ''}
                                                 onChange={(e) => updateDetail(index, 'quantity', Number(e.target.value))}
                                             />
                                         </td>
@@ -266,7 +266,7 @@ const CreatePurchase = () => {
                                                 min="0"
                                                 step="0.01"
                                                 className="w-full border border-gray-300 rounded px-2 py-1 text-center"
-                                                value={item.unitCost}
+                                                value={item.unitCost || ''}
                                                 onChange={(e) => updateDetail(index, 'unitCost', Number(e.target.value))}
                                             />
                                         </td>

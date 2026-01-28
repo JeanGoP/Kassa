@@ -193,7 +193,7 @@ const Inventory = () => {
                                                 <input 
                                                     type="number" 
                                                     name="quantity"
-                                                    value={editingItem.quantity} 
+                                                    value={editingItem.quantity || ''} 
                                                     onChange={handleChange}
                                                     className="w-20 p-1 border rounded text-center"
                                                 />

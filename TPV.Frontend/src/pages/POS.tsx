@@ -575,7 +575,7 @@ const POS = () => {
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
                                         <input
                                             type="number"
-                                            value={amountPaid}
+                                            value={amountPaid || ''}
                                             onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
                                             onFocus={(e) => e.target.select()}
                                             className="w-full pl-8 pr-4 py-3 text-2xl font-bold text-slate-800 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition-colors"

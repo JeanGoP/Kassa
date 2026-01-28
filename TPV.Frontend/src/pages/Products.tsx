@@ -512,7 +512,7 @@ const Products = () => {
                                                             type="number" 
                                                             step="0.01"
                                                             className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                                                            value={formData.profitabilityPercentage}
+                                                            value={formData.profitabilityPercentage || ''}
                                                             onChange={(e) => handleProfitabilityChange(parseFloat(e.target.value) || 0)}
                                                         />
                                                     </div>
@@ -525,7 +525,7 @@ const Products = () => {
                                                             type="number" 
                                                             step="0.01"
                                                             className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-700"
-                                                            value={formData.price}
+                                                            value={formData.price || ''}
                                                             onChange={(e) => handlePriceChange(parseFloat(e.target.value) || 0)}
                                                             required
                                                         />
@@ -579,7 +579,7 @@ const Products = () => {
                                                         type="number" 
                                                         step="0.01"
                                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={formData.ivaRate}
+                                                        value={formData.ivaRate || ''}
                                                         onChange={(e) => setFormData({...formData, ivaRate: parseFloat(e.target.value)})}
                                                         disabled={formData.ivaType === 'Exento' || formData.ivaType === 'Excluido'}
                                                     />
@@ -590,7 +590,7 @@ const Products = () => {
                                                         type="number" 
                                                         step="0.01"
                                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                        value={formData.impoconsumoRate}
+                                                        value={formData.impoconsumoRate || ''}
                                                         onChange={(e) => setFormData({...formData, impoconsumoRate: parseFloat(e.target.value)})}
                                                     />
                                                 </div>

@@ -209,7 +209,7 @@ const StockAdjustments = () => {
                                     <input
                                         type="number"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newQuantity}
+                                        value={newQuantity || ''}
                                         onChange={(e) => setNewQuantity(Number(e.target.value))}
                                     />
                                 </div>
@@ -219,7 +219,7 @@ const StockAdjustments = () => {
                                         type="number"
                                         step="0.01"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={newCost}
+                                        value={newCost || ''}
                                         onChange={(e) => setNewCost(Number(e.target.value))}
                                     />
                                 </div>

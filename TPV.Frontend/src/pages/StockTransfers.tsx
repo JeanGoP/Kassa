@@ -232,7 +232,7 @@ const StockTransfers = () => {
                                 <input
                                     type="number"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={transferQuantity}
+                                    value={transferQuantity || ''}
                                     onChange={(e) => setTransferQuantity(Number(e.target.value))}
                                     min="1"
                                     max={sourceStock?.quantity ?? 0}

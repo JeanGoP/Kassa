@@ -291,7 +291,7 @@ const Warranties = () => {
                                     <input
                                         type="number"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                        value={formData.startMileage}
+                                        value={formData.startMileage || ''}
                                         onChange={(e) => setFormData({...formData, startMileage: Number(e.target.value)})}
                                     />
                                 </div>
@@ -300,7 +300,7 @@ const Warranties = () => {
                                     <input
                                         type="number"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                        value={formData.limitMileage1}
+                                        value={formData.limitMileage1 || ''}
                                         onChange={(e) => setFormData({...formData, limitMileage1: Number(e.target.value)})}
                                     />
                                 </div>
@@ -309,7 +309,7 @@ const Warranties = () => {
                                     <input
                                         type="number"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                        value={formData.limitMileage2}
+                                        value={formData.limitMileage2 || ''}
                                         onChange={(e) => setFormData({...formData, limitMileage2: Number(e.target.value)})}
                                     />
                                 </div>
@@ -318,7 +318,7 @@ const Warranties = () => {
                                     <input
                                         type="number"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                        value={formData.limitMileage3}
+                                        value={formData.limitMileage3 || ''}
                                         onChange={(e) => setFormData({...formData, limitMileage3: Number(e.target.value)})}
                                     />
                                 </div>

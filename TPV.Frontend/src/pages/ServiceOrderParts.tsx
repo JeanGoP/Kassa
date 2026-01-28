@@ -514,7 +514,7 @@ const ServiceOrderParts = () => {
                                                     <input
                                                         type="number"
                                                         min={0}
-                                                        value={item.discountValue}
+                                                        value={item.discountValue || ''}
                                                         onChange={(e) => updateItemDiscountValue(index, e.target.value)}
                                                         className="w-20 border border-gray-300 rounded px-2 py-1 text-right text-xs md:text-sm"
                                                     />
