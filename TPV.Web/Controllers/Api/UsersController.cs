@@ -121,6 +121,7 @@ namespace TPV.Web.Controllers.Api
                     LastName = user.LastName,
                     IsActive = user.IsActive,
                     TenantId = user.TenantId,
+                    CurrentBranchId = user.CurrentBranchId,
                     Roles = roles.ToArray()
                 });
             }
@@ -153,6 +154,7 @@ namespace TPV.Web.Controllers.Api
                 LastName = user.LastName,
                 IsActive = user.IsActive,
                 TenantId = user.TenantId,
+                CurrentBranchId = user.CurrentBranchId,
                 Roles = roles.ToArray()
             };
 
@@ -192,7 +194,8 @@ namespace TPV.Web.Controllers.Api
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 IsActive = true,
-                TenantId = targetTenantId
+                TenantId = targetTenantId,
+                CurrentBranchId = request.CurrentBranchId
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -223,6 +226,7 @@ namespace TPV.Web.Controllers.Api
                 LastName = user.LastName,
                 IsActive = user.IsActive,
                 TenantId = user.TenantId,
+                CurrentBranchId = user.CurrentBranchId,
                 Roles = createdRoles.ToArray()
             };
 
@@ -294,10 +298,14 @@ namespace TPV.Web.Controllers.Api
             user.LastName = request.LastName?.Trim();
             user.IsActive = request.IsActive;
             
-            // 2. Actualizar Tenant (Empresa)
+            // 2. Actualizar Tenant (Empresa) y Sucursal
             if (request.TenantId != user.TenantId)
             {
                  user.TenantId = request.TenantId;
+            }
+            if (request.CurrentBranchId != user.CurrentBranchId)
+            {
+                 user.CurrentBranchId = request.CurrentBranchId;
             }
 
             // 3. Actualizar Email y UserName
@@ -406,6 +414,7 @@ namespace TPV.Web.Controllers.Api
                 LastName = user.LastName,
                 IsActive = user.IsActive,
                 TenantId = user.TenantId,
+                CurrentBranchId = user.CurrentBranchId,
                 Roles = finalRoles.ToArray()
             });
         }
@@ -420,6 +429,7 @@ namespace TPV.Web.Controllers.Api
             public string LastName { get; set; }
             public bool IsActive { get; set; }
             public int? TenantId { get; set; }
+            public int? CurrentBranchId { get; set; }
             public string[] Roles { get; set; }
         }
 
@@ -430,6 +440,7 @@ namespace TPV.Web.Controllers.Api
             public string FirstName { get; set; }
             public string LastName { get; set; }
             public int? TenantId { get; set; }
+            public int? CurrentBranchId { get; set; }
             public string[] Roles { get; set; }
         }
 
@@ -440,6 +451,7 @@ namespace TPV.Web.Controllers.Api
             public string? Email { get; set; }
             public string? Password { get; set; }
             public int? TenantId { get; set; }
+            public int? CurrentBranchId { get; set; }
             public bool IsActive { get; set; }
             public string[]? Roles { get; set; }
         }

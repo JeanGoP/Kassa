@@ -16,23 +16,36 @@ namespace TPV.Application.Services
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Supplier> _supplierRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IUserService _userService;
 
         public PurchaseService(
             IRepository<Purchase> purchaseRepository,
             IRepository<Stock> stockRepository,
             IRepository<Product> productRepository,
             IRepository<Supplier> supplierRepository,
-            IRepository<Branch> branchRepository)
+            IRepository<Branch> branchRepository,
+            IUserService userService)
         {
             _purchaseRepository = purchaseRepository;
             _stockRepository = stockRepository;
             _productRepository = productRepository;
             _supplierRepository = supplierRepository;
             _branchRepository = branchRepository;
+            _userService = userService;
         }
 
-        public async Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto)
+        public async Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto, string? userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new UnauthorizedAccessException("Usuario no identificado.");
+            }
+
+            if (!await _userService.IsUserInBranchAsync(userId, dto.BranchId))
+            {
+                throw new UnauthorizedAccessException("El usuario no tiene permiso para realizar compras en esta sucursal.");
+            }
+
             var purchase = new Purchase
             {
                 SupplierId = dto.SupplierId,

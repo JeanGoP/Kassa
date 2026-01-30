@@ -56,6 +56,7 @@ namespace TPV.Infrastructure
             services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, ApplicationUserClaimsPrincipalFactory>();
 
             services.AddScoped<ICurrentTenantService, CurrentTenantService>();
+            services.AddScoped<IUserService, UserService>();
 
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

@@ -21,7 +21,8 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<PurchaseDto>> Create(CreatePurchaseDto dto)
         {
-            var created = await _purchaseService.CreatePurchaseAsync(dto);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var created = await _purchaseService.CreatePurchaseAsync(dto, userId);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 

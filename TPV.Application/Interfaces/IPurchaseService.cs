@@ -6,9 +6,9 @@ namespace TPV.Application.Interfaces
 {
     public interface IPurchaseService
     {
-        Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto);
+        Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto, string? userId);
         Task<IEnumerable<PurchaseDto>> GetAllAsync(string? search = null);
         Task<PurchaseDto?> GetByIdAsync(int id);
-        Task<bool> DeleteAsync(int id, string userId);
+        Task<bool> DeleteAsync(int id, string? userId);
     }
 }

@@ -11,6 +11,7 @@ interface User {
     isActive: boolean;
     roles: string[];
     tenantId?: number | null;
+    currentBranchId?: number | null;
 }
 
 interface Role {
@@ -23,11 +24,17 @@ interface Tenant {
     name: string;
 }
 
+interface Branch {
+    id: number;
+    name: string;
+}
+
 const Users = () => {
     const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [selectedUserRole, setSelectedUserRole] = useState<string>('');
     const [loading, setLoading] = useState(false);
@@ -43,6 +50,7 @@ const Users = () => {
     const [newPassword, setNewPassword] = useState('');
     const [newRole, setNewRole] = useState<string>('');
     const [newTenantId, setNewTenantId] = useState<string>('');
+    const [newBranchId, setNewBranchId] = useState<string>('');
     const [createError, setCreateError] = useState<string | null>(null);
 
     // Edit User State
@@ -51,6 +59,7 @@ const Users = () => {
     const [editLastName, setEditLastName] = useState('');
     const [editPassword, setEditPassword] = useState(''); // Only if changing
     const [editTenantId, setEditTenantId] = useState<string>('');
+    const [editBranchId, setEditBranchId] = useState<string>('');
     const [editIsActive, setEditIsActive] = useState(true);
     const [editError, setEditError] = useState<string | null>(null);
     const [editSuccess, setEditSuccess] = useState<string | null>(null);
@@ -63,7 +72,8 @@ const Users = () => {
         try {
             const promises = [
                 api.get('/users'),
-                api.get('/roles')
+                api.get('/roles'),
+                api.get('/branches')
             ];
 
             // Only fetch tenants if user is superadmin (no tenantId)
@@ -74,9 +84,10 @@ const Users = () => {
             const results = await Promise.all(promises);
             setUsers(results[0].data);
             setRoles(results[1].data);
+            setBranches(results[2].data);
             
-            if (!currentUser?.tenantId && results[2]) {
-                setTenants(results[2].data);
+            if (!currentUser?.tenantId && results[3]) {
+                setTenants(results[3].data);
             }
         } catch (error) {
             console.error(error);
@@ -96,6 +107,7 @@ const Users = () => {
         setEditFirstName(user.firstName || '');
         setEditLastName(user.lastName || '');
         setEditTenantId(user.tenantId ? user.tenantId.toString() : '');
+        setEditBranchId(user.currentBranchId ? user.currentBranchId.toString() : '');
         setEditIsActive(user.isActive);
         setEditPassword(''); // Reset password field
         setEditError(null);
@@ -140,6 +152,7 @@ const Users = () => {
                 email: editEmail,
                 password: editPassword || undefined, // Only send if not empty
                 tenantId: editTenantId ? parseInt(editTenantId) : null,
+                currentBranchId: editBranchId ? parseInt(editBranchId) : null,
                 isActive: editIsActive,
                 roles: selectedUserRole ? [selectedUserRole] : []
             });
@@ -204,7 +217,8 @@ const Users = () => {
                 firstName: newFirstName.trim() || null,
                 lastName: newLastName.trim() || null,
                 roles: newRole ? [newRole] : [],
-                tenantId: newTenantId ? parseInt(newTenantId) : null
+                tenantId: newTenantId ? parseInt(newTenantId) : null,
+                currentBranchId: newBranchId ? parseInt(newBranchId) : null
             });
 
             setNewEmail('');
@@ -213,6 +227,7 @@ const Users = () => {
             setNewPassword('');
             setNewRole('');
             setNewTenantId('');
+            setNewBranchId('');
 
             await loadData();
         } catch (error: unknown) {
@@ -305,6 +320,24 @@ const Users = () => {
                                 </select>
                             </div>
                         )}
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Sucursal Asignada
+                            </label>
+                            <select
+                                value={newBranchId}
+                                onChange={(e) => setNewBranchId(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            >
+                                <option value="">-- Seleccionar Sucursal --</option>
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>
+                                        {b.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
@@ -515,6 +548,20 @@ const Users = () => {
                                         </select>
                                     </div>
                                 )}
+
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Sucursal Asignada</label>
+                                    <select
+                                        value={editBranchId}
+                                        onChange={(e) => setEditBranchId(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    >
+                                        <option value="">-- Seleccionar Sucursal --</option>
+                                        {branches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="space-y-2 border-t pt-4">

@@ -12,27 +12,64 @@ namespace TPV.Application.Services
     {
         private readonly IRepository<Stock> _stockRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IUserService _userService;
 
-        public StockService(IRepository<Stock> stockRepository, IRepository<Product> productRepository)
+        public StockService(IRepository<Stock> stockRepository, IRepository<Product> productRepository, IUserService userService)
         {
             _stockRepository = stockRepository;
             _productRepository = productRepository;
+            _userService = userService;
         }
 
-        public async Task<IEnumerable<StockDto>> GetStockByBranchAsync(int branchId)
+        public async Task<IEnumerable<StockDto>> GetStockByBranchAsync(int branchId, string? userId = null)
         {
+            if (userId != null)
+            {
+                // Validate if user has access to this branch
+                // Exception: If user has Transfer permission, they can view all stocks (needed for transfers)
+                bool isAssigned = await _userService.IsUserInBranchAsync(userId, branchId);
+                bool canTransfer = await _userService.HasPermissionToTransferAsync(userId);
+
+                if (!isAssigned && !canTransfer)
+                {
+                    // Instead of throwing, maybe return empty? Or throw unauthorized.
+                    // Given the requirement "Validar filtros", throwing seems appropriate if they explicitly requested a branch they don't have access to.
+                    throw new System.UnauthorizedAccessException("No tiene permiso para ver el inventario de esta sucursal.");
+                }
+            }
+
             var stocks = await _stockRepository.GetAsync(s => s.BranchId == branchId, null, "Product,Branch");
             return stocks.Select(MapToDto);
         }
 
-        public async Task<IEnumerable<StockDto>> GetLowStockAlertsAsync(int branchId)
+        public async Task<IEnumerable<StockDto>> GetLowStockAlertsAsync(int branchId, string? userId = null)
         {
+            if (userId != null)
+            {
+                bool isAssigned = await _userService.IsUserInBranchAsync(userId, branchId);
+                bool canTransfer = await _userService.HasPermissionToTransferAsync(userId);
+
+                if (!isAssigned && !canTransfer)
+                {
+                    throw new System.UnauthorizedAccessException("No tiene permiso para ver alertas de inventario de esta sucursal.");
+                }
+            }
+
+            // Usually triggered by system or authorized user for that branch
             var stocks = await _stockRepository.GetAsync(s => s.BranchId == branchId && s.Quantity <= s.MinStockLevel, null, "Product,Branch");
             return stocks.Select(MapToDto);
         }
 
-        public async Task UpdateStockAsync(int productId, int branchId, int quantity, int minStockLevel, int maxStockLevel)
+        public async Task UpdateStockAsync(int productId, int branchId, int quantity, int minStockLevel, int maxStockLevel, string? userId = null)
         {
+            if (userId != null)
+            {
+                if (!await _userService.IsUserInBranchAsync(userId, branchId))
+                {
+                     throw new System.UnauthorizedAccessException("No tiene permiso para modificar el inventario de esta sucursal.");
+                }
+            }
+
             var stocks = await _stockRepository.GetAsync(s => s.ProductId == productId && s.BranchId == branchId);
             var stock = stocks.FirstOrDefault();
 
@@ -57,8 +94,16 @@ namespace TPV.Application.Services
             }
         }
 
-        public async Task AdjustStockAsync(int productId, int branchId, int? quantity, decimal? cost, string reason)
+        public async Task AdjustStockAsync(int productId, int branchId, int? quantity, decimal? cost, string reason, string? userId = null)
         {
+            if (userId != null)
+            {
+                if (!await _userService.IsUserInBranchAsync(userId, branchId))
+                {
+                     throw new System.UnauthorizedAccessException("No tiene permiso para ajustar el inventario de esta sucursal.");
+                }
+            }
+
             var stocks = await _stockRepository.GetAsync(s => s.ProductId == productId && s.BranchId == branchId);
             var stock = stocks.FirstOrDefault();
 
@@ -83,8 +128,34 @@ namespace TPV.Application.Services
             }
         }
 
-        public async Task TransferStockAsync(int productId, int sourceBranchId, int targetBranchId, int quantity, string notes)
+        public async Task TransferStockAsync(int productId, int sourceBranchId, int targetBranchId, int quantity, string notes, string? userId = null)
         {
+            if (userId != null)
+            {
+                // For transfers, we need to check if user has global transfer permission OR is assigned to source branch.
+                // However, usually transfers require higher privileges or access to both.
+                // The requirement says: "Implementar lógica de Traslados permitiendo acceso global a bodegas"
+                // implying that if you have the permission (checked in Controller/Service), you can access any branch.
+                
+                bool canTransfer = await _userService.HasPermissionToTransferAsync(userId);
+                bool isAssignedToSource = await _userService.IsUserInBranchAsync(userId, sourceBranchId);
+
+                if (!canTransfer && !isAssignedToSource)
+                {
+                    throw new System.UnauthorizedAccessException("No tiene permiso para realizar traslados desde esta sucursal.");
+                }
+                
+                // Note: We might also want to check target branch access, but often "sending" stock is enough validation.
+                // If "Global Access" is required for transfers, maybe we should enforce 'canTransfer' strictly?
+                // "permitiendo acceso global a bodegas" -> likely means if I have the role/permission, I can transfer between ANY branch.
+                
+                if (!canTransfer && isAssignedToSource)
+                {
+                    // If I am just a branch user, can I transfer OUT? 
+                    // Usually yes, but maybe restricted. Let's assume yes for now if they are in source.
+                }
+            }
+
             var sourceStocks = await _stockRepository.GetAsync(s => s.ProductId == productId && s.BranchId == sourceBranchId);
             var sourceStock = sourceStocks.FirstOrDefault();
 

@@ -16,23 +16,31 @@ namespace TPV.Application.Services
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Stock> _stockRepository;
         private readonly IElectronicInvoicingService _electronicInvoicingService;
+        private readonly IUserService _userService;
 
         public SalesService(
             IRepository<Sale> saleRepository,
             IRepository<SaleDetail> saleDetailRepository,
             IRepository<Product> productRepository,
             IRepository<Stock> stockRepository,
-            IElectronicInvoicingService electronicInvoicingService)
+            IElectronicInvoicingService electronicInvoicingService,
+            IUserService userService)
         {
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
             _productRepository = productRepository;
             _stockRepository = stockRepository;
             _electronicInvoicingService = electronicInvoicingService;
+            _userService = userService;
         }
 
         public async Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId)
         {
+            if (!await _userService.IsUserInBranchAsync(userId, dto.BranchId))
+            {
+                throw new UnauthorizedAccessException("El usuario no tiene permiso para realizar ventas en esta sucursal.");
+            }
+
             if (dto.Items == null || dto.Items.Count == 0)
                 throw new InvalidOperationException("No hay ítems en la venta.");
 

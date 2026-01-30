@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Security.Claims;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
 using TPV.Domain.Entities;
@@ -35,7 +36,8 @@ namespace TPV.Web.Controllers
 
             if (branchId.HasValue)
             {
-                var stocks = await _stockService.GetStockByBranchAsync(branchId.Value);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var stocks = await _stockService.GetStockByBranchAsync(branchId.Value, userId);
                 return View(stocks);
             }
             return View(new List<StockDto>());
@@ -53,7 +55,8 @@ namespace TPV.Web.Controllers
 
             if (branchId.HasValue)
             {
-                var alerts = await _stockService.GetLowStockAlertsAsync(branchId.Value);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var alerts = await _stockService.GetLowStockAlertsAsync(branchId.Value, userId);
                 return View(alerts);
             }
             return View(new List<StockDto>());
@@ -63,7 +66,8 @@ namespace TPV.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStock(int productId, int branchId, int quantity, int minStockLevel, int maxStockLevel)
         {
-            await _stockService.UpdateStockAsync(productId, branchId, quantity, minStockLevel, maxStockLevel);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _stockService.UpdateStockAsync(productId, branchId, quantity, minStockLevel, maxStockLevel, userId);
             return RedirectToAction(nameof(Index), new { branchId });
         }
     }

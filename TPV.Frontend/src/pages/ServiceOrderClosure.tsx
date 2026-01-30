@@ -415,9 +415,8 @@ const ServiceOrderClosure = () => {
             const closedOrder = response.data;
             handlePrintReceipt(closedOrder, payload);
             alert('Orden de servicio FINALIZADA correctamente.');
-            setSelectedOrder(null);
-            setOrderResults([]);
-            setOrderSearch('');
+            setSelectedOrder(closedOrder);
+            setOrderResults(prev => prev.map(o => o.id === closedOrder.id ? closedOrder : o));
         } catch (error: any) {
             console.error(error);
             const backendMessage =
@@ -453,7 +452,9 @@ const ServiceOrderClosure = () => {
             setLastInvoice(invoice);
             setShowInvoiceModal(true);
             alert('Factura generada correctamente.');
-            setSelectedOrder({ ...selectedOrder, status: 'CERRADA' });
+            const updatedOrder = { ...selectedOrder, status: 'CERRADA' };
+            setSelectedOrder(updatedOrder);
+            setOrderResults(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
         } catch (error: any) {
             const backendMessage =
                 typeof error.response?.data === 'string'
