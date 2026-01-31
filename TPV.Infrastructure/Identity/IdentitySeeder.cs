@@ -13,7 +13,7 @@ namespace TPV.Infrastructure.Identity
         public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context, ILogger logger)
         {
             logger.LogInformation("Seeding database...");
-            var roles = new[] { "Admin", "Vendedor", "Supervisor" };
+            var roles = new[] { "Admin", "Vendedor", "Supervisor", "Technician", "WorkshopManager" };
             foreach (var roleName in roles)
             {
                 if (!await roleManager.RoleExistsAsync(roleName))
@@ -104,6 +104,48 @@ namespace TPV.Infrastructure.Identity
                     if (!supervisorClaims.Any(c => c.Type == "permission" && c.Value == permission))
                     {
                         await roleManager.AddClaimAsync(supervisorRole, new Claim("permission", permission));
+                    }
+                }
+            }
+
+            var technicianRole = await roleManager.FindByNameAsync("Technician");
+            if (technicianRole != null)
+            {
+                var technicianClaims = await roleManager.GetClaimsAsync(technicianRole);
+                var technicianPermissions = new[]
+                {
+                    Permissions.MenusWorkshopView,
+                    Permissions.MenusDashboardView
+                };
+
+                foreach (var permission in technicianPermissions)
+                {
+                    if (!technicianClaims.Any(c => c.Type == "permission" && c.Value == permission))
+                    {
+                        await roleManager.AddClaimAsync(technicianRole, new Claim("permission", permission));
+                    }
+                }
+            }
+
+            var workshopManagerRole = await roleManager.FindByNameAsync("WorkshopManager");
+            if (workshopManagerRole != null)
+            {
+                var workshopManagerClaims = await roleManager.GetClaimsAsync(workshopManagerRole);
+                var workshopManagerPermissions = new[]
+                {
+                    Permissions.MenusWorkshopView,
+                    Permissions.MenusTechniciansView,
+                    Permissions.MenusWarrantiesView,
+                    Permissions.MenusDashboardView,
+                    Permissions.MenusReportsView,
+                    Permissions.MenusCustomersView
+                };
+
+                foreach (var permission in workshopManagerPermissions)
+                {
+                    if (!workshopManagerClaims.Any(c => c.Type == "permission" && c.Value == permission))
+                    {
+                        await roleManager.AddClaimAsync(workshopManagerRole, new Claim("permission", permission));
                     }
                 }
             }

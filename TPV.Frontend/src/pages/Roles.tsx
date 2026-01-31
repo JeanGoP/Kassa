@@ -16,6 +16,7 @@ const roleTranslations: { [key: string]: string } = {
     'Vendedor': 'Vendedor',
     'Supervisor': 'Supervisor',
     'Technician': 'Técnico',
+    'WorkshopManager': 'Jefe de Taller',
     'User': 'Usuario'
 };
 

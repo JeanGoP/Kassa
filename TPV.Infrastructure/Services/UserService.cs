@@ -25,8 +25,9 @@ namespace TPV.Infrastructure.Services
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return false;
 
-            // SuperAdmin access (optional, but good for safety)
-            if (user.Email == "admin@tpv.com") return true;
+            // Allow Admin to access any branch
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Contains("Admin")) return true;
 
             return user.CurrentBranchId == branchId;
         }

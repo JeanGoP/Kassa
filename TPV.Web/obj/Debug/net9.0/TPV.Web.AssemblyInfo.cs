@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TPV.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fcaddab9e26db10547a7cf95fa23b87fa0868418")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8c5e4a05e3d6cae72286bab8e241c0001f09bcc6")]
 [assembly: System.Reflection.AssemblyProductAttribute("TPV.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TPV.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
