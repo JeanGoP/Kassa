@@ -11,6 +11,43 @@ interface Permission {
     description: string;
 }
 
+const roleTranslations: { [key: string]: string } = {
+    'Admin': 'Administrador',
+    'Vendedor': 'Vendedor',
+    'Supervisor': 'Supervisor',
+    'Technician': 'Técnico',
+    'User': 'Usuario'
+};
+
+const getRoleDisplayName = (roleName: string) => {
+    return roleTranslations[roleName] || roleName;
+};
+
+const permissionTranslations: { [key: string]: string } = {
+    'Host.Tenants.Manage': 'Gestionar Empresas (Tenants)',
+    'Admin.Users.Manage': 'Gestionar Usuarios',
+    'Admin.Roles.Manage': 'Gestionar Roles y Permisos',
+    'Menus.Dashboard.View': 'Ver Dashboard Principal',
+    'Menus.POS.View': 'Ver Punto de Venta (POS)',
+    'Menus.Purchases.View': 'Ver Compras y Entradas de Stock',
+    'Menus.Workshop.View': 'Ver Taller y Órdenes de Servicio',
+    'Menus.Products.View': 'Ver Catálogo de Productos y Categorías',
+    'Menus.Customers.View': 'Ver Gestión de Clientes',
+    'Menus.Suppliers.View': 'Ver Gestión de Proveedores',
+    'Menus.Technicians.View': 'Ver Gestión de Técnicos',
+    'Menus.Branches.View': 'Ver Gestión de Sucursales',
+    'Menus.Inventory.View': 'Ver Inventario, Ajustes y Traslados',
+    'Menus.Cash.View': 'Ver Control de Caja',
+    'Menus.Reports.View': 'Ver Reportes y Estadísticas',
+    'Menus.Warranties.View': 'Ver Gestión de Garantías'
+};
+
+const getPermissionDisplayName = (key: string) => {
+    if (!key) return '';
+    const cleanKey = key.trim();
+    return permissionTranslations[cleanKey] || cleanKey;
+};
+
 const Roles = () => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -187,7 +224,7 @@ const Roles = () => {
                                 className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer ${selectedRoleId === role.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
                                 onClick={() => loadRolePermissions(role.id)}
                             >
-                                <span className="font-medium">{role.name}</span>
+                                <span className="font-medium">{getRoleDisplayName(role.name)}</span>
                                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         type="button"
@@ -236,15 +273,18 @@ const Roles = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                            {permissions.map(p => (
+                            {permissions?.map(p => (
                                 <label key={p.key} className="flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
                                     <input
                                         type="checkbox"
                                         className="rounded"
-                                        checked={rolePermissions.includes(p.key)}
+                                        checked={rolePermissions?.includes(p.key)}
                                         onChange={() => togglePermission(p.key)}
                                     />
-                                    <span>{p.key}</span>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{getPermissionDisplayName(p.key)}</span>
+                                        <span className="text-xs text-gray-400">{p.key}</span>
+                                    </div>
                                 </label>
                             ))}
                         </div>

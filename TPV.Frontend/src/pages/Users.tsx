@@ -29,6 +29,18 @@ interface Branch {
     name: string;
 }
 
+const roleTranslations: { [key: string]: string } = {
+    'Admin': 'Administrador',
+    'Vendedor': 'Vendedor',
+    'Supervisor': 'Supervisor',
+    'Technician': 'Técnico',
+    'User': 'Usuario'
+};
+
+const getRoleDisplayName = (roleName: string) => {
+    return roleTranslations[roleName] || roleName;
+};
+
 const Users = () => {
     const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
@@ -392,7 +404,7 @@ const Users = () => {
                                                 : 'bg-gray-50 text-gray-700 border-gray-300'
                                         }`}
                                     >
-                                        {role.name}
+                                        {getRoleDisplayName(role.name)}
                                     </button>
                                 ))}
                             </div>
@@ -451,7 +463,7 @@ const Users = () => {
                                                 key={role}
                                                 className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700"
                                             >
-                                                {role}
+                                                {getRoleDisplayName(role)}
                                             </span>
                                         ))}
                                     </span>
@@ -576,7 +588,7 @@ const Users = () => {
                                                 checked={selectedUserRole === role.name}
                                                 onChange={() => setSelectedUserRole(role.name)}
                                             />
-                                            <span>{role.name}</span>
+                                            <span>{getRoleDisplayName(role.name)}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -644,7 +656,7 @@ const Users = () => {
                                             checked={selectedUserRole === role.name}
                                             onChange={() => setSelectedUserRole(role.name)}
                                         />
-                                        <span>{role.name}</span>
+                                        <span>{getRoleDisplayName(role.name)}</span>
                                     </label>
                                 ))}
                             </div>
