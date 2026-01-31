@@ -31,8 +31,8 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 transform transition-all hover:scale-105">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all hover:scale-105">
                 <div className="flex justify-center mb-6">
                     <img src={logo} alt="Kassa Logo" className="w-20 h-20 object-contain drop-shadow-xl" />
                 </div>

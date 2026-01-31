@@ -20,6 +20,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IUserService _userService;
 
         public ServiceOrderService(
             IRepository<ServiceOrder> repository,
@@ -31,7 +32,8 @@ namespace TPV.Application.Services
             IRepository<SaleDetail> saleDetailRepository,
             IRepository<Product> productRepository,
             IRepository<Category> categoryRepository,
-            IRepository<Branch> branchRepository)
+            IRepository<Branch> branchRepository,
+            IUserService userService)
         {
             _repository = repository;
             _customerRepository = customerRepository;
@@ -43,6 +45,7 @@ namespace TPV.Application.Services
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _branchRepository = branchRepository;
+            _userService = userService;
         }
 
         public async Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search)
@@ -240,9 +243,16 @@ namespace TPV.Application.Services
 
             if (dto.Items == null || dto.Items.Count == 0) return null;
 
+            // Obtener la sucursal del usuario
+            var userBranchId = await _userService.GetUserBranchIdAsync(userId);
+            if (!userBranchId.HasValue)
+            {
+                throw new InvalidOperationException("El usuario no tiene una sucursal asignada para realizar la venta de repuestos.");
+            }
+
             var saleCreate = new SaleCreateDto
             {
-                BranchId = 1,
+                BranchId = userBranchId.Value,
                 CustomerId = order.CustomerId,
                 PaymentMethod = "ORDEN_SERVICIO",
                 Items = dto.Items.Select(i => new SaleItemCreateDto

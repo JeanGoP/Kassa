@@ -107,8 +107,31 @@ const Layout = () => {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
+            {/* Mobile Header */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
+                <div className="flex items-center space-x-2">
+                    <img src={logo} alt="Kassa" className="w-8 h-8" />
+                    <h1 className="text-lg font-bold text-slate-800">Kassa</h1>
+                </div>
+                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600 hover:bg-gray-100 rounded-lg">
+                    <Menu size={24} />
+                </button>
+            </div>
+
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className={clsx("bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 shadow-xl z-20 flex flex-col", isSidebarOpen ? "w-64" : "w-20")}>
+            <aside className={clsx(
+                "bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 shadow-xl z-40 flex flex-col",
+                "fixed inset-y-0 left-0 h-full md:relative",
+                isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20"
+            )}>
                 <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">

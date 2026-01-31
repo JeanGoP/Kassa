@@ -92,9 +92,24 @@ namespace TPV.Web.Controllers.Api
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            var result = await _service.ConfirmPartsAsync(id, dto, userId);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.ConfirmPartsAsync(id, dto, userId);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno al confirmar repuestos.", details = ex.Message });
+            }
         }
 
         [HttpPut("{id}/close")]
