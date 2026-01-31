@@ -29,7 +29,8 @@ namespace TPV.Infrastructure
             {
                 options.Cookie.Path = "/";
                 options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+                // Use SameAsRequest to allow cookies on HTTP (localhost) during development
+                options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
 
                 options.Events.OnRedirectToLogin = context =>
                 {

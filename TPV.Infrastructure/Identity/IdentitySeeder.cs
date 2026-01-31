@@ -27,7 +27,8 @@ namespace TPV.Infrastructure.Identity
 
             // Seed default admin user
             var adminEmail = "admin@tpv.com";
-            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+            if (adminUser == null)
             {
                 logger.LogInformation("Creating default admin user...");
                 var user = new ApplicationUser
@@ -38,10 +39,32 @@ namespace TPV.Infrastructure.Identity
                     LastName = "System",
                     EmailConfirmed = true
                 };
+
+                // Assign default branch if exists
+                var defaultBranch = context.Branches.FirstOrDefault();
+                if (defaultBranch != null)
+                {
+                    user.CurrentBranchId = defaultBranch.Id;
+                }
+
                 var result = await userManager.CreateAsync(user, "Admin123!");
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "Admin");
+                }
+            }
+            else
+            {
+                // Ensure Admin has a branch assigned
+                if (adminUser.CurrentBranchId == null)
+                {
+                    var defaultBranch = context.Branches.FirstOrDefault();
+                    if (defaultBranch != null)
+                    {
+                        adminUser.CurrentBranchId = defaultBranch.Id;
+                        await userManager.UpdateAsync(adminUser);
+                        logger.LogInformation($"Updated Admin user with default branch {defaultBranch.Id}");
+                    }
                 }
             }
         }

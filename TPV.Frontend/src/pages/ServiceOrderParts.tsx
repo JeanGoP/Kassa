@@ -263,7 +263,7 @@ const ServiceOrderParts = () => {
             );
         } catch (error: any) {
             console.error('Error al confirmar repuestos', error);
-            const backendMessage = error.response?.data;
+            const backendMessage = error.response?.data?.message || error.response?.data;
             const message =
                 typeof backendMessage === 'string'
                     ? backendMessage
