@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TPV.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8c5e4a05e3d6cae72286bab8e241c0001f09bcc6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6d1a9a38ffde0eab4c1f64ed61e021a79f427e2d")]
 [assembly: System.Reflection.AssemblyProductAttribute("TPV.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TPV.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

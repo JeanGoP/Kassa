@@ -64,6 +64,10 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Purchase>()
                 .Property(p => p.TotalAmount)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
+                .Property(p => p.Freight)
+                .HasColumnType("decimal(18,2)");
             
             builder.Entity<PurchaseDetail>()
                 .Property(pd => pd.UnitCost)
@@ -71,6 +75,14 @@ namespace TPV.Infrastructure.Persistence
             
             builder.Entity<PurchaseDetail>()
                 .Property(pd => pd.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PurchaseDetail>()
+                .Property(pd => pd.TaxRate)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PurchaseDetail>()
+                .Property(pd => pd.TaxAmount)
                 .HasColumnType("decimal(18,2)");
 
             // Stock: Clave compuesta o única por Producto + Sucursal

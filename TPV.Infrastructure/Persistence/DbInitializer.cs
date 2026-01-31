@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using TPV.Domain.Entities;
 
 namespace TPV.Infrastructure.Persistence
@@ -7,7 +8,7 @@ namespace TPV.Infrastructure.Persistence
     {
         public static void Initialize(ApplicationDbContext context)
         {
-            context.Database.EnsureCreated();
+            context.Database.Migrate();
 
             if (context.Categories.Any())
             {

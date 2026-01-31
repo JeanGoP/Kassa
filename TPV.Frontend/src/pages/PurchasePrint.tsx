@@ -9,6 +9,8 @@ interface PurchaseDetail {
     quantity: number;
     unitCost: number;
     subTotal: number;
+    taxRate?: number;
+    taxAmount?: number;
 }
 
 interface Purchase {
@@ -17,18 +19,20 @@ interface Purchase {
     date: string;
     referenceNumber: string;
     totalAmount: number;
+    freight?: number;
     status: string;
     details: PurchaseDetail[];
     branchName: string;
 }
 
 const PurchasePrint = () => {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const [purchase, setPurchase] = useState<Purchase | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchPurchase = async () => {
+            if (!id) return;
             try {
                 const response = await api.get(`/purchases/${id}`);
                 setPurchase(response.data);
@@ -105,25 +109,60 @@ const PurchasePrint = () => {
                             <th className="py-2 text-center font-bold text-gray-700">Cant.</th>
                             <th className="py-2 text-right font-bold text-gray-700">Costo Unit.</th>
                             <th className="py-2 text-right font-bold text-gray-700">Subtotal</th>
+                            <th className="py-2 text-right font-bold text-gray-700">IVA</th>
+                            <th className="py-2 text-right font-bold text-gray-700">Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {purchase.details.map((detail, index) => (
+                        {purchase.details.map((detail, index) => {
+                            const taxAmount = detail.taxAmount || 0;
+                            const taxRate = detail.taxRate || 0;
+                            const totalLine = detail.subTotal + taxAmount;
+                            return (
                             <tr key={index} className="border-b border-gray-200">
                                 <td className="py-3">{detail.productName}</td>
                                 <td className="py-3 text-center">{detail.quantity}</td>
                                 <td className="py-3 text-right">${detail.unitCost.toLocaleString()}</td>
-                                <td className="py-3 text-right font-medium">${detail.subTotal.toLocaleString()}</td>
+                                <td className="py-3 text-right">${detail.subTotal.toLocaleString()}</td>
+                                <td className="py-3 text-right text-xs text-gray-500">
+                                    ${taxAmount.toLocaleString()} 
+                                    <br/>({taxRate}%)
+                                </td>
+                                <td className="py-3 text-right font-medium">${totalLine.toLocaleString()}</td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                     <tfoot>
-                        <tr>
-                            <td colSpan={3} className="pt-4 text-right font-bold text-xl text-gray-800">Total:</td>
-                            <td className="pt-4 text-right font-bold text-xl text-gray-800">
-                                ${purchase.totalAmount.toLocaleString()}
-                            </td>
-                        </tr>
+                        {purchase.freight && purchase.freight > 0 ? (
+                            <>
+                                <tr>
+                                    <td colSpan={5} className="pt-4 text-right font-bold text-gray-600">Subtotal Productos:</td>
+                                    <td className="pt-4 text-right font-bold text-gray-600">
+                                        ${(purchase.totalAmount - purchase.freight).toLocaleString()}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colSpan={5} className="pt-2 text-right font-bold text-gray-600">Flete:</td>
+                                    <td className="pt-2 text-right font-bold text-gray-600">
+                                        ${purchase.freight.toLocaleString()}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colSpan={5} className="pt-2 text-right font-bold text-xl text-gray-800">Total:</td>
+                                    <td className="pt-2 text-right font-bold text-xl text-gray-800">
+                                        ${purchase.totalAmount.toLocaleString()}
+                                    </td>
+                                </tr>
+                            </>
+                        ) : (
+                            <tr>
+                                <td colSpan={5} className="pt-4 text-right font-bold text-xl text-gray-800">Total:</td>
+                                <td className="pt-4 text-right font-bold text-xl text-gray-800">
+                                    ${purchase.totalAmount.toLocaleString()}
+                                </td>
+                            </tr>
+                        )}
                     </tfoot>
                 </table>
             </div>

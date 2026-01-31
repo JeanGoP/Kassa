@@ -8,6 +8,7 @@ interface Product {
     name: string;
     sku: string;
     cost: number;
+    ivaRate: number;
 }
 
 interface Supplier {
@@ -25,6 +26,7 @@ interface PurchaseItem {
     productName: string;
     quantity: number;
     unitCost: number;
+    taxRate: number;
 }
 
 const CreatePurchase = () => {
@@ -39,6 +41,7 @@ const CreatePurchase = () => {
     const [branchId, setBranchId] = useState<number | ''>('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [referenceNumber, setReferenceNumber] = useState('');
+    const [freight, setFreight] = useState<number>(0);
     const [details, setDetails] = useState<PurchaseItem[]>([]);
 
     useEffect(() => {
@@ -87,13 +90,14 @@ const CreatePurchase = () => {
             productId: product.id,
             productName: product.name,
             quantity: 1,
-            unitCost: product.cost || 0
+            unitCost: product.cost || 0,
+            taxRate: product.ivaRate || 0
         }]);
         setSearch('');
         setProducts([]);
     };
 
-    const updateDetail = (index: number, field: keyof PurchaseItem, value: number) => {
+    const updateDetail = (index: number, field: 'quantity' | 'unitCost' | 'taxRate', value: number) => {
         const newDetails = [...details];
         newDetails[index] = { ...newDetails[index], [field]: value };
         setDetails(newDetails);
@@ -116,21 +120,29 @@ const CreatePurchase = () => {
                 branchId,
                 date,
                 referenceNumber,
+                freight,
                 details: details.map(d => ({
                     productId: d.productId,
                     quantity: d.quantity,
-                    unitCost: d.unitCost
+                    unitCost: d.unitCost,
+                    taxRate: d.taxRate
                 }))
             };
             await api.post('/purchases', payload);
             navigate('/purchases');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Error al guardar la entrada');
+            const message = error.response?.data?.message || 'Error al guardar la entrada';
+            const details = error.response?.data?.details ? `\nDetalles: ${error.response.data.details}` : '';
+            alert(`${message}${details}`);
         }
     };
 
-    const totalAmount = details.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0);
+    const totalAmount = details.reduce((sum, item) => {
+        const subTotal = item.quantity * item.unitCost;
+        const tax = subTotal * (item.taxRate / 100);
+        return sum + subTotal + tax;
+    }, 0) + (freight || 0);
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -180,10 +192,25 @@ const CreatePurchase = () => {
                             <FileText className="absolute left-3 top-2.5 text-gray-400" size={18} />
                             <input 
                                 type="text" 
-                                className="w-full pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                placeholder="Ej. FAC-12345"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 pl-10 focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={referenceNumber}
                                 onChange={(e) => setReferenceNumber(e.target.value)}
+                                placeholder="# Factura / Remisión"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Flete (Valor Global)</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-gray-400">$</span>
+                            <input 
+                                type="number" 
+                                min="0"
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 pl-8 focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={freight || ''}
+                                onChange={(e) => setFreight(Number(e.target.value))}
+                                placeholder="0.00"
                             />
                         </div>
                     </div>
@@ -243,12 +270,19 @@ const CreatePurchase = () => {
                                     <th className="p-3 border-b">Producto</th>
                                     <th className="p-3 border-b w-32">Cantidad</th>
                                     <th className="p-3 border-b w-32">Costo Unit.</th>
+                                    <th className="p-3 border-b w-24">IVA %</th>
                                     <th className="p-3 border-b w-32 text-right">Subtotal</th>
+                                    <th className="p-3 border-b w-32 text-right">Total</th>
                                     <th className="p-3 border-b w-16"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {details.map((item, index) => (
+                                {details.map((item, index) => {
+                                    const subTotal = item.quantity * item.unitCost;
+                                    const taxAmount = subTotal * (item.taxRate / 100);
+                                    const total = subTotal + taxAmount;
+                                    
+                                    return (
                                     <tr key={item.productId} className="hover:bg-gray-50">
                                         <td className="p-3 font-medium">{item.productName}</td>
                                         <td className="p-3">
@@ -270,8 +304,22 @@ const CreatePurchase = () => {
                                                 onChange={(e) => updateDetail(index, 'unitCost', Number(e.target.value))}
                                             />
                                         </td>
+                                        <td className="p-3">
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                max="100"
+                                                step="1"
+                                                className="w-full border border-gray-300 rounded px-2 py-1 text-center"
+                                                value={item.taxRate}
+                                                onChange={(e) => updateDetail(index, 'taxRate', Number(e.target.value))}
+                                            />
+                                        </td>
+                                        <td className="p-3 text-right text-gray-600">
+                                            ${subTotal.toFixed(2)}
+                                        </td>
                                         <td className="p-3 text-right font-bold text-gray-700">
-                                            ${(item.quantity * item.unitCost).toFixed(2)}
+                                            ${total.toFixed(2)}
                                         </td>
                                         <td className="p-3 text-center">
                                             <button 
@@ -283,10 +331,11 @@ const CreatePurchase = () => {
                                             </button>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                                 {details.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="p-8 text-center text-gray-400">
+                                        <td colSpan={7} className="p-8 text-center text-gray-400">
                                             Agregue productos a la entrada.
                                         </td>
                                     </tr>
@@ -294,7 +343,7 @@ const CreatePurchase = () => {
                             </tbody>
                             <tfoot className="bg-gray-50 font-bold text-gray-800">
                                 <tr>
-                                    <td colSpan={3} className="p-4 text-right">Total:</td>
+                                    <td colSpan={5} className="p-4 text-right">Total:</td>
                                     <td className="p-4 text-right text-lg">${totalAmount.toFixed(2)}</td>
                                     <td></td>
                                 </tr>

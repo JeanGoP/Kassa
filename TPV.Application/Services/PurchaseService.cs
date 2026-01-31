@@ -53,16 +53,19 @@ namespace TPV.Application.Services
                 Date = dto.Date,
                 ReferenceNumber = dto.ReferenceNumber,
                 Status = "Completed",
+                Freight = dto.Freight,
                 PurchaseDetails = new List<PurchaseDetail>(),
                 IsActive = true
             };
 
             decimal totalAmount = 0;
+            decimal totalItemsSubTotal = dto.Details.Sum(d => d.Quantity * d.UnitCost);
 
             foreach (var item in dto.Details)
             {
                 var subTotal = item.Quantity * item.UnitCost;
-                totalAmount += subTotal;
+                var taxAmount = subTotal * (item.TaxRate / 100);
+                totalAmount += subTotal + taxAmount;
 
                 var detail = new PurchaseDetail
                 {
@@ -70,6 +73,8 @@ namespace TPV.Application.Services
                     Quantity = item.Quantity,
                     UnitCost = item.UnitCost,
                     SubTotal = subTotal,
+                    TaxRate = item.TaxRate,
+                    TaxAmount = taxAmount,
                     IsActive = true
                 };
                 purchase.PurchaseDetails.Add(detail);
@@ -82,6 +87,14 @@ namespace TPV.Application.Services
                 decimal purchaseUnitCost = item.UnitCost;
                 decimal newPurchaseValue = purchaseQuantity * purchaseUnitCost;
 
+                // Distribute Freight Cost
+                if (totalItemsSubTotal > 0 && dto.Freight > 0)
+                {
+                    var itemShareFactor = subTotal / totalItemsSubTotal;
+                    var itemFreightShare = dto.Freight * itemShareFactor;
+                    newPurchaseValue += itemFreightShare;
+                }
+
                 if (stock == null)
                 {
                     stock = new Stock
@@ -89,7 +102,7 @@ namespace TPV.Application.Services
                         ProductId = item.ProductId,
                         BranchId = dto.BranchId,
                         Quantity = item.Quantity,
-                        Cost = item.UnitCost,
+                        Cost = purchaseQuantity > 0 ? newPurchaseValue / purchaseQuantity : item.UnitCost,
                         IsActive = true
                     };
                     await _stockRepository.AddAsync(stock);
@@ -127,7 +140,7 @@ namespace TPV.Application.Services
 
             }
 
-            purchase.TotalAmount = totalAmount;
+            purchase.TotalAmount = totalAmount + dto.Freight;
             var createdPurchase = await _purchaseRepository.AddAsync(purchase);
 
             return await GetByIdAsync(createdPurchase.Id) ?? new PurchaseDto();
@@ -205,6 +218,7 @@ namespace TPV.Application.Services
                 Date = p.Date,
                 ReferenceNumber = p.ReferenceNumber,
                 TotalAmount = p.TotalAmount,
+                Freight = p.Freight,
                 Status = p.Status,
                 Details = p.PurchaseDetails?.Select(d => new PurchaseDetailDto
                 {
@@ -212,7 +226,9 @@ namespace TPV.Application.Services
                     ProductName = d.Product?.Name ?? "Unknown",
                     Quantity = d.Quantity,
                     UnitCost = d.UnitCost,
-                    SubTotal = d.SubTotal
+                    SubTotal = d.SubTotal,
+                    TaxRate = d.TaxRate,
+                    TaxAmount = d.TaxAmount
                 }).ToList() ?? new List<PurchaseDetailDto>()
             };
         }

@@ -21,15 +21,33 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<PurchaseDto>> Create(CreatePurchaseDto dto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var created = await _purchaseService.CreatePurchaseAsync(dto, userId);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var created = await _purchaseService.CreatePurchaseAsync(dto, userId);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+            }
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PurchaseDto>>> GetAll([FromQuery] string? search)
         {
-            return Ok(await _purchaseService.GetAllAsync(search));
+            try
+            {
+                return Ok(await _purchaseService.GetAllAsync(search));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
+            }
         }
 
         [HttpGet("{id}")]

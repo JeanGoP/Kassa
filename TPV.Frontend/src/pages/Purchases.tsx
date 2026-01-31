@@ -30,8 +30,11 @@ const Purchases = () => {
         try {
             const response = await api.get(`/purchases?search=${search}`);
             setPurchases(response.data);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            const message = error.response?.data?.message || 'Error al cargar las compras';
+            const details = error.response?.data?.details ? `\nDetalles: ${error.response.data.details}` : '';
+            alert(`${message}${details}`);
         } finally {
             setLoading(false);
         }

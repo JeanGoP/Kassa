@@ -13,5 +13,7 @@ namespace TPV.Domain.Entities
         public int Quantity { get; set; }
         public decimal UnitCost { get; set; }
         public decimal SubTotal { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
     }
 }

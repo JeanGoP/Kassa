@@ -16,6 +16,7 @@ namespace TPV.Domain.Entities
         public DateTime Date { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty; // Invoice number
         public decimal TotalAmount { get; set; }
+        public decimal Freight { get; set; }
         public string Status { get; set; } = "Completed"; // Completed, Cancelled
 
         public ICollection<PurchaseDetail> PurchaseDetails { get; set; } = new List<PurchaseDetail>();
