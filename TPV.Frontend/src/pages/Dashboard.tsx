@@ -49,14 +49,17 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const response = await api.get('/workshop-dashboard');
                 setData(response.data);
+                setError(null);
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
+                setError('No se pudieron cargar los datos del panel. Por favor, intente nuevamente más tarde.');
             } finally {
                 setLoading(false);
             }
@@ -65,13 +68,13 @@ const Dashboard = () => {
     }, []);
 
     // Transform data for charts
-    const revenueData = data?.revenueExpenseStats.map(stat => ({
+    const revenueData = data?.revenueExpenseStats?.map(stat => ({
         name: new Date(stat.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
         income: stat.income,
         expense: stat.expense
     })) || [];
 
-    const serviceStatusData = data?.orderStatusStats.map(stat => ({
+    const serviceStatusData = data?.orderStatusStats?.map(stat => ({
         name: stat.status,
         value: stat.count,
         color: STATUS_COLORS[stat.status] || STATUS_COLORS['DEFAULT']
@@ -104,7 +107,25 @@ const Dashboard = () => {
     );
 
     if (loading) {
-        return <div className="p-6">Cargando datos del panel...</div>;
+        return <div className="p-6 flex justify-center items-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
+    }
+
+    if (error) {
+        return (
+            <div className="p-6 flex flex-col justify-center items-center h-full text-center">
+                <div className="text-red-500 mb-2">
+                    <Activity size={48} className="mx-auto mb-2" />
+                    <h3 className="text-lg font-bold">Error de conexión</h3>
+                </div>
+                <p className="text-slate-500">{error}</p>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Reintentar
+                </button>
+            </div>
+        );
     }
 
     return (
@@ -131,7 +152,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard 
                     title="Ventas Totales" 
-                    value={`$${data?.totalRevenue.toLocaleString('es-CO') || '0'}`} 
+                    value={`$${(data?.totalRevenue || 0).toLocaleString('es-CO')}`} 
                     change="--%" 
                     icon={DollarSign} 
                     trend="up" 
