@@ -23,25 +23,61 @@ import {
     Pie,
     Cell
 } from 'recharts';
+import { useEffect, useState } from 'react';
+import api from '../api/axios';
 
-const revenueData = [
-    { name: 'Ene', income: 4000, expense: 2400 },
-    { name: 'Feb', income: 3000, expense: 1398 },
-    { name: 'Mar', income: 2000, expense: 9800 },
-    { name: 'Abr', income: 2780, expense: 3908 },
-    { name: 'May', income: 1890, expense: 4800 },
-    { name: 'Jun', income: 2390, expense: 3800 },
-];
+interface DashboardData {
+    totalRevenue: number;
+    openOrders: number;
+    lowStockCount: number;
+    newCustomersCount: number;
+    revenueExpenseStats: { date: string; income: number; expense: number }[];
+    orderStatusStats: { status: string; count: number }[];
+}
 
-const serviceStatusData = [
-    { name: 'Completados', value: 400, color: '#10b981' }, // emerald-500
-    { name: 'En Proceso', value: 300, color: '#3b82f6' },  // blue-500
-    { name: 'Pendientes', value: 300, color: '#f59e0b' },  // amber-500
-    { name: 'Cancelados', value: 200, color: '#ef4444' },  // red-500
-];
+const STATUS_COLORS: Record<string, string> = {
+    'FINALIZADA': '#10b981', // emerald-500
+    'EN PROCESO': '#3b82f6',  // blue-500
+    'PENDIENTE': '#f59e0b',   // amber-500
+    'CANCELADA': '#ef4444',   // red-500
+    'EN DIAGNOSTICO': '#8b5cf6', // violet-500
+    'EN ESPERA': '#64748b',   // slate-500
+    'DEFAULT': '#94a3b8'      // slate-400
+};
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await api.get('/workshop-dashboard');
+                setData(response.data);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Transform data for charts
+    const revenueData = data?.revenueExpenseStats.map(stat => ({
+        name: new Date(stat.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
+        income: stat.income,
+        expense: stat.expense
+    })) || [];
+
+    const serviceStatusData = data?.orderStatusStats.map(stat => ({
+        name: stat.status,
+        value: stat.count,
+        color: STATUS_COLORS[stat.status] || STATUS_COLORS['DEFAULT']
+    })) || [];
+
+    const totalOrders = serviceStatusData.reduce((acc, curr) => acc + curr.value, 0);
 
     // Metric Card Component
     const MetricCard = ({ title, value, change, icon: Icon, trend }: any) => (
@@ -67,6 +103,10 @@ const Dashboard = () => {
         </div>
     );
 
+    if (loading) {
+        return <div className="p-6">Cargando datos del panel...</div>;
+    }
+
     return (
         <div className="space-y-6">
             {/* Header Section */}
@@ -91,29 +131,29 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard 
                     title="Ventas Totales" 
-                    value="$24,500.00" 
-                    change="12.5%" 
+                    value={`$${data?.totalRevenue.toLocaleString('es-CO') || '0'}`} 
+                    change="--%" 
                     icon={DollarSign} 
                     trend="up" 
                 />
                 <MetricCard 
                     title="Órdenes Activas" 
-                    value="18" 
-                    change="4.2%" 
+                    value={data?.openOrders || 0}
+                    change="--%" 
                     icon={Activity} 
                     trend="up" 
                 />
                 <MetricCard 
                     title="Inventario Bajo" 
-                    value="5 Productos" 
-                    change="2.1%" 
+                    value={`${data?.lowStockCount || 0} Productos`}
+                    change="--%" 
                     icon={Package} 
                     trend="down" 
                 />
                 <MetricCard 
                     title="Nuevos Clientes" 
-                    value="145" 
-                    change="8.4%" 
+                    value={data?.newCustomersCount || 0}
+                    change="--%" 
                     icon={Users} 
                     trend="up" 
                 />
@@ -126,8 +166,7 @@ const Dashboard = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-bold text-slate-800">Tendencia de Ingresos</h3>
                         <select className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-100">
-                            <option>Últimos 6 meses</option>
-                            <option>Este año</option>
+                            <option>Últimos 7 días</option>
                         </select>
                     </div>
                     <div className="h-80 w-full">
@@ -177,7 +216,7 @@ const Dashboard = () => {
                         {/* Center Text */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center">
-                                <span className="block text-2xl font-bold text-slate-800">1200</span>
+                                <span className="block text-2xl font-bold text-slate-800">{totalOrders}</span>
                                 <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
                             </div>
                         </div>
