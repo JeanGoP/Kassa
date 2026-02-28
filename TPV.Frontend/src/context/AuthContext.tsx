@@ -5,6 +5,8 @@ import api from '../api/axios';
 interface User {
     email: string;
     id: string;
+    firstName?: string;
+    lastName?: string;
     tenantId?: number | null;
     permissions?: string[];
     roles?: string[];

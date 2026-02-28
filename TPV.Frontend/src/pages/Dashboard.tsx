@@ -13,8 +13,6 @@ import {
     Activity
 } from 'lucide-react';
 import { 
-    BarChart, 
-    Bar, 
     XAxis, 
     YAxis, 
     CartesianGrid, 
@@ -26,17 +24,6 @@ import {
     Pie,
     Cell
 } from 'recharts';
-
-// Mock Data for Visualization
-const salesData = [
-    { name: 'Lun', value: 4000 },
-    { name: 'Mar', value: 3000 },
-    { name: 'Mie', value: 2000 },
-    { name: 'Jue', value: 2780 },
-    { name: 'Vie', value: 1890 },
-    { name: 'Sab', value: 2390 },
-    { name: 'Dom', value: 3490 },
-];
 
 const revenueData = [
     { name: 'Ene', income: 4000, expense: 2400 },
@@ -158,7 +145,7 @@ const Dashboard = () => {
                                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(value) => `$${value}`} />
                                 <Tooltip 
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                    formatter={(value: number) => [`$${value}`, 'Ingresos']}
+                                    formatter={(value: any) => [`$${value}`, 'Ingresos']}
                                 />
                                 <Area type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                             </AreaChart>
