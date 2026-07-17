@@ -13,6 +13,8 @@ const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+    const commitSha = (__APP_COMMIT__ || 'local-dev').trim();
+    const shortCommitSha = commitSha.length > 7 ? commitSha.slice(0, 7) : commitSha;
 
     const handleLogout = async () => {
         await logout();
@@ -252,6 +254,14 @@ const Layout = () => {
                                 <div className="text-xs font-medium text-white truncate">Usuario</div>
                                 <div className="text-xs text-slate-400 truncate w-32">{user?.email}</div>
                             </div>
+                        </div>
+                    )}
+                    {isSidebarOpen && (
+                        <div
+                            className="px-3 pt-1 text-[11px] text-slate-500"
+                            title={`Commit desplegado: ${commitSha}`}
+                        >
+                            Commit: <span className="font-mono text-slate-400">{shortCommitSha}</span>
                         </div>
                     )}
                 </div>
