@@ -41,6 +41,9 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
         public DbSet<Technician> Technicians { get; set; }
         public DbSet<Warranty> Warranties { get; set; }
+        public DbSet<QuotationSearchHistory> QuotationSearchHistories { get; set; }
+        public DbSet<Quotation> Quotations { get; set; }
+        public DbSet<QuotationDetail> QuotationDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -90,6 +93,78 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(s => new { s.ProductId, s.BranchId })
                 .IsUnique();
 
+            builder.Entity<QuotationSearchHistory>()
+                .Property(h => h.SearchTerm)
+                .HasMaxLength(450);
+
+            builder.Entity<QuotationSearchHistory>()
+                .Property(h => h.UserId)
+                .HasMaxLength(450);
+
+            builder.Entity<QuotationSearchHistory>()
+                .HasIndex(h => h.SearchTerm);
+
+            builder.Entity<QuotationSearchHistory>()
+                .HasIndex(h => new { h.TenantId, h.SearchedAt });
+
+            builder.Entity<Quotation>()
+                .Property(q => q.QuotationNumber)
+                .HasMaxLength(40);
+
+            builder.Entity<Quotation>()
+                .Property(q => q.RequestedByName)
+                .HasMaxLength(200);
+
+            builder.Entity<Quotation>()
+                .Property(q => q.RequestedByPhone)
+                .HasMaxLength(80);
+
+            builder.Entity<Quotation>()
+                .Property(q => q.RequestedByEmail)
+                .HasMaxLength(200);
+
+            builder.Entity<Quotation>()
+                .Property(q => q.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Quotation>()
+                .HasIndex(q => new { q.TenantId, q.Date });
+
+            builder.Entity<Quotation>()
+                .HasIndex(q => q.QuotationNumber);
+
+            builder.Entity<Quotation>()
+                .HasMany(q => q.Details)
+                .WithOne(d => d.Quotation)
+                .HasForeignKey(d => d.QuotationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.ProductName)
+                .HasMaxLength(250);
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.SKU)
+                .HasMaxLength(100);
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.Barcode)
+                .HasMaxLength(100);
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<QuotationDetail>()
+                .HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Unique Index for Customer (TenantId + TaxId)
             builder.Entity<Customer>()
                 .HasIndex(c => new { c.TenantId, c.TaxId })
@@ -105,7 +180,13 @@ namespace TPV.Infrastructure.Persistence
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
 
-            // builder.Entity<Product>().Property(p => p.Cost).HasColumnType("decimal(18,2)");
+            builder.Entity<Product>()
+                .Property(p => p.ProfitabilityPercentage)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Stock>()
+                .Property(s => s.Cost)
+                .HasColumnType("decimal(18,2)");
             
             builder.Entity<Product>()
                 .Property(p => p.IvaRate)
@@ -125,6 +206,14 @@ namespace TPV.Infrastructure.Persistence
 
             builder.Entity<SaleDetail>()
                 .Property(sd => sd.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<SaleDetail>()
+                .Property(sd => sd.TaxRate)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<SaleDetail>()
+                .Property(sd => sd.TaxAmount)
                 .HasColumnType("decimal(18,2)");
 
             builder.Entity<CashSession>()
@@ -157,6 +246,10 @@ namespace TPV.Infrastructure.Persistence
 
             builder.Entity<ServiceOrderPart>()
                 .Property(p => p.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.DiscountValue)
                 .HasColumnType("decimal(18,2)");
 
             builder.Entity<ServiceOrderPart>()

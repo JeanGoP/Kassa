@@ -94,6 +94,7 @@ namespace TPV.Infrastructure.Identity
                 {
                     Permissions.MenusDashboardView,
                     Permissions.MenusPosView,
+                    Permissions.MenusQuotationsView,
                     Permissions.MenusInventoryView,
                     Permissions.MenusCashView
                 };
@@ -115,6 +116,7 @@ namespace TPV.Infrastructure.Identity
                 {
                     Permissions.MenusDashboardView,
                     Permissions.MenusPosView,
+                    Permissions.MenusQuotationsView,
                     Permissions.MenusInventoryView,
                     Permissions.MenusCashView,
                     Permissions.MenusReportsView,

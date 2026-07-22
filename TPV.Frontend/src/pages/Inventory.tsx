@@ -154,7 +154,7 @@ const Inventory = () => {
                     <h2 className="font-bold text-lg flex items-center">
                         <Package className="mr-2" /> Inventario General
                     </h2>
-                    <div className="relative w-64">
+                    <div className="relative w-full md:w-64">
                         <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                         <input
                             type="text"

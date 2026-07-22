@@ -311,13 +311,13 @@ const Products = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="font-bold text-2xl flex items-center text-slate-800">
                     <Package className="mr-2" /> Productos
                 </h2>
                 <button 
                     onClick={() => handleOpenModal()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center shadow-lg shadow-blue-500/30 transition-all"
+                    className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 sm:w-auto"
                 >
                     <Plus size={20} className="mr-1" /> Nuevo Producto
                 </button>
@@ -393,7 +393,7 @@ const Products = () => {
             {/* Modal producto */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
                             <h3 className="font-bold text-lg text-slate-800">
                                 {currentProduct ? 'Editar Producto' : 'Nuevo Producto'}
@@ -404,7 +404,7 @@ const Products = () => {
                         </div>
                         <form onSubmit={handleSubmit} className="p-6">
                             {/* Tabs Navigation */}
-                            <div className="flex border-b border-gray-200 mb-6">
+                            <div className="mb-6 flex overflow-x-auto border-b border-gray-200">
                                 <button
                                     type="button"
                                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'features' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
@@ -615,17 +615,17 @@ const Products = () => {
                                 )}
                             </div>
 
-                            <div className="flex justify-end pt-6 border-t border-gray-100 mt-6">
+                            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
                                 <button 
                                     type="button" 
                                     onClick={handleCloseModal}
-                                    className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-lg mr-2 transition-colors"
+                                    className="rounded-lg px-4 py-2 text-gray-600 transition-colors hover:bg-gray-100"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium"
+                                    className="rounded-lg bg-blue-600 px-6 py-2 font-medium text-white shadow-md transition-all hover:bg-blue-700"
                                 >
                                     Guardar Producto
                                 </button>
@@ -638,7 +638,7 @@ const Products = () => {
             {/* Modal selección de categoría */}
             {isCategoryModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+                    <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="font-bold text-lg text-slate-800">
                                 Seleccionar categoría

@@ -553,7 +553,7 @@ const ServiceOrderClosure = () => {
                     
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
                         <h3 className="font-semibold text-slate-800 mb-2">Orden #{selectedOrder.id} - {selectedOrder.customerName}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 md:grid-cols-4">
                             <div>
                                 <span className="text-gray-500 block">Placa</span>
                                 <span className="font-medium">{selectedOrder.plate}</span>
@@ -788,7 +788,7 @@ const ServiceOrderClosure = () => {
 
             {showInvoiceModal && lastInvoice && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl">
                         <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
                             <h3 className="font-bold text-lg">Factura generada</h3>
                             <button

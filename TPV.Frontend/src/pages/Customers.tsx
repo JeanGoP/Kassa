@@ -298,7 +298,7 @@ const Customers = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-2xl">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="font-bold text-lg text-slate-800">
                                 {currentCustomer ? 'Editar Cliente' : 'Nuevo Cliente'}
@@ -334,7 +334,7 @@ const Customers = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
                                     <select
@@ -389,7 +389,7 @@ const Customers = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
                                             <input 
@@ -411,7 +411,7 @@ const Customers = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
                                             <input 
@@ -435,7 +435,7 @@ const Customers = () => {
                                 </>
                             )}
                             
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
                                     <select
@@ -465,7 +465,7 @@ const Customers = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                                     <input 

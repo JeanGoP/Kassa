@@ -86,7 +86,7 @@ const SalesHistory = () => {
     };
 
     return (
-        <div className="p-6 max-w-[1600px] mx-auto">
+        <div className="mx-auto w-full max-w-[1600px] p-0 sm:p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">Historial de Ventas</h1>
             </div>
@@ -228,7 +228,7 @@ const SalesHistory = () => {
             {/* Ticket Modal (Reuse logic from POS) */}
             {showModal && selectedSale && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
                             <h3 className="font-bold text-lg flex items-center">
                                 <FileText className="mr-2 text-blue-400" /> Detalle de Venta

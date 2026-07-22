@@ -1050,7 +1050,7 @@ const VehicleIntake = () => {
             {/* Create Customer Modal */}
             {showCreateCustomerModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center">
                                 <UserPlus className="mr-2 text-blue-600" /> Nuevo Cliente
@@ -1087,7 +1087,7 @@ const VehicleIntake = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Identificación</label>
                                     <select
@@ -1139,7 +1139,7 @@ const VehicleIntake = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primer Nombre *</label>
                                             <input 
@@ -1160,7 +1160,7 @@ const VehicleIntake = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primer Apellido *</label>
                                             <input 
@@ -1183,7 +1183,7 @@ const VehicleIntake = () => {
                                 </>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
                                     <input 

@@ -66,7 +66,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white shadow-2xl transform transition-all scale-100">
                 <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
                     <div className="flex items-center text-white space-x-2">
                         <Lock size={20} className="text-blue-400" />

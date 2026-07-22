@@ -115,7 +115,7 @@ const AddressBuilder: React.FC<AddressBuilderProps> = ({ isOpen, onClose, onConf
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+            <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
                     <h3 className="font-bold text-gray-800 text-lg">Generador de Direcciones DIAN</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-200 rounded-full transition-colors">
@@ -127,7 +127,7 @@ const AddressBuilder: React.FC<AddressBuilderProps> = ({ isOpen, onClose, onConf
                     {/* Vía Principal */}
                     <div className="space-y-3">
                         <h4 className="text-sm font-semibold text-blue-600 uppercase tracking-wide">1. Vía Principal</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
                             <div className="md:col-span-2">
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Tipo de Vía</label>
                                 <select 
@@ -187,7 +187,7 @@ const AddressBuilder: React.FC<AddressBuilderProps> = ({ isOpen, onClose, onConf
                     {/* Vía Generadora / Cruce */}
                     <div className="space-y-3">
                         <h4 className="text-sm font-semibold text-blue-600 uppercase tracking-wide">2. Vía Generadora (Cruce)</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                              <div className="flex items-center justify-center font-bold text-gray-400 text-xl">#</div>
                              <div>
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Número</label>

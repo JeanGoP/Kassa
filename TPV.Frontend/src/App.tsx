@@ -16,6 +16,8 @@ import Purchases from './pages/Purchases';
 import CreatePurchase from './pages/CreatePurchase';
 import PurchasePrint from './pages/PurchasePrint';
 import SalesHistory from './pages/SalesHistory';
+import Quotations from './pages/Quotations';
+import QuotationPrint from './pages/QuotationPrint';
 import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
@@ -48,9 +50,15 @@ const AppRoutes = () => {
                     <PurchasePrint />
                 </ProtectedRoute>
             } />
+            <Route path="/quotations/print/:id" element={
+                <ProtectedRoute>
+                    <QuotationPrint />
+                </ProtectedRoute>
+            } />
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="pos" element={<POS />} />
+                <Route path="quotations" element={<Quotations />} />
                 <Route path="sales-history" element={<SalesHistory />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="inventory/adjustments" element={<StockAdjustments />} />

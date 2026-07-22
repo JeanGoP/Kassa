@@ -327,9 +327,9 @@ const POS = () => {
     };
 
     return (
-        <div className="flex h-[calc(100vh-64px)] gap-4 p-4 max-w-[1600px] mx-auto">
+        <div className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[1600px] flex-col gap-4 sm:p-2 xl:h-[calc(100vh-96px)] xl:flex-row">
             {/* LEFT: Product Catalog */}
-            <div className="flex-1 bg-white rounded-xl shadow-md p-4 flex flex-col overflow-hidden">
+            <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-white p-3 shadow-md sm:p-4 xl:min-h-0">
                 <div className="mb-4 relative">
                     <Search className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input 
@@ -345,22 +345,22 @@ const POS = () => {
                     {loadingProducts ? (
                         <div className="flex justify-center items-center h-40 text-gray-400">Cargando productos...</div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
                             {products.map(product => (
                                 <div 
                                     key={product.id} 
-                                    className="border border-gray-100 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all bg-white hover:border-blue-200 group"
+                                    className="group cursor-pointer rounded-xl border border-gray-100 bg-white p-3 transition-all hover:border-blue-200 hover:shadow-lg sm:p-4"
                                     onClick={() => addToCart(product)}
                                 >
-                                    <div className="h-28 bg-slate-50 rounded-lg mb-3 flex items-center justify-center text-gray-300 group-hover:bg-blue-50 transition-colors">
+                                    <div className="mb-3 flex h-24 items-center justify-center rounded-lg bg-slate-50 text-gray-300 transition-colors group-hover:bg-blue-50 sm:h-28">
                                         <div className="text-center">
                                             <span className="text-2xl font-bold text-gray-200 group-hover:text-blue-200">IMG</span>
                                         </div>
                                     </div>
                                     <h3 className="font-bold text-gray-800 truncate" title={product.name}>{product.name}</h3>
                                     <p className="text-xs text-gray-500 mb-2">SKU: {product.sku}</p>
-                                    <div className="flex justify-between items-center">
-                                        <span className="font-bold text-lg text-blue-600">${product.price.toFixed(2)}</span>
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="text-base font-bold text-blue-600 sm:text-lg">${product.price.toFixed(2)}</span>
                                         <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", product.stockQuantity > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
                                             {product.stockQuantity} stock
                                         </span>
@@ -373,7 +373,7 @@ const POS = () => {
             </div>
 
             {/* RIGHT: Cart & Checkout */}
-            <div className="w-96 bg-white rounded-xl shadow-md flex flex-col overflow-hidden border border-gray-100">
+            <div className="flex w-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md xl:w-96 xl:shrink-0">
                 {/* Customer Section */}
                 <div className="p-4 bg-slate-50 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-2">
@@ -511,7 +511,7 @@ const POS = () => {
                         <span>Impuestos:</span>
                         <span>${taxAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-2xl font-bold text-slate-800 mb-4 pt-3 border-t border-dashed border-gray-200">
+                    <div className="mb-4 flex flex-wrap justify-between gap-2 border-t border-dashed border-gray-200 pt-3 text-2xl font-bold text-slate-800">
                         <span>Total:</span>
                         <span>${total.toFixed(2)}</span>
                     </div>
@@ -530,7 +530,7 @@ const POS = () => {
             {/* Payment Modal */}
             {showPaymentModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center">
                                 <CreditCard className="mr-2 text-blue-600" /> Método de Pago
@@ -540,13 +540,13 @@ const POS = () => {
                             </button>
                         </div>
                         
-                        <div className="p-6">
+                        <div className="p-4 sm:p-6">
                             <div className="text-center mb-6">
                                 <p className="text-gray-500 text-sm uppercase tracking-wide mb-1">Total a Pagar</p>
-                                <p className="text-4xl font-extrabold text-slate-800">${total.toFixed(2)}</p>
+                                <p className="break-words text-3xl font-extrabold text-slate-800 sm:text-4xl">${total.toFixed(2)}</p>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3 mb-6">
+                            <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 {['Cash', 'Card', 'Transfer'].map(method => (
                                     <button
                                         key={method}
@@ -584,7 +584,7 @@ const POS = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-4">
                                     <span className="text-slate-600 font-medium">Su cambio:</span>
                                     <span className={clsx("text-2xl font-bold", (amountPaid - Number(total.toFixed(2))) >= 0 ? "text-green-600" : "text-red-500")}>
                                         ${Math.max(0, amountPaid - total).toFixed(2)}
@@ -613,7 +613,7 @@ const POS = () => {
             {/* Ticket Modal */}
             {showTicketModal && lastSale && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
                             <h3 className="font-bold text-lg flex items-center">
                                 <Check className="mr-2 text-green-400" /> Venta Exitosa
@@ -623,8 +623,8 @@ const POS = () => {
                             </button>
                         </div>
                         
-                        <div className="p-6 bg-gray-50 max-h-[70vh] overflow-y-auto">
-                            <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-lg text-sm font-mono relative">
+                        <div className="max-h-[70vh] overflow-y-auto bg-gray-50 p-3 sm:p-6">
+                            <div className="relative rounded-lg border border-gray-200 bg-white p-4 font-mono text-sm shadow-sm sm:p-6">
                                 {/* Ticket Header */}
                                 <div className="text-center border-b border-dashed border-gray-300 pb-4 mb-4">
                                     <h2 className="font-bold text-xl text-black">KASSA</h2>
@@ -644,9 +644,9 @@ const POS = () => {
                                 {/* Items */}
                                 <div className="space-y-2 mb-4">
                                     {lastSale.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between">
-                                            <span>{item.quantity} x {item.productName}</span>
-                                            <span>${item.subTotal.toFixed(2)}</span>
+                                        <div key={idx} className="flex justify-between gap-3">
+                                            <span className="break-words">{item.quantity} x {item.productName}</span>
+                                            <span className="shrink-0">${item.subTotal.toFixed(2)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -698,7 +698,7 @@ const POS = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 bg-white border-t flex gap-3">
+                        <div className="flex flex-col gap-3 border-t bg-white p-4 sm:flex-row">
                             <button 
                                 onClick={() => window.print()} 
                                 className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 flex justify-center items-center gap-2"
@@ -718,7 +718,7 @@ const POS = () => {
             {/* Create Customer Modal */}
             {showCreateCustomerModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center">
                                 <UserPlus className="mr-2 text-blue-600" /> Crear Cliente
@@ -728,7 +728,7 @@ const POS = () => {
                             </button>
                         </div>
                         
-                        <div className="p-6">
+                        <div className="p-4 sm:p-6">
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Persona</label>
@@ -756,7 +756,7 @@ const POS = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Identificación</label>
                                         <select
@@ -808,7 +808,7 @@ const POS = () => {
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primer Nombre *</label>
                                                 <input
@@ -830,7 +830,7 @@ const POS = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primer Apellido *</label>
                                                 <input
@@ -854,7 +854,7 @@ const POS = () => {
                                     </>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                         <input

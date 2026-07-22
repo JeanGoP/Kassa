@@ -10,7 +10,8 @@ const Layout = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const isDesktopViewport = () => typeof window === 'undefined' || window.innerWidth >= 768;
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(isDesktopViewport);
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const commitSha = (__APP_COMMIT__ || 'local-dev').trim();
@@ -28,6 +29,7 @@ const Layout = () => {
             icon: ShoppingCart,
             submenu: [
                 { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
+                { path: '/quotations', label: 'Cotizacion', icon: FileText, permission: 'Menus.Quotations.View' },
                 { path: '/sales-history', label: 'Historial de Ventas', icon: FileText, permission: 'Menus.POS.View' },
                 { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
             ]
@@ -86,6 +88,12 @@ const Layout = () => {
     };
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setIsSidebarOpen(false);
+        }
+    }, [location.pathname]);
+
+    useEffect(() => {
         // Auto-expand menu if active item is inside
         navItems.forEach(item => {
             if (item.submenu) {
@@ -108,7 +116,7 @@ const Layout = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex h-screen min-w-0 bg-gray-50 overflow-hidden">
             {/* Mobile Header */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
                 <div className="flex items-center space-x-2">
@@ -131,7 +139,7 @@ const Layout = () => {
             {/* Sidebar */}
             <aside className={clsx(
                 "bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 shadow-xl z-40 flex flex-col",
-                "fixed inset-y-0 left-0 h-full md:relative",
+                "fixed inset-y-0 left-0 h-full max-w-[85vw] md:relative md:max-w-none",
                 isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20"
             )}>
                 <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
@@ -268,9 +276,9 @@ const Layout = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto bg-gray-50 relative">
+            <main className="relative flex-1 min-w-0 overflow-auto bg-gray-50 pt-16 md:pt-0">
                  {/* Top header could go here if needed */}
-                <div className="p-6 md:p-8 max-w-7xl mx-auto">
+                <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 md:p-8">
                     <Outlet />
                 </div>
             </main>

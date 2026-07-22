@@ -190,7 +190,7 @@ const StockAdjustments = () => {
                                 <p className="text-sm text-gray-500">SKU: {selectedProduct.sku}</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                     <div className="text-sm text-gray-500 mb-1">Stock Actual</div>
                                     <div className="text-2xl font-bold text-slate-700">{currentStock?.quantity ?? 0}</div>
@@ -203,7 +203,7 @@ const StockAdjustments = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Nueva Cantidad</label>
                                     <input

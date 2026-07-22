@@ -590,8 +590,8 @@ const ServiceOrderParts = () => {
             </div>
 
             {showConfirmModal && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-4 shadow-xl sm:p-6">
                         <h2 className="text-lg font-bold text-slate-800 mb-2">
                             Confirmar repuestos e insumos
                         </h2>
@@ -643,4 +643,3 @@ const ServiceOrderParts = () => {
 };
 
 export default ServiceOrderParts;
-

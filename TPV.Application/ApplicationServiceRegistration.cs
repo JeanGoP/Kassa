@@ -26,6 +26,7 @@ namespace TPV.Application
             services.AddScoped<IWarrantyService, WarrantyService>();
             services.AddScoped<IWorkshopDashboardService, WorkshopDashboardService>();
             services.AddScoped<ITenantService, TenantService>();
+            services.AddScoped<IQuotationService, QuotationService>();
             services.AddHttpClient<IElectronicInvoicingService, ElectronicInvoicingService>();
               
             return services;

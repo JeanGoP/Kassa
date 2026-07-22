@@ -10,6 +10,7 @@ namespace TPV.Infrastructure.Identity
 
         public const string MenusDashboardView = "Menus.Dashboard.View";
         public const string MenusPosView = "Menus.POS.View";
+        public const string MenusQuotationsView = "Menus.Quotations.View";
         public const string MenusInventoryView = "Menus.Inventory.View";
         public const string MenusCashView = "Menus.Cash.View";
         public const string MenusReportsView = "Menus.Reports.View";
@@ -30,6 +31,7 @@ namespace TPV.Infrastructure.Identity
                 AdminUsersManage,
                 MenusDashboardView,
                 MenusPosView,
+                MenusQuotationsView,
                 MenusInventoryView,
                 MenusCashView,
                 MenusReportsView,
