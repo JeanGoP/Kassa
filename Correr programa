@@ -7,5 +7,5 @@ npm install
 npm run dev
 
 Publicar:
-dotnet publish TPV.Web -c Release -o publish
+.\scripts\publish_backend.ps1
 
