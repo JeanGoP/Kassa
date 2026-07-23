@@ -20,6 +20,7 @@ namespace TPV.Infrastructure.Identity
         public const string MenusProductsView = "Menus.Products.View";
         public const string MenusCustomersView = "Menus.Customers.View";
         public const string MenusTechniciansView = "Menus.Technicians.View";
+        public const string MenusWorkshopManagersView = "Menus.WorkshopManagers.View";
         public const string MenusWorkshopView = "Menus.Workshop.View";
         public const string MenusWarrantiesView = "Menus.Warranties.View";
 
@@ -41,6 +42,7 @@ namespace TPV.Infrastructure.Identity
                 MenusProductsView,
                 MenusCustomersView,
                 MenusTechniciansView,
+                MenusWorkshopManagersView,
                 MenusWorkshopView,
                 MenusWarrantiesView
             };

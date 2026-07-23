@@ -121,6 +121,7 @@ namespace TPV.Infrastructure.Identity
                     Permissions.MenusCashView,
                     Permissions.MenusReportsView,
                     Permissions.MenusBranchesView,
+                    Permissions.MenusWorkshopManagersView,
                     Permissions.MenusPurchasesView
                 };
 
@@ -160,6 +161,7 @@ namespace TPV.Infrastructure.Identity
                 {
                     Permissions.MenusWorkshopView,
                     Permissions.MenusTechniciansView,
+                    Permissions.MenusWorkshopManagersView,
                     Permissions.MenusWarrantiesView,
                     Permissions.MenusDashboardView,
                     Permissions.MenusReportsView,

@@ -84,25 +84,23 @@ const VehicleIntake = () => {
     // Warranty State
     const [activeWarranties, setActiveWarranties] = useState<any[]>([]);
 
-    // Effects
     useEffect(() => {
-        // Fetch default branch manager
-        const fetchBranchManager = async () => {
+        const fetchCurrentBranchManager = async () => {
             try {
-                const response = await api.get('/branches');
-                if (response.data && response.data.length > 0) {
-                    // Assuming first branch or defaulting to it
-                    const branch = response.data[0];
-                    if (branch.managerName) {
-                        setFormData(prev => ({ ...prev, workshopManager: branch.managerName }));
-                    }
-                }
+                const response = await api.get('/branches/current');
+                const branch = response.data;
+                const managerName = branch.workshopManagerName || branch.managerName || '';
+                setFormData(prev => ({ ...prev, workshopManager: managerName }));
             } catch (error) {
-                console.error("Error fetching branch info", error);
+                console.error("Error fetching current branch info", error);
+                setFormData(prev => ({ ...prev, workshopManager: '' }));
             }
         };
-        fetchBranchManager();
 
+        fetchCurrentBranchManager();
+    }, []);
+
+    useEffect(() => {
         if (customerSearch.length > 2) {
             const timer = setTimeout(() => {
                 fetchCustomers();
@@ -766,9 +764,9 @@ const VehicleIntake = () => {
                             type="text"
                             name="workshopManager"
                             value={formData.workshopManager}
-                            onChange={handleChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-                            placeholder="Nombre del encargado"
+                            readOnly
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none bg-gray-50 text-gray-600"
+                            placeholder="Sin jefe asignado"
                         />
                     </div>
                 </div>

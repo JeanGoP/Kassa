@@ -200,7 +200,12 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("WorkshopManagerId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("WorkshopManagerId");
 
                     b.ToTable("Branches");
                 });
@@ -1265,6 +1270,51 @@ namespace TPV.Infrastructure.Migrations
                     b.ToTable("Warranties");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.WorkshopManager", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("WorkshopManagers");
+                });
+
             modelBuilder.Entity("TPV.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -1394,6 +1444,16 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Branch", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.WorkshopManager", "WorkshopManager")
+                        .WithMany()
+                        .HasForeignKey("WorkshopManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("WorkshopManager");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.CashSession", b =>

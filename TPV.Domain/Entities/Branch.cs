@@ -11,6 +11,8 @@ namespace TPV.Domain.Entities
         public string Phone { get; set; }
         public string Email { get; set; }
         public string? ManagerName { get; set; }
+        public int? WorkshopManagerId { get; set; }
+        public WorkshopManager? WorkshopManager { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
 

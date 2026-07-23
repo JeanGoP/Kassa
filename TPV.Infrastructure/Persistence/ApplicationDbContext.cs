@@ -40,6 +40,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
         public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
         public DbSet<Technician> Technicians { get; set; }
+        public DbSet<WorkshopManager> WorkshopManagers { get; set; }
         public DbSet<Warranty> Warranties { get; set; }
         public DbSet<QuotationSearchHistory> QuotationSearchHistories { get; set; }
         public DbSet<Quotation> Quotations { get; set; }
@@ -92,6 +93,32 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Stock>()
                 .HasIndex(s => new { s.ProductId, s.BranchId })
                 .IsUnique();
+
+            builder.Entity<WorkshopManager>()
+                .Property(m => m.Name)
+                .HasMaxLength(150);
+
+            builder.Entity<WorkshopManager>()
+                .Property(m => m.Phone)
+                .HasMaxLength(80);
+
+            builder.Entity<WorkshopManager>()
+                .Property(m => m.Email)
+                .HasMaxLength(200);
+
+            builder.Entity<WorkshopManager>()
+                .Property(m => m.Notes)
+                .HasMaxLength(500);
+
+            builder.Entity<WorkshopManager>()
+                .HasIndex(m => new { m.TenantId, m.Name })
+                .IsUnique();
+
+            builder.Entity<Branch>()
+                .HasOne(b => b.WorkshopManager)
+                .WithMany()
+                .HasForeignKey(b => b.WorkshopManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<QuotationSearchHistory>()
                 .Property(h => h.SearchTerm)

@@ -36,6 +36,7 @@ const permissionTranslations: { [key: string]: string } = {
     'Menus.Customers.View': 'Ver Gestión de Clientes',
     'Menus.Suppliers.View': 'Ver Gestión de Proveedores',
     'Menus.Technicians.View': 'Ver Gestión de Técnicos',
+    'Menus.WorkshopManagers.View': 'Ver Gestión de Jefes de Taller',
     'Menus.Branches.View': 'Ver Gestión de Sucursales',
     'Menus.Inventory.View': 'Ver Inventario, Ajustes y Traslados',
     'Menus.Cash.View': 'Ver Control de Caja',

@@ -6,7 +6,7 @@ namespace TPV.Application.Interfaces
 {
     public interface IServiceOrderService
     {
-        Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto);
+        Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto, string userId);
         Task<ServiceOrderDto> GetByIdAsync(int id);
         Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search);
         Task<ServiceOrderDto> SetDiagnosisAsync(int id, ServiceOrderDiagnosisDto dto);

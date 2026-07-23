@@ -64,8 +64,26 @@ namespace TPV.Application.Services
             return orders.Select(o => MapToDto(o));
         }
 
-        public async Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto)
+        public async Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto, string userId)
         {
+            var userBranchId = await _userService.GetUserBranchIdAsync(userId);
+            if (!userBranchId.HasValue)
+            {
+                throw new InvalidOperationException("El usuario no tiene una sucursal asignada para registrar ingresos de vehiculo.");
+            }
+
+            var branch = (await _branchRepository.GetAsync(
+                predicate: b => b.Id == userBranchId.Value,
+                includeString: "WorkshopManager"
+            )).FirstOrDefault();
+
+            if (branch == null)
+            {
+                throw new InvalidOperationException("No se encontro la sucursal asignada al usuario.");
+            }
+
+            var workshopManagerName = branch.WorkshopManager?.Name ?? branch.ManagerName;
+
             var entity = new ServiceOrder
             {
                 CustomerId = dto.CustomerId,
@@ -79,7 +97,7 @@ namespace TPV.Application.Services
                 InitialObservations = dto.InitialObservations,
                 VisualCondition = dto.VisualCondition,
                 Technician = string.Empty,
-                WorkshopManager = dto.WorkshopManager,
+                WorkshopManager = workshopManagerName,
                 Status = dto.Status
             };
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
@@ -27,6 +28,17 @@ namespace TPV.Web.Controllers.Api
         public async Task<ActionResult<BranchDto>> GetById(int id)
         {
             var branch = await _branchService.GetByIdAsync(id);
+            if (branch == null) return NotFound();
+            return Ok(branch);
+        }
+
+        [HttpGet("current")]
+        public async Task<ActionResult<BranchDto>> GetCurrent()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var branch = await _branchService.GetCurrentForUserAsync(userId);
             if (branch == null) return NotFound();
             return Ok(branch);
         }

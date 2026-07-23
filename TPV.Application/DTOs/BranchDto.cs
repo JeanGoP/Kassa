@@ -8,6 +8,8 @@ namespace TPV.Application.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? ManagerName { get; set; }
+        public int? WorkshopManagerId { get; set; }
+        public string? WorkshopManagerName { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
     }
@@ -19,6 +21,7 @@ namespace TPV.Application.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? ManagerName { get; set; }
+        public int? WorkshopManagerId { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
     }

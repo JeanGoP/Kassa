@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, UserCheck, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -56,6 +56,7 @@ const Layout = () => {
                 { path: '/customers', label: 'Clientes', icon: UserCircle, permission: 'Menus.Customers.View' },
                 { path: '/suppliers', label: 'Proveedores', icon: Users, permission: 'Menus.Suppliers.View' },
                 { path: '/technicians', label: 'Técnicos', icon: UserCog, permission: 'Menus.Technicians.View' },
+                { path: '/workshop-managers', label: 'Jefes de Taller', icon: UserCheck, permission: 'Menus.WorkshopManagers.View' },
                 { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },
             ]
         },

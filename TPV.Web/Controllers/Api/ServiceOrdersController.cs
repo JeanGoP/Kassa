@@ -28,8 +28,18 @@ namespace TPV.Web.Controllers.Api
         [HttpPost]
         public async Task<ActionResult<ServiceOrderDto>> Create(CreateServiceOrderDto dto)
         {
-            var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var result = await _service.CreateAsync(dto, userId);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]

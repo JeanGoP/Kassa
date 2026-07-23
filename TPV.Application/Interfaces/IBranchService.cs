@@ -8,6 +8,7 @@ namespace TPV.Application.Interfaces
     {
         Task<IEnumerable<BranchDto>> GetAllAsync();
         Task<BranchDto> GetByIdAsync(int id);
+        Task<BranchDto> GetCurrentForUserAsync(string userId);
         Task<BranchDto> CreateAsync(CreateBranchDto dto);
         Task UpdateAsync(int id, CreateBranchDto dto);
         Task DeleteAsync(int id);
