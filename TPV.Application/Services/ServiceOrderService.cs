@@ -92,7 +92,7 @@ namespace TPV.Application.Services
                 Model = dto.Model,
                 Year = dto.Year,
                 Mileage = dto.Mileage,
-                IntakeDateTime = dto.IntakeDateTime,
+                IntakeDateTime = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime,
                 FuelLevel = dto.FuelLevel,
                 InitialObservations = dto.InitialObservations,
                 VisualCondition = dto.VisualCondition,

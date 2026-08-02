@@ -40,6 +40,11 @@ const IDENTIFICATION_TYPES = [
     "NIT Número de Identificación Tributaria"
 ];
 
+const formatDateTimeLocal = (date = new Date()) => {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+};
+
 const VehicleIntake = () => {
     const [formData, setFormData] = useState({
         plate: '',
@@ -47,7 +52,7 @@ const VehicleIntake = () => {
         model: '',
         year: '',
         mileage: '',
-        intakeDateTime: '',
+        intakeDateTime: formatDateTimeLocal(),
         fuelLevel: '',
         initialObservations: '',
         visualCondition: '',
@@ -231,6 +236,7 @@ const VehicleIntake = () => {
         
         const intakeData = {
             ...formData,
+            intakeDateTime: formData.intakeDateTime || formatDateTimeLocal(),
             customerId: selectedCustomer.id,
             customerName: `${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
             status: "ABIERTA"
@@ -247,7 +253,7 @@ const VehicleIntake = () => {
                 model: '',
                 year: '',
                 mileage: '',
-                intakeDateTime: '',
+                intakeDateTime: formatDateTimeLocal(),
                 fuelLevel: '',
                 initialObservations: '',
                 visualCondition: '',
@@ -884,7 +890,16 @@ const VehicleIntake = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha y hora de ingreso</label>
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                            <label className="block text-sm font-medium text-gray-700">Fecha y hora de ingreso</label>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, intakeDateTime: formatDateTimeLocal() }))}
+                                className="text-xs font-semibold text-blue-600 transition hover:text-blue-700"
+                            >
+                                Usar ahora
+                            </button>
+                        </div>
                         <input
                             type="datetime-local"
                             name="intakeDateTime"
