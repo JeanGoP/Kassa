@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { CalendarCheck, CheckCircle, ChevronLeft, ChevronRight, Clock, Mail, MapPin, Phone, User, Wrench } from 'lucide-react';
+import { Building2, CalendarCheck, CheckCircle, ChevronLeft, ChevronRight, Clock, Mail, Phone, Plus, X } from 'lucide-react';
 import logo from '../assets/Logo.png';
 
 interface BookingInfo {
@@ -55,7 +55,7 @@ const emptyForm = {
     notes: ''
 };
 
-const weekDayLabels = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+const weekDayLabels = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];
 
 const formatDateInput = (date: Date) => {
     const year = date.getFullYear();
@@ -84,6 +84,11 @@ const minDate = (first: Date, second: Date) => first <= second ? first : second;
 const isSameMonth = (first: Date, second: Date) =>
     first.getFullYear() === second.getFullYear() && first.getMonth() === second.getMonth();
 
+const isSameDay = (first: Date, second: Date) =>
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate();
+
 const buildCalendarDays = (month: Date): CalendarDay[] => {
     const firstDay = startOfMonth(month);
     const mondayOffset = (firstDay.getDay() + 6) % 7;
@@ -100,33 +105,35 @@ const buildCalendarDays = (month: Date): CalendarDay[] => {
     });
 };
 
+const sentenceCase = (value: string) => value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+
 const formatDateTime = (value: string) => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat('es-CO', {
+    return sentenceCase(new Intl.DateTimeFormat('es-CO', {
         weekday: 'long',
         day: '2-digit',
         month: 'long',
         hour: '2-digit',
         minute: '2-digit'
-    }).format(date);
+    }).format(date));
 };
 
 const formatDateLabel = (value: string) => {
     const date = parseDateKey(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat('es-CO', {
+    return sentenceCase(new Intl.DateTimeFormat('es-CO', {
         weekday: 'long',
         day: '2-digit',
         month: 'long'
-    }).format(date);
+    }).format(date));
 };
 
 const formatMonthLabel = (date: Date) => {
-    return new Intl.DateTimeFormat('es-CO', {
+    return sentenceCase(new Intl.DateTimeFormat('es-CO', {
         month: 'long',
         year: 'numeric'
-    }).format(date);
+    }).format(date));
 };
 
 const PublicBooking = () => {
@@ -141,6 +148,7 @@ const PublicBooking = () => {
     const [visibleMonth, setVisibleMonth] = useState(startOfMonth(today));
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
+    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [formData, setFormData] = useState(emptyForm);
     const [createdAppointment, setCreatedAppointment] = useState<CreatedAppointment | null>(null);
     const [loading, setLoading] = useState(true);
@@ -243,6 +251,7 @@ const PublicBooking = () => {
 
     const changeMonth = (direction: number) => {
         setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + direction, 1));
+        setAvailability([]);
         setSelectedDate('');
         setSelectedSlot(null);
     };
@@ -251,6 +260,20 @@ const PublicBooking = () => {
         if (!day.isCurrentMonth || day.date < today || day.date > maxBookableDate) return;
         setSelectedDate(day.key);
         setSelectedSlot(null);
+    };
+
+    const openCreateModal = (slot?: AvailabilitySlot) => {
+        const nextSlot = slot || selectedSlot || selectedDaySlots[0] || null;
+        if (!nextSlot) return;
+
+        setSelectedSlot(nextSlot);
+        setError('');
+        setIsBookingModalOpen(true);
+    };
+
+    const closeCreateModal = () => {
+        setIsBookingModalOpen(false);
+        setError('');
     };
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -316,84 +339,275 @@ const PublicBooking = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <header className="border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+        <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
+            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+                <div className="flex h-16 items-center justify-between gap-4 px-4 lg:px-6">
                     <div className="flex min-w-0 items-center gap-3">
-                        <img src={logo} alt="Kassa" className="h-10 w-10 rounded-lg object-contain shadow-sm" />
+                        <img src={logo} alt="Kassa" className="h-10 w-10 rounded-xl border border-slate-200 bg-white object-contain shadow-sm" />
                         <div className="min-w-0">
-                            <div className="truncate text-lg font-extrabold text-slate-900">{info?.businessName}</div>
+                            <div className="truncate text-base font-extrabold text-slate-900 sm:text-lg">{info?.businessName}</div>
                             <div className="truncate text-sm text-slate-500">{info?.scheduleName}</div>
                         </div>
                     </div>
-                    <div className="hidden rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 sm:block">
+                    <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
                         {info?.slotDurationMinutes} min
                     </div>
                 </div>
             </header>
 
-            <main className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[360px_1fr]">
-                <aside className="space-y-4">
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-start gap-3">
-                            <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
-                                <MapPin size={22} />
-                            </div>
-                            <div className="min-w-0">
-                                <h1 className="text-xl font-extrabold text-slate-900">{info?.branchName}</h1>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    {info?.branchAddress || 'Direccion por confirmar'}
-                                    {(info?.branchCity || info?.branchDepartment) && (
-                                        <>
-                                            <br />
-                                            {info?.branchCity}{info?.branchDepartment ? `, ${info.branchDepartment}` : ''}
-                                        </>
-                                    )}
-                                </p>
-                            </div>
+            <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
+                <aside className="w-full shrink-0 border-b border-slate-200 bg-slate-50 p-4 lg:h-[calc(100vh-4rem)] lg:w-80 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+                    <button
+                        type="button"
+                        onClick={() => openCreateModal()}
+                        disabled={!selectedSlot && selectedDaySlots.length === 0}
+                        className="mb-5 inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-800 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Plus size={20} />
+                        Crear cita
+                    </button>
+
+                    <section className="mb-5 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                        <div className="mb-3 flex items-center justify-between">
+                            <button
+                                type="button"
+                                disabled={previousDisabled}
+                                onClick={() => changeMonth(-1)}
+                                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-35"
+                                aria-label="Mes anterior"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <div className="text-sm font-extrabold text-slate-800">{formatMonthLabel(visibleMonth)}</div>
+                            <button
+                                type="button"
+                                disabled={nextDisabled}
+                                onClick={() => changeMonth(1)}
+                                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-35"
+                                aria-label="Mes siguiente"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
                         </div>
-                        <div className="mt-5 space-y-2 text-sm text-slate-600">
+                        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold text-slate-400">
+                            {weekDayLabels.map(day => <div key={day}>{day.charAt(0)}</div>)}
+                        </div>
+                        <div className="mt-2 grid grid-cols-7 gap-1">
+                            {calendarDays.map(day => {
+                                const slots = availabilityByDate.get(day.key)?.slots.length || 0;
+                                const isBookable = day.isCurrentMonth && day.date >= today && day.date <= maxBookableDate;
+                                const isSelected = selectedDate === day.key;
+                                const isToday = isSameDay(day.date, today);
+
+                                return (
+                                    <button
+                                        key={day.key}
+                                        type="button"
+                                        disabled={!isBookable}
+                                        onClick={() => selectDay(day)}
+                                        className={`relative flex h-8 items-center justify-center rounded-lg text-xs font-bold transition ${isSelected
+                                            ? 'bg-blue-600 text-white'
+                                            : isToday
+                                                ? 'bg-blue-50 text-blue-700'
+                                                : isBookable
+                                                    ? 'text-slate-700 hover:bg-slate-100'
+                                                    : 'text-slate-300'
+                                            } ${!day.isCurrentMonth ? 'opacity-40' : ''}`}
+                                    >
+                                        {day.dayNumber}
+                                        {slots > 0 && !isSelected && (
+                                            <span className="absolute bottom-1 h-1 w-1 rounded-full bg-emerald-500" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <section className="mb-5 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-800">
+                            <Building2 size={17} className="text-blue-600" />
+                            Pagina de reserva
+                        </div>
+                        <div className="space-y-2 text-sm text-slate-600">
+                            <div className="font-bold text-slate-900">{info?.branchName}</div>
+                            <div>
+                                {info?.branchAddress || 'Direccion por confirmar'}
+                                {(info?.branchCity || info?.branchDepartment) && (
+                                    <>
+                                        <br />
+                                        {info?.branchCity}{info?.branchDepartment ? `, ${info.branchDepartment}` : ''}
+                                    </>
+                                )}
+                            </div>
                             {info?.businessPhone && (
                                 <div className="flex items-center gap-2">
-                                    <Phone size={16} className="text-slate-400" />
+                                    <Phone size={15} className="text-slate-400" />
                                     <span>{info.businessPhone}</span>
                                 </div>
                             )}
                             {info?.businessEmail && (
                                 <div className="flex items-center gap-2">
-                                    <Mail size={16} className="text-slate-400" />
+                                    <Mail size={15} className="text-slate-400" />
                                     <span className="min-w-0 truncate">{info.businessEmail}</span>
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
-                                <Clock size={16} className="text-slate-400" />
-                                <span>{totalSlots} horarios disponibles este mes</span>
+                                <Clock size={15} className="text-slate-400" />
+                                <span>{totalSlots} horarios este mes</span>
                             </div>
                         </div>
                     </section>
 
-                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <h2 className="mb-4 flex items-center font-bold text-slate-900">
-                            <User size={18} className="mr-2 text-blue-600" /> Tus datos
-                        </h2>
-                        <form id="public-booking-form" onSubmit={handleSubmit} className="space-y-4">
+                    <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                        <div className="mb-3 text-sm font-extrabold text-slate-800">
+                            {selectedDate ? formatDateLabel(selectedDate) : 'Selecciona un dia'}
+                        </div>
+                        <div className="space-y-2">
+                            {selectedDaySlots.map(slot => {
+                                const isSelected = selectedSlot?.startAt === slot.startAt;
+                                return (
+                                    <button
+                                        key={slot.startAt}
+                                        type="button"
+                                        onClick={() => setSelectedSlot(slot)}
+                                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-bold transition ${isSelected
+                                            ? 'border-blue-600 bg-blue-600 text-white'
+                                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
+                                            }`}
+                                    >
+                                        <span>{slot.time}</span>
+                                        <span className={`text-xs ${isSelected ? 'text-blue-50' : 'text-blue-600'}`}>{slot.availableCapacity} cupo</span>
+                                    </button>
+                                );
+                            })}
+                            {!availabilityLoading && selectedDate && selectedDaySlots.length === 0 && (
+                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-400">Sin horarios disponibles.</p>
+                            )}
+                        </div>
+                    </section>
+                </aside>
+
+                <main className="min-w-0 flex-1 overflow-auto p-3 lg:p-4">
+                    <section className="min-w-[980px] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+                        <div className="grid grid-cols-7 border-b border-slate-200 bg-white">
+                            {weekDayLabels.map(label => (
+                                <div key={label} className="border-r border-slate-200 px-4 py-3 text-center text-xs font-extrabold text-slate-500 last:border-r-0">
+                                    {label}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-7">
+                            {calendarDays.map(day => {
+                                const dayAvailability = availabilityByDate.get(day.key);
+                                const slots = dayAvailability?.slots || [];
+                                const visibleSlots = slots.slice(0, 4);
+                                const hiddenCount = slots.length - visibleSlots.length;
+                                const isBookable = day.isCurrentMonth && day.date >= today && day.date <= maxBookableDate;
+                                const isSelected = selectedDate === day.key;
+                                const isToday = isSameDay(day.date, today);
+
+                                return (
+                                    <div
+                                        key={day.key}
+                                        className={`min-h-[148px] border-b border-r border-slate-200 p-2 transition last:border-r-0 ${isSelected ? 'bg-blue-50/50' : day.isCurrentMonth ? 'bg-white' : 'bg-slate-50/70'}`}
+                                        onClick={() => selectDay(day)}
+                                    >
+                                        <div className="mb-2 flex justify-center">
+                                            <button
+                                                type="button"
+                                                disabled={!isBookable}
+                                                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-extrabold transition ${isSelected
+                                                    ? 'bg-blue-600 text-white'
+                                                    : isToday
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : day.isCurrentMonth
+                                                            ? 'text-slate-700 hover:bg-slate-100'
+                                                            : 'text-slate-300'
+                                                    }`}
+                                            >
+                                                {day.dayNumber}
+                                            </button>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {visibleSlots.map(slot => {
+                                                const isSlotSelected = selectedSlot?.startAt === slot.startAt;
+                                                return (
+                                                    <button
+                                                        key={slot.startAt}
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setSelectedDate(day.key);
+                                                            openCreateModal(slot);
+                                                        }}
+                                                        className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-bold transition ${isSlotSelected
+                                                            ? 'bg-blue-600 text-white shadow-sm'
+                                                            : 'bg-sky-50 text-sky-800 hover:bg-sky-100'
+                                                            }`}
+                                                    >
+                                                        <span className={`h-2 w-2 shrink-0 rounded-full ${isSlotSelected ? 'bg-white' : 'bg-sky-500'}`} />
+                                                        <span className="truncate">{slot.time} disponible</span>
+                                                    </button>
+                                                );
+                                            })}
+                                            {hiddenCount > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        setSelectedDate(day.key);
+                                                        setSelectedSlot(null);
+                                                    }}
+                                                    className="w-full rounded-md px-2 py-1 text-left text-xs font-bold text-blue-600 hover:bg-blue-50"
+                                                >
+                                                    + {hiddenCount} horarios
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                    {availabilityLoading && (
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500 shadow-sm">
+                            Cargando disponibilidad del mes...
+                        </div>
+                    )}
+                </main>
+            </div>
+
+            {isBookingModalOpen && selectedSlot && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
                             <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre</label>
-                                <input required className="w-full rounded-lg border-slate-300" value={formData.customerName} onChange={(event) => setFormData({ ...formData, customerName: event.target.value })} />
+                                <h2 className="text-lg font-extrabold text-slate-900">Crear cita</h2>
+                                <p className="mt-1 text-sm font-semibold text-blue-700">{formatDateTime(selectedSlot.startAt)}</p>
                             </div>
-                            <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
-                                <input required className="w-full rounded-lg border-slate-300" value={formData.customerPhone} onChange={(event) => setFormData({ ...formData, customerPhone: event.target.value })} />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Correo</label>
-                                <input type="email" className="w-full rounded-lg border-slate-300" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Servicio</label>
-                                <input required className="w-full rounded-lg border-slate-300" value={formData.serviceType} onChange={(event) => setFormData({ ...formData, serviceType: event.target.value })} />
-                            </div>
-                            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                            <button type="button" onClick={closeCreateModal} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                                <X size={22} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre</label>
+                                    <input required className="w-full rounded-lg border-slate-300" value={formData.customerName} onChange={(event) => setFormData({ ...formData, customerName: event.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
+                                    <input required className="w-full rounded-lg border-slate-300" value={formData.customerPhone} onChange={(event) => setFormData({ ...formData, customerPhone: event.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Correo</label>
+                                    <input type="email" className="w-full rounded-lg border-slate-300" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Servicio</label>
+                                    <input required className="w-full rounded-lg border-slate-300" value={formData.serviceType} onChange={(event) => setFormData({ ...formData, serviceType: event.target.value })} />
+                                </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Placa</label>
                                     <input className="w-full rounded-lg border-slate-300 uppercase" value={formData.vehiclePlate} onChange={(event) => setFormData({ ...formData, vehiclePlate: event.target.value })} />
@@ -402,158 +616,31 @@ const PublicBooking = () => {
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Marca</label>
                                     <input className="w-full rounded-lg border-slate-300" value={formData.vehicleBrand} onChange={(event) => setFormData({ ...formData, vehicleBrand: event.target.value })} />
                                 </div>
-                                <div>
+                                <div className="sm:col-span-2">
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Modelo</label>
                                     <input className="w-full rounded-lg border-slate-300" value={formData.vehicleModel} onChange={(event) => setFormData({ ...formData, vehicleModel: event.target.value })} />
                                 </div>
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Notas</label>
-                                <textarea rows={3} className="w-full rounded-lg border-slate-300" value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} />
+                                <div className="sm:col-span-2">
+                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Notas</label>
+                                    <textarea rows={3} className="w-full rounded-lg border-slate-300" value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} />
+                                </div>
                             </div>
                             {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</div>}
-                            <button
-                                type="submit"
-                                disabled={!selectedSlot || submitting}
-                                className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <CalendarCheck size={18} className="mr-2" /> {submitting ? 'Agendando...' : 'Confirmar cita'}
-                            </button>
+                            <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                                <button type="button" onClick={closeCreateModal} className="rounded-lg border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-bold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <CalendarCheck size={18} className="mr-2" />
+                                    {submitting ? 'Agendando...' : 'Confirmar cita'}
+                                </button>
+                            </div>
                         </form>
-                    </section>
-                </aside>
-
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="mb-5 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                        <div>
-                            <h2 className="flex items-center text-xl font-extrabold text-slate-900">
-                                <CalendarCheck size={22} className="mr-2 text-blue-600" /> Escoge dia y hora
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-500">{info?.timeZone}</p>
-                        </div>
-                        {selectedSlot && (
-                            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
-                                {formatDateTime(selectedSlot.startAt)}
-                            </div>
-                        )}
                     </div>
-
-                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-                        <div className="rounded-xl border border-slate-200 p-3 sm:p-4">
-                            <div className="mb-4 flex items-center justify-between gap-3">
-                                <button
-                                    type="button"
-                                    disabled={previousDisabled}
-                                    onClick={() => changeMonth(-1)}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="Mes anterior"
-                                >
-                                    <ChevronLeft size={20} />
-                                </button>
-                                <div className="text-center">
-                                    <div className="text-lg font-extrabold capitalize text-slate-900">{formatMonthLabel(visibleMonth)}</div>
-                                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Disponibilidad mensual</div>
-                                </div>
-                                <button
-                                    type="button"
-                                    disabled={nextDisabled}
-                                    onClick={() => changeMonth(1)}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="Mes siguiente"
-                                >
-                                    <ChevronRight size={20} />
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
-                                {weekDayLabels.map(day => <div key={day} className="py-2">{day}</div>)}
-                            </div>
-
-                            <div className="grid grid-cols-7 gap-1">
-                                {calendarDays.map(day => {
-                                    const availabilityDay = availabilityByDate.get(day.key);
-                                    const slotCount = availabilityDay?.slots.length || 0;
-                                    const isSelected = selectedDate === day.key;
-                                    const isBookable = day.isCurrentMonth && day.date >= today && day.date <= maxBookableDate;
-                                    const hasSlots = slotCount > 0;
-
-                                    return (
-                                        <button
-                                            key={day.key}
-                                            type="button"
-                                            disabled={!isBookable}
-                                            onClick={() => selectDay(day)}
-                                            className={`min-h-[68px] rounded-lg border p-1.5 text-left transition sm:min-h-[76px] sm:p-2 ${isSelected
-                                                ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                                                : isBookable
-                                                    ? 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50'
-                                                    : 'border-slate-100 bg-slate-50 text-slate-300'
-                                                } ${!day.isCurrentMonth ? 'opacity-40' : ''}`}
-                                        >
-                                            <div className="flex items-start justify-between gap-1">
-                                                <span className={`flex h-7 w-7 items-center justify-center rounded-md text-sm font-extrabold ${isSelected ? 'bg-white/20 text-white' : 'text-slate-800'}`}>
-                                                    {day.dayNumber}
-                                                </span>
-                                                {hasSlots && (
-                                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'}`}>
-                                                        {slotCount}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {isBookable && (
-                                                <div className={`mt-3 h-1.5 w-8 rounded-full ${hasSlots ? (isSelected ? 'bg-white' : 'bg-emerald-400') : (isSelected ? 'bg-white/40' : 'bg-slate-200')}`} />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {availabilityLoading && (
-                                <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
-                                    Cargando disponibilidad del mes...
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="rounded-xl border border-slate-200 p-4">
-                            <div className="mb-4">
-                                <div className="text-sm font-bold uppercase tracking-wide text-slate-400">Horario</div>
-                                <div className="mt-1 text-lg font-extrabold text-slate-900">
-                                    {selectedDate ? formatDateLabel(selectedDate) : 'Selecciona un dia'}
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                {selectedDaySlots.map(slot => {
-                                    const isSelected = selectedSlot?.startAt === slot.startAt;
-                                    return (
-                                        <button
-                                            key={slot.startAt}
-                                            type="button"
-                                            onClick={() => setSelectedSlot(slot)}
-                                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-sm font-bold transition ${isSelected
-                                                ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                                                : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                                }`}
-                                        >
-                                            <span>{slot.time}</span>
-                                            <span className={`text-xs ${isSelected ? 'text-blue-50' : 'text-blue-500'}`}>{slot.availableCapacity} cupo</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {!availabilityLoading && selectedDate && selectedDaySlots.length === 0 && (
-                                <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center">
-                                    <Wrench className="mx-auto mb-3 text-slate-400" />
-                                    <p className="font-semibold text-slate-600">No hay horarios en este dia.</p>
-                                    <p className="mt-1 text-sm text-slate-400">Puedes escoger otro dia en el calendario.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </section>
-            </main>
+                </div>
+            )}
         </div>
     );
 };
