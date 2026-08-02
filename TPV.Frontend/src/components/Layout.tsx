@@ -14,6 +14,7 @@ const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(isDesktopViewport);
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
     const commitSha = (__APP_COMMIT__ || 'local-dev').trim();
     const shortCommitSha = commitSha.length > 7 ? commitSha.slice(0, 7) : commitSha;
 
@@ -92,6 +93,7 @@ const Layout = () => {
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
             setIsSidebarOpen(false);
         }
+        setIsUserMenuOpen(false);
     }, [location.pathname]);
 
     useEffect(() => {
@@ -126,6 +128,78 @@ const Layout = () => {
     const CurrentIcon = activeRoute?.icon || LayoutDashboard;
     const currentTitle = activeRoute?.label || 'Dashboard';
     const currentGroup = activeRoute?.group || 'Inicio';
+    const userEmail = user?.email || 'Usuario';
+    const userInitial = userEmail.charAt(0).toUpperCase();
+
+    const openChangePassword = () => {
+        setIsUserMenuOpen(false);
+        setIsChangePasswordOpen(true);
+    };
+
+    const handleMenuLogout = async () => {
+        setIsUserMenuOpen(false);
+        await handleLogout();
+    };
+
+    const renderUserMenu = (compact = false) => (
+        <div className="relative">
+            {isUserMenuOpen && (
+                <button
+                    type="button"
+                    aria-label="Cerrar menú de cuenta"
+                    className="fixed inset-0 z-20 cursor-default bg-transparent"
+                    onClick={() => setIsUserMenuOpen(false)}
+                />
+            )}
+            <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+                onClick={() => setIsUserMenuOpen(prev => !prev)}
+                className={clsx(
+                    "relative z-30 flex items-center gap-2 rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-blue-200 hover:bg-blue-50/40",
+                    compact ? "h-10 px-2" : "px-3 py-2"
+                )}
+            >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-teal-50 text-xs font-extrabold text-teal-700">
+                    {userInitial}
+                </span>
+                {!compact && <span className="max-w-[190px] truncate text-sm font-semibold text-slate-700">{userEmail}</span>}
+                <ChevronDown size={16} className={clsx("text-slate-500 transition-transform", isUserMenuOpen && "rotate-180")} />
+            </button>
+            {isUserMenuOpen && (
+                <div className="absolute right-0 z-40 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu">
+                    <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                        <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Cuenta</div>
+                        <div className="mt-1 truncate text-sm font-semibold text-slate-800">{userEmail}</div>
+                    </div>
+                    <div className="p-2">
+                        <button
+                            type="button"
+                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                            onClick={openChangePassword}
+                            role="menuitem"
+                        >
+                            <Key size={18} />
+                            Cambiar contraseña
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                            onClick={handleMenuLogout}
+                            role="menuitem"
+                        >
+                            <LogOut size={18} />
+                            Cerrar sesión
+                        </button>
+                    </div>
+                    <div className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500" title={`Commit desplegado: ${commitSha}`}>
+                        Versión <span className="font-mono text-slate-600">{shortCommitSha}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className="k-app-shell flex h-screen min-w-0 overflow-hidden">
@@ -134,9 +208,12 @@ const Layout = () => {
                     <img src={logo} alt="Kassa" className="h-8 w-8 rounded-md bg-white object-contain shadow-sm" />
                     <h1 className="text-lg font-extrabold tracking-tight text-slate-900">Kassa</h1>
                 </div>
-                <button onClick={() => setIsSidebarOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
-                    <Menu size={24} />
-                </button>
+                <div className="flex items-center gap-2">
+                    {renderUserMenu(true)}
+                    <button onClick={() => setIsSidebarOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
+                        <Menu size={24} />
+                    </button>
+                </div>
             </div>
 
             {isSidebarOpen && (
@@ -266,35 +343,6 @@ const Layout = () => {
                     })}
                 </nav>
 
-                <div className="space-y-2 border-t border-white/10 bg-black/10 p-4">
-                    <button onClick={() => setIsChangePasswordOpen(true)} className="group flex w-full items-center rounded-lg px-3 py-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
-                        <Key size={21} className="transition-colors group-hover:text-blue-300" />
-                        {isSidebarOpen && <span className="ml-3 text-sm font-medium">Cambiar Contraseña</span>}
-                    </button>
-                    <button onClick={handleLogout} className="group flex w-full items-center rounded-lg px-3 py-2 text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200">
-                        <LogOut size={21} className="transition-transform group-hover:translate-x-1" />
-                        {isSidebarOpen && <span className="ml-3 text-sm font-medium">Cerrar Sesión</span>}
-                    </button>
-                    {isSidebarOpen && (
-                        <div className="mt-4 flex items-center rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/15 text-xs font-bold text-blue-100">
-                                {user?.email?.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="ml-3 overflow-hidden">
-                                <div className="text-xs font-semibold text-white">Usuario</div>
-                                <div className="w-32 truncate text-xs text-slate-400">{user?.email}</div>
-                            </div>
-                        </div>
-                    )}
-                    {isSidebarOpen && (
-                        <div
-                            className="px-3 pt-1 text-[11px] text-slate-500"
-                            title={`Commit desplegado: ${commitSha}`}
-                        >
-                            Commit: <span className="font-mono text-slate-400">{shortCommitSha}</span>
-                        </div>
-                    )}
-                </div>
             </aside>
 
             <main className="k-workspace relative flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
@@ -313,12 +361,7 @@ const Layout = () => {
                             <div className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 lg:block">
                                 Ambiente operativo
                             </div>
-                            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-50 text-xs font-extrabold text-teal-700">
-                                    {user?.email?.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="max-w-[180px] truncate text-sm font-semibold text-slate-700">{user?.email}</div>
-                            </div>
+                            {renderUserMenu(false)}
                         </div>
                     </div>
                 </div>
