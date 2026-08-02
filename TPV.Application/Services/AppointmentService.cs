@@ -19,6 +19,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Appointment> _appointmentRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Tenant> _tenantRepository;
+        private readonly IRepository<MotorcycleService> _motorcycleServiceRepository;
         private readonly ICurrentTenantService _currentTenantService;
 
         public AppointmentService(
@@ -27,6 +28,7 @@ namespace TPV.Application.Services
             IRepository<Appointment> appointmentRepository,
             IRepository<Branch> branchRepository,
             IRepository<Tenant> tenantRepository,
+            IRepository<MotorcycleService> motorcycleServiceRepository,
             ICurrentTenantService currentTenantService)
         {
             _scheduleRepository = scheduleRepository;
@@ -34,6 +36,7 @@ namespace TPV.Application.Services
             _appointmentRepository = appointmentRepository;
             _branchRepository = branchRepository;
             _tenantRepository = tenantRepository;
+            _motorcycleServiceRepository = motorcycleServiceRepository;
             _currentTenantService = currentTenantService;
         }
 
@@ -205,12 +208,12 @@ namespace TPV.Application.Services
             await _appointmentRepository.UpdateAsync(appointment);
         }
 
-        public async Task<IEnumerable<AppointmentAvailabilityDayDto>> GetAvailabilityAsync(int scheduleId, DateTime from, DateTime to)
+        public async Task<IEnumerable<AppointmentAvailabilityDayDto>> GetAvailabilityAsync(int scheduleId, DateTime from, DateTime to, string? serviceType = null)
         {
             var schedule = await GetScheduleEntityAsync(scheduleId)
                 ?? throw new Exception("Agenda no encontrada.");
 
-            return await BuildAvailabilityAsync(schedule, from, to);
+            return await BuildAvailabilityAsync(schedule, from, to, serviceType);
         }
 
         public async Task<PublicBookingInfoDto?> GetPublicBookingInfoAsync(string slug)
@@ -235,12 +238,12 @@ namespace TPV.Application.Services
             };
         }
 
-        public async Task<IEnumerable<AppointmentAvailabilityDayDto>> GetPublicAvailabilityAsync(string slug, DateTime from, DateTime to)
+        public async Task<IEnumerable<AppointmentAvailabilityDayDto>> GetPublicAvailabilityAsync(string slug, DateTime from, DateTime to, string? serviceType = null)
         {
             var schedule = await FindPublicScheduleAsync(slug)
                 ?? throw new Exception("Agenda pública no encontrada.");
 
-            return await BuildAvailabilityAsync(schedule, from, to);
+            return await BuildAvailabilityAsync(schedule, from, to, serviceType);
         }
 
         public async Task<AppointmentDto> CreatePublicAppointmentAsync(string slug, PublicCreateAppointmentDto dto)
@@ -284,8 +287,10 @@ namespace TPV.Application.Services
         {
             if (startAt == default) throw new Exception("Debes seleccionar fecha y hora.");
 
-            var endAt = startAt.AddMinutes(schedule.SlotDurationMinutes);
-            if (!await IsSlotAvailableAsync(schedule, startAt, endAt))
+            var cleanServiceType = CleanRequired(serviceType, "El tipo de servicio es obligatorio.");
+            var durationMinutes = await ResolveServiceDurationMinutesAsync(schedule, cleanServiceType);
+            var endAt = startAt.AddMinutes(durationMinutes);
+            if (!await IsSlotAvailableAsync(schedule, startAt, endAt, durationMinutes))
             {
                 throw new Exception("El horario seleccionado ya no está disponible.");
             }
@@ -298,7 +303,7 @@ namespace TPV.Application.Services
                 CustomerName = CleanRequired(customerName, "El nombre de la persona es obligatorio."),
                 CustomerPhone = CleanRequired(customerPhone, "El teléfono es obligatorio."),
                 CustomerEmail = string.IsNullOrWhiteSpace(customerEmail) ? null : customerEmail.Trim(),
-                ServiceType = CleanRequired(serviceType, "El tipo de servicio es obligatorio."),
+                ServiceType = cleanServiceType,
                 VehiclePlate = CleanOptional(vehiclePlate)?.ToUpperInvariant(),
                 VehicleBrand = CleanOptional(vehicleBrand),
                 VehicleModel = CleanOptional(vehicleModel),
@@ -312,18 +317,28 @@ namespace TPV.Application.Services
             };
         }
 
-        private async Task<bool> IsSlotAvailableAsync(AppointmentSchedule schedule, DateTime startAt, DateTime endAt)
+        private async Task<bool> IsSlotAvailableAsync(AppointmentSchedule schedule, DateTime startAt, DateTime endAt, int durationMinutes)
         {
-            var days = await BuildAvailabilityAsync(schedule, startAt.Date, startAt.Date);
+            var days = await BuildAvailabilityAsync(schedule, startAt.Date, startAt.Date, durationMinutes);
             return days.SelectMany(d => d.Slots).Any(s => s.StartAt == startAt && s.EndAt == endAt && s.AvailableCapacity > 0);
         }
 
-        private async Task<IEnumerable<AppointmentAvailabilityDayDto>> BuildAvailabilityAsync(AppointmentSchedule schedule, DateTime from, DateTime to)
+        private async Task<IEnumerable<AppointmentAvailabilityDayDto>> BuildAvailabilityAsync(AppointmentSchedule schedule, DateTime from, DateTime to, string? serviceType)
+        {
+            var durationMinutes = string.IsNullOrWhiteSpace(serviceType)
+                ? schedule.SlotDurationMinutes
+                : await ResolveServiceDurationMinutesAsync(schedule, serviceType);
+
+            return await BuildAvailabilityAsync(schedule, from, to, durationMinutes);
+        }
+
+        private async Task<IEnumerable<AppointmentAvailabilityDayDto>> BuildAvailabilityAsync(AppointmentSchedule schedule, DateTime from, DateTime to, int durationMinutes)
         {
             var nowLimit = DateTime.Now.AddHours(schedule.MinNoticeHours);
             var firstDate = MaxDate(from.Date, DateTime.Today);
             var lastAllowedDate = DateTime.Today.AddDays(schedule.AdvanceBookingDays);
             var lastDate = MinDate(to.Date, lastAllowedDate);
+            var slotStepMinutes = Math.Min(schedule.SlotDurationMinutes, durationMinutes);
 
             if (lastDate < firstDate) return Enumerable.Empty<AppointmentAvailabilityDayDto>();
 
@@ -352,9 +367,9 @@ namespace TPV.Application.Services
                     var cursor = date.Add(rule.StartTime);
                     var endLimit = date.Add(rule.EndTime);
 
-                    while (cursor.AddMinutes(schedule.SlotDurationMinutes) <= endLimit)
+                    while (cursor.AddMinutes(durationMinutes) <= endLimit)
                     {
-                        var slotEnd = cursor.AddMinutes(schedule.SlotDurationMinutes);
+                        var slotEnd = cursor.AddMinutes(durationMinutes);
                         var reservedCount = appointments.Count(a => a.StartAt < slotEnd && a.EndAt > cursor);
                         var available = schedule.MaxAppointmentsPerSlot - reservedCount;
 
@@ -369,7 +384,7 @@ namespace TPV.Application.Services
                             });
                         }
 
-                        cursor = cursor.AddMinutes(schedule.SlotDurationMinutes);
+                        cursor = cursor.AddMinutes(slotStepMinutes);
                     }
                 }
 
@@ -382,6 +397,21 @@ namespace TPV.Application.Services
             }
 
             return days;
+        }
+
+        private async Task<int> ResolveServiceDurationMinutesAsync(AppointmentSchedule schedule, string serviceType)
+        {
+            var cleanServiceType = CleanRequired(serviceType, "El tipo de servicio es obligatorio.");
+            var services = await _motorcycleServiceRepository.GetAsync(
+                predicate: service => service.IsActive &&
+                    service.TenantId == schedule.TenantId &&
+                    service.Name == cleanServiceType);
+            var service = services.FirstOrDefault()
+                ?? throw new Exception("Selecciona un servicio valido del catalogo.");
+
+            return service.EstimatedMinutes.HasValue
+                ? Clamp(service.EstimatedMinutes.Value, 5, 600)
+                : schedule.SlotDurationMinutes;
         }
 
         private async Task<AppointmentSchedule?> GetScheduleEntityAsync(int id)

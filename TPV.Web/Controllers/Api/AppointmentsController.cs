@@ -114,11 +114,18 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpGet("schedules/{id}/availability")]
-        public async Task<ActionResult<IEnumerable<AppointmentAvailabilityDayDto>>> GetAvailability(int id, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        public async Task<ActionResult<IEnumerable<AppointmentAvailabilityDayDto>>> GetAvailability(int id, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? serviceType)
         {
-            var start = from ?? DateTime.Today;
-            var end = to ?? start.AddDays(14);
-            return Ok(await _appointmentService.GetAvailabilityAsync(id, start, end));
+            try
+            {
+                var start = from ?? DateTime.Today;
+                var end = to ?? start.AddDays(14);
+                return Ok(await _appointmentService.GetAvailabilityAsync(id, start, end, serviceType));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("public/{slug}")]
@@ -132,13 +139,13 @@ namespace TPV.Web.Controllers.Api
 
         [HttpGet("public/{slug}/availability")]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<AppointmentAvailabilityDayDto>>> GetPublicAvailability(string slug, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        public async Task<ActionResult<IEnumerable<AppointmentAvailabilityDayDto>>> GetPublicAvailability(string slug, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? serviceType)
         {
             try
             {
                 var start = from ?? DateTime.Today;
                 var end = to ?? start.AddDays(14);
-                return Ok(await _appointmentService.GetPublicAvailabilityAsync(slug, start, end));
+                return Ok(await _appointmentService.GetPublicAvailabilityAsync(slug, start, end, serviceType));
             }
             catch (Exception ex)
             {

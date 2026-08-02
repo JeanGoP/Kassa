@@ -15,9 +15,9 @@ namespace TPV.Application.Interfaces
         Task<IEnumerable<AppointmentDto>> GetAppointmentsAsync(int? scheduleId, DateTime? from, DateTime? to);
         Task<AppointmentDto> CreateAppointmentAsync(CreateAppointmentDto dto, string? createdByUserId);
         Task UpdateStatusAsync(int id, string status);
-        Task<IEnumerable<AppointmentAvailabilityDayDto>> GetAvailabilityAsync(int scheduleId, DateTime from, DateTime to);
+        Task<IEnumerable<AppointmentAvailabilityDayDto>> GetAvailabilityAsync(int scheduleId, DateTime from, DateTime to, string? serviceType = null);
         Task<PublicBookingInfoDto?> GetPublicBookingInfoAsync(string slug);
-        Task<IEnumerable<AppointmentAvailabilityDayDto>> GetPublicAvailabilityAsync(string slug, DateTime from, DateTime to);
+        Task<IEnumerable<AppointmentAvailabilityDayDto>> GetPublicAvailabilityAsync(string slug, DateTime from, DateTime to, string? serviceType = null);
         Task<AppointmentDto> CreatePublicAppointmentAsync(string slug, PublicCreateAppointmentDto dto);
     }
 }

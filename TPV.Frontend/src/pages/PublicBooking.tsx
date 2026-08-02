@@ -194,7 +194,7 @@ const PublicBooking = () => {
         if (slug && info) {
             fetchAvailabilityForMonth();
         }
-    }, [slug, info, visibleMonth]);
+    }, [slug, info, visibleMonth, formData.serviceType]);
 
     useEffect(() => {
         if (!info || availabilityLoading) return;
@@ -247,6 +247,11 @@ const PublicBooking = () => {
 
     const fetchAvailabilityForMonth = async () => {
         if (!slug || !info) return;
+        if (!formData.serviceType) {
+            setAvailability([]);
+            setSelectedSlot(null);
+            return;
+        }
 
         const fromDate = maxDate(startOfMonth(visibleMonth), today);
         const toDate = minDate(endOfMonth(visibleMonth), maxBookableDate);
@@ -261,7 +266,8 @@ const PublicBooking = () => {
             setError('');
             const from = formatDateInput(fromDate);
             const to = formatDateInput(toDate);
-            const response = await api.get(`/appointments/public/${slug}/availability?from=${from}&to=${to}`);
+            const serviceQuery = encodeURIComponent(formData.serviceType);
+            const response = await api.get(`/appointments/public/${slug}/availability?from=${from}&to=${to}&serviceType=${serviceQuery}`);
             setAvailability(response.data);
         } catch (requestError: any) {
             setError(requestError.response?.data?.message || 'No fue posible cargar disponibilidad.');
@@ -291,13 +297,25 @@ const PublicBooking = () => {
         setExpandedDate(current => current === dayKey ? '' : dayKey);
     };
 
+    const handleServiceChange = (serviceType: string) => {
+        setFormData(current => ({ ...current, serviceType }));
+        setAvailability([]);
+        setSelectedSlot(null);
+        setExpandedDate('');
+    };
+
     const openCreateModal = (slot?: AvailabilitySlot) => {
+        if (!formData.serviceType) {
+            setError('Primero selecciona el servicio para calcular la duracion de la cita.');
+            return;
+        }
+
         const nextSlot = slot || selectedSlot || selectedDaySlots[0] || null;
         if (!nextSlot) return;
 
         setSelectedSlot(nextSlot);
         setError('');
-        setFormData(emptyForm);
+        setFormData(current => ({ ...emptyForm, serviceType: current.serviceType }));
         setIsBookingModalOpen(true);
     };
 
@@ -387,10 +405,20 @@ const PublicBooking = () => {
 
             <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
                 <aside className="w-full shrink-0 border-b border-slate-200 bg-slate-50 p-4 lg:h-[calc(100vh-4rem)] lg:w-80 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+                    <section className="mb-5 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                        <MotorcycleServicePicker
+                            services={serviceOptions}
+                            value={formData.serviceType}
+                            onChange={handleServiceChange}
+                            label="Servicio"
+                            emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios disponibles.'}
+                        />
+                    </section>
+
                     <button
                         type="button"
                         onClick={() => openCreateModal()}
-                        disabled={!selectedSlot && selectedDaySlots.length === 0}
+                        disabled={!formData.serviceType || (!selectedSlot && selectedDaySlots.length === 0)}
                         className="mb-5 inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-800 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Plus size={20} />
@@ -512,7 +540,9 @@ const PublicBooking = () => {
                                 );
                             })}
                             {!availabilityLoading && selectedDate && selectedDaySlots.length === 0 && (
-                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-400">Sin horarios disponibles.</p>
+                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-400">
+                                    {formData.serviceType ? 'Sin horarios disponibles.' : 'Selecciona un servicio para ver horarios.'}
+                                </p>
                             )}
                         </div>
                     </section>
@@ -635,12 +665,10 @@ const PublicBooking = () => {
                                     <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <MotorcycleServicePicker
-                                        services={serviceOptions}
-                                        value={formData.serviceType}
-                                        onChange={(serviceType) => setFormData({ ...formData, serviceType })}
-                                        emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios disponibles.'}
-                                    />
+                                    <label className="k-form-label">Servicio</label>
+                                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-bold text-blue-800">
+                                        {formData.serviceType}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="k-form-label">Placa</label>

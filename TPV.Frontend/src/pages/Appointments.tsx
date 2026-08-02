@@ -248,6 +248,7 @@ const Appointments = () => {
     const [appointmentForm, setAppointmentForm] = useState(emptyAppointmentForm);
     const [serviceOptions, setServiceOptions] = useState<MotorcycleServiceOption[]>([]);
     const [serviceOptionsLoading, setServiceOptionsLoading] = useState(false);
+    const [bookingServiceType, setBookingServiceType] = useState('');
 
     const selectedSchedule = useMemo(
         () => schedules.find(schedule => schedule.id.toString() === selectedScheduleId) || null,
@@ -307,7 +308,7 @@ const Appointments = () => {
             setAppointments([]);
             setAvailability([]);
         }
-    }, [selectedScheduleId, visibleMonth, maxBookableDate]);
+    }, [selectedScheduleId, visibleMonth, maxBookableDate, bookingServiceType]);
 
     useEffect(() => {
         if (!selectedScheduleId || availabilityLoading) return;
@@ -355,6 +356,13 @@ const Appointments = () => {
         }
     };
 
+    const handleBookingServiceChange = (serviceType: string) => {
+        setBookingServiceType(serviceType);
+        setSelectedSlot(null);
+        setExpandedDate('');
+        setAppointmentForm(form => ({ ...form, serviceType, startAt: '' }));
+    };
+
     const refreshSchedules = async () => {
         const response = await api.get('/appointments/schedules');
         setSchedules(response.data);
@@ -370,8 +378,9 @@ const Appointments = () => {
         const appointmentTo = formatDateInput(endOfMonth(visibleMonth));
         const availabilityFromDate = maxDate(startOfMonth(visibleMonth), today);
         const availabilityToDate = minDate(endOfMonth(visibleMonth), maxBookableDate);
-        const availabilityRequest = availabilityToDate >= availabilityFromDate
-            ? api.get(`/appointments/schedules/${selectedScheduleId}/availability?from=${formatDateInput(availabilityFromDate)}&to=${formatDateInput(availabilityToDate)}`)
+        const serviceQuery = bookingServiceType ? `&serviceType=${encodeURIComponent(bookingServiceType)}` : '';
+        const availabilityRequest = bookingServiceType && availabilityToDate >= availabilityFromDate
+            ? api.get(`/appointments/schedules/${selectedScheduleId}/availability?from=${formatDateInput(availabilityFromDate)}&to=${formatDateInput(availabilityToDate)}${serviceQuery}`)
             : Promise.resolve({ data: [] as AvailabilityDay[] });
 
         try {
@@ -507,12 +516,18 @@ const Appointments = () => {
     };
 
     const openAppointmentModal = (slot?: AvailabilitySlot) => {
+        if (!bookingServiceType) {
+            alert('Primero selecciona el servicio para calcular la duracion de la cita.');
+            return;
+        }
+
         const nextSlot = slot || selectedSlot || selectedDaySlots[0] || availableSlots[0] || null;
         if (!nextSlot) return;
 
         setSelectedSlot(nextSlot);
         setAppointmentForm({
             ...emptyAppointmentForm,
+            serviceType: bookingServiceType,
             startAt: nextSlot.startAt
         });
         setIsAppointmentModalOpen(true);
@@ -591,7 +606,7 @@ const Appointments = () => {
                 <div className="flex flex-col gap-2 sm:flex-row">
                     <button
                         onClick={() => openAppointmentModal()}
-                        disabled={!selectedSchedule || availableSlots.length === 0}
+                        disabled={!selectedSchedule || !bookingServiceType || availableSlots.length === 0}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <CalendarCheck size={18} className="mr-2" /> Nueva cita
@@ -685,6 +700,16 @@ const Appointments = () => {
                     )}
 
                     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <MotorcycleServicePicker
+                            services={serviceOptions}
+                            value={bookingServiceType}
+                            onChange={handleBookingServiceChange}
+                            label="Servicio para agendar"
+                            emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios configurados.'}
+                        />
+                    </section>
+
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="mb-3 text-sm font-extrabold text-slate-800">
                             {selectedDate ? formatDateLabel(selectedDate) : 'Selecciona un dia'}
                         </div>
@@ -710,7 +735,9 @@ const Appointments = () => {
                                 );
                             })}
                             {!availabilityLoading && selectedDate && selectedDaySlots.length === 0 && (
-                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-400">Sin horarios disponibles.</p>
+                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-400">
+                                    {bookingServiceType ? 'Sin horarios disponibles.' : 'Selecciona un servicio para ver horarios.'}
+                                </p>
                             )}
                         </div>
 
@@ -1084,12 +1111,10 @@ const Appointments = () => {
                                     <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={appointmentForm.customerEmail} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerEmail: event.target.value })} />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <MotorcycleServicePicker
-                                        services={serviceOptions}
-                                        value={appointmentForm.serviceType}
-                                        onChange={(serviceType) => setAppointmentForm({ ...appointmentForm, serviceType })}
-                                        emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios configurados.'}
-                                    />
+                                    <label className="k-form-label">Servicio</label>
+                                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-bold text-blue-800">
+                                        {appointmentForm.serviceType}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="k-form-label">Placa</label>
