@@ -115,6 +115,18 @@ const Layout = () => {
         );
     };
 
+    const activeRoute = navItems.reduce<any>((found, item: any) => {
+        if (found) return found;
+        if (item.submenu) {
+            const match = item.submenu.find((subItem: any) => subItem.path === location.pathname);
+            return match ? { ...match, group: item.label } : null;
+        }
+        return item.path === location.pathname ? { ...item, group: 'Inicio' } : null;
+    }, null);
+    const CurrentIcon = activeRoute?.icon || LayoutDashboard;
+    const currentTitle = activeRoute?.label || 'Dashboard';
+    const currentGroup = activeRoute?.group || 'Inicio';
+
     return (
         <div className="k-app-shell flex h-screen min-w-0 overflow-hidden">
             <div className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
@@ -157,6 +169,19 @@ const Layout = () => {
                     </button>
                 </div>
 
+                {isSidebarOpen && (
+                    <div className="mx-3 mt-3 rounded-lg border border-white/10 bg-white/[0.06] p-3">
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Estado del sistema</div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                Operativo
+                            </span>
+                            <span className="rounded-md bg-teal-400/10 px-2 py-1 text-[11px] font-bold text-teal-200">Kassa</span>
+                        </div>
+                    </div>
+                )}
+
                 <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
                     {navItems.map((item) => {
                         const Icon = item.icon;
@@ -175,7 +200,7 @@ const Layout = () => {
                                         className={clsx(
                                             "group relative flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-200",
                                             hasActiveChild
-                                                ? "bg-white/10 text-white"
+                                                ? "bg-white/14 text-white ring-1 ring-white/10"
                                                 : "text-slate-300 hover:bg-white/10 hover:text-white"
                                         )}
                                     >
@@ -225,7 +250,7 @@ const Layout = () => {
                                 className={clsx(
                                     "group relative mb-1 flex items-center rounded-lg px-3 py-2.5 transition-all duration-200",
                                     isActive
-                                        ? "bg-blue-600 text-white shadow-sm"
+                                        ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-300/30"
                                         : "text-slate-300 hover:bg-white/10 hover:text-white"
                                 )}
                             >
@@ -273,7 +298,31 @@ const Layout = () => {
             </aside>
 
             <main className="k-workspace relative flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
-                <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 md:p-8">
+                <div className="sticky top-0 z-20 hidden border-b border-slate-200/80 bg-white/88 px-6 py-3 backdrop-blur md:block">
+                    <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-blue-50 p-2 text-blue-700 ring-1 ring-blue-100">
+                                <CurrentIcon size={21} />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">{currentGroup}</div>
+                                <div className="text-lg font-extrabold leading-tight text-slate-950">{currentTitle}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 lg:block">
+                                Ambiente operativo
+                            </div>
+                            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-50 text-xs font-extrabold text-teal-700">
+                                    {user?.email?.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="max-w-[180px] truncate text-sm font-semibold text-slate-700">{user?.email}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="k-content-container mx-auto w-full max-w-[1500px] p-4 sm:p-6 md:p-8">
                     <Outlet />
                 </div>
             </main>

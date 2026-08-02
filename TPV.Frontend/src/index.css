@@ -68,12 +68,30 @@
 @layer components {
   .k-app-shell {
     background:
-      linear-gradient(180deg, rgb(248 250 252 / 0.92), rgb(244 247 251 / 1) 42%),
+      linear-gradient(180deg, rgb(248 250 252 / 0.96), rgb(239 244 250 / 1) 46%, rgb(244 247 251 / 1)),
       var(--k-bg);
   }
 
   .k-workspace {
     color: var(--k-text);
+    background:
+      linear-gradient(90deg, rgb(37 99 235 / 0.035) 0 1px, transparent 1px 100%),
+      linear-gradient(180deg, rgb(15 118 110 / 0.03), transparent 18rem);
+    background-size: 44px 44px, 100% 100%;
+  }
+
+  .k-content-container {
+    position: relative;
+  }
+
+  .k-content-container::before {
+    background: linear-gradient(90deg, var(--k-primary), var(--k-teal), var(--k-amber));
+    border-radius: 999px;
+    content: "";
+    display: block;
+    height: 4px;
+    margin-bottom: 1.25rem;
+    opacity: 0.92;
   }
 
   .k-page {
@@ -106,7 +124,7 @@
 
   .k-panel,
   .k-card {
-    background: var(--k-surface);
+    background: linear-gradient(180deg, #ffffff, #fbfdff);
     border: 1px solid var(--k-border);
     border-radius: var(--k-radius-lg);
     box-shadow: var(--k-shadow);
@@ -276,7 +294,15 @@
   .k-workspace .shadow-md,
   .k-workspace .shadow-lg,
   .k-workspace .shadow-xl {
-    box-shadow: var(--k-shadow);
+    border: 1px solid var(--k-border) !important;
+    box-shadow: var(--k-shadow) !important;
+  }
+
+  .k-workspace .shadow-md,
+  .k-workspace .rounded-xl.bg-white,
+  .k-workspace section.bg-white,
+  .k-workspace aside.bg-white {
+    background: linear-gradient(180deg, #ffffff, #fbfdff) !important;
   }
 
   .k-workspace .rounded-xl,
@@ -290,7 +316,7 @@
 
   .k-workspace .bg-gray-50,
   .k-workspace .bg-slate-50 {
-    background-color: var(--k-surface-muted);
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
   }
 
   .k-workspace .text-slate-800,
@@ -308,6 +334,98 @@
     border: 1px solid var(--k-border);
     border-radius: var(--k-radius-lg);
     box-shadow: var(--k-shadow-strong);
+  }
+
+  .k-workspace h1,
+  .k-workspace h2 {
+    color: var(--k-text);
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
+  .k-workspace h1 > svg,
+  .k-workspace h2 > svg {
+    background: var(--k-primary-soft);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--k-radius);
+    box-sizing: content-box;
+    color: var(--k-primary);
+    margin-right: 0.65rem;
+    padding: 0.5rem;
+  }
+
+  .k-workspace .bg-blue-600 {
+    background-color: var(--k-primary) !important;
+  }
+
+  .k-workspace .hover\:bg-blue-700:hover {
+    background-color: var(--k-primary-hover) !important;
+  }
+
+  .k-workspace .text-blue-600,
+  .k-workspace .text-blue-700 {
+    color: var(--k-primary-hover) !important;
+  }
+
+  .k-workspace .bg-green-600,
+  .k-workspace .bg-green-700 {
+    background-color: var(--k-green) !important;
+  }
+
+  .k-workspace .hover\:bg-green-700:hover,
+  .k-workspace .hover\:bg-green-800:hover {
+    background-color: #047857 !important;
+  }
+
+  .k-workspace .bg-red-600 {
+    background-color: var(--k-red) !important;
+  }
+
+  .k-workspace .hover\:bg-red-700:hover {
+    background-color: #b91c1c !important;
+  }
+
+  .k-workspace .border-gray-100,
+  .k-workspace .border-gray-200,
+  .k-workspace .border-slate-100,
+  .k-workspace .border-slate-200 {
+    border-color: var(--k-border) !important;
+  }
+
+  .k-workspace .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  .k-workspace .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #e8eef6 !important;
+  }
+
+  .k-workspace .rounded-lg.bg-white,
+  .k-workspace .rounded-xl.bg-white,
+  .k-workspace .rounded-2xl.bg-white {
+    border: 1px solid var(--k-border);
+  }
+
+  .k-workspace tbody tr:nth-child(even) {
+    background-color: rgb(248 250 252 / 0.72);
+  }
+
+  .k-workspace tbody tr:hover {
+    background-color: #eef6ff !important;
+  }
+
+  .k-workspace [class*="uppercase"] {
+    letter-spacing: 0.04em;
+  }
+
+  .k-workspace .fixed.inset-0 > .bg-white,
+  .k-workspace .fixed.inset-0 .bg-white.shadow-2xl {
+    border: 1px solid var(--k-border);
+    border-radius: var(--k-radius-lg);
+    box-shadow: var(--k-shadow-strong) !important;
+  }
+
+  .k-workspace input[readonly],
+  .k-workspace textarea[readonly] {
+    background: #f8fafc;
+    color: #475569;
   }
 }
 
