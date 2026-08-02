@@ -310,20 +310,26 @@ const Products = () => {
     );
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="font-bold text-2xl flex items-center text-slate-800">
-                    <Package className="mr-2" /> Productos
-                </h2>
+        <div className="k-page">
+            <div className="k-page-header flex-col sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-blue-50 p-2 text-blue-700">
+                        <Package size={24} />
+                    </div>
+                    <div>
+                        <h2 className="k-page-title">Productos</h2>
+                        <p className="k-page-subtitle">Administra repuestos, servicios, precios e impuestos.</p>
+                    </div>
+                </div>
                 <button 
                     onClick={() => handleOpenModal()}
-                    className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 sm:w-auto"
+                    className="k-button-primary w-full px-4 py-2 text-sm sm:w-auto"
                 >
                     <Plus size={20} className="mr-1" /> Nuevo Producto
                 </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 p-4">
+            <div className="k-card overflow-hidden p-4">
                 <div className="relative mb-4">
                     <Search className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input 
@@ -336,7 +342,7 @@ const Products = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left">
                         <thead className="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider">
                             <tr>
                                 <th className="p-4 border-b">SKU</th>
@@ -392,9 +398,9 @@ const Products = () => {
 
             {/* Modal producto */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto bg-white">
+                        <div className="k-panel-header sticky top-0 z-10 flex items-center justify-between px-6 py-4">
                             <h3 className="font-bold text-lg text-slate-800">
                                 {currentProduct ? 'Editar Producto' : 'Nuevo Producto'}
                             </h3>
@@ -619,13 +625,13 @@ const Products = () => {
                                 <button 
                                     type="button" 
                                     onClick={handleCloseModal}
-                                    className="rounded-lg px-4 py-2 text-gray-600 transition-colors hover:bg-gray-100"
+                                    className="k-button-secondary px-4 py-2 text-sm"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     type="submit" 
-                                    className="rounded-lg bg-blue-600 px-6 py-2 font-medium text-white shadow-md transition-all hover:bg-blue-700"
+                                    className="k-button-primary px-6 py-2 text-sm"
                                 >
                                     Guardar Producto
                                 </button>
@@ -637,9 +643,9 @@ const Products = () => {
 
             {/* Modal selección de categoría */}
             {isCategoryModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                    <div className="k-document flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden bg-white">
+                        <div className="k-panel-header flex items-center justify-between px-6 py-4">
                             <h3 className="font-bold text-lg text-slate-800">
                                 Seleccionar categoría
                             </h3>
@@ -679,7 +685,7 @@ const Products = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsCategoryModalOpen(false)}
-                                className="text-gray-600 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors"
+                                className="k-button-secondary px-4 py-2 text-sm"
                             >
                                 Cerrar
                             </button>

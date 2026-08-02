@@ -24,18 +24,18 @@ const Layout = () => {
 
     const navItems = [
         { path: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'Menus.Dashboard.View' },
-        { 
+        {
             label: 'Operaciones',
             icon: ShoppingCart,
             submenu: [
                 { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
-                { path: '/quotations', label: 'Cotizacion', icon: FileText, permission: 'Menus.Quotations.View' },
+                { path: '/quotations', label: 'Cotización', icon: FileText, permission: 'Menus.Quotations.View' },
                 { path: '/sales-history', label: 'Historial de Ventas', icon: FileText, permission: 'Menus.POS.View' },
                 { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
             ]
         },
-        { 
-            label: 'Ordenes de Servicio',
+        {
+            label: 'Órdenes de Servicio',
             icon: Wrench,
             submenu: [
                 { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity, permission: 'Menus.Workshop.View' },
@@ -47,8 +47,8 @@ const Layout = () => {
                 { path: '/warranties', label: 'Garantías', icon: Shield, permission: 'Menus.Workshop.View' },
             ]
         },
-        { 
-            label: 'Catalogos', 
+        {
+            label: 'Catálogos',
             icon: Boxes,
             submenu: [
                 { path: '/products', label: 'Productos', icon: Tags, permission: 'Menus.Products.View' },
@@ -60,8 +60,8 @@ const Layout = () => {
                 { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },
             ]
         },
-        { 
-            label: 'Movimientos', 
+        {
+            label: 'Movimientos',
             icon: ArrowLeftRight,
             submenu: [
                 { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
@@ -83,7 +83,7 @@ const Layout = () => {
     ];
 
     const hasPermission = (permission?: string) => {
-        if (!user?.tenantId) return true; // SuperAdmin has access to everything
+        if (!user?.tenantId) return true;
         if (!permission) return true;
         return user?.permissions?.includes(permission);
     };
@@ -95,7 +95,6 @@ const Layout = () => {
     }, [location.pathname]);
 
     useEffect(() => {
-        // Auto-expand menu if active item is inside
         navItems.forEach(item => {
             if (item.submenu) {
                 const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
@@ -105,106 +104,104 @@ const Layout = () => {
                 }
             }
         });
-    }, [location.pathname, user]); // Added user dependency
+    }, [location.pathname, user]);
 
     const toggleMenu = (label: string) => {
         if (!isSidebarOpen) setIsSidebarOpen(true);
-        setExpandedMenus(prev => 
-            prev.includes(label) 
+        setExpandedMenus(prev =>
+            prev.includes(label)
                 ? prev.filter(item => item !== label)
                 : [...prev, label]
         );
     };
 
     return (
-        <div className="flex h-screen min-w-0 bg-gray-50 overflow-hidden">
-            {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
+        <div className="k-app-shell flex h-screen min-w-0 overflow-hidden">
+            <div className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
                 <div className="flex items-center space-x-2">
-                    <img src={logo} alt="Kassa" className="w-8 h-8" />
-                    <h1 className="text-lg font-bold text-slate-800">Kassa</h1>
+                    <img src={logo} alt="Kassa" className="h-8 w-8 rounded-md bg-white object-contain shadow-sm" />
+                    <h1 className="text-lg font-extrabold tracking-tight text-slate-900">Kassa</h1>
                 </div>
-                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600 hover:bg-gray-100 rounded-lg">
+                <button onClick={() => setIsSidebarOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
                     <Menu size={24} />
                 </button>
             </div>
 
-            {/* Mobile Overlay */}
             {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                <div
+                    className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
-            <aside className={clsx(
-                "bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 shadow-xl z-40 flex flex-col",
-                "fixed inset-y-0 left-0 h-full max-w-[85vw] md:relative md:max-w-none",
-                isSidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0 md:w-20"
-            )}>
-                <div className="p-4 flex items-center justify-between border-b border-slate-700/50 h-16">
+            <aside
+                className={clsx(
+                    "z-40 flex h-full max-w-[85vw] flex-col text-white shadow-xl transition-all duration-300",
+                    "fixed inset-y-0 left-0 md:relative md:max-w-none",
+                    isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full md:w-20 md:translate-x-0"
+                )}
+                style={{ background: 'linear-gradient(180deg, var(--k-sidebar), var(--k-sidebar-2))' }}
+            >
+                <div className="flex h-16 items-center justify-between border-b border-white/10 p-4">
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">
-                             <img src={logo} alt="Kassa" className="w-8 h-8 bg-white p-1 rounded-lg object-contain shadow-lg shadow-blue-500/30" />
-                             <h1 className="text-xl font-bold tracking-tight">Kassa</h1>
+                            <img src={logo} alt="Kassa" className="h-9 w-9 rounded-lg bg-white p-1 object-contain shadow-sm" />
+                            <div>
+                                <h1 className="text-xl font-extrabold leading-none tracking-tight">Kassa</h1>
+                                <p className="mt-1 text-[11px] font-medium text-slate-400">Gestión comercial</p>
+                            </div>
                         </div>
                     )}
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors text-slate-400 hover:text-white">
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
                         <Menu size={20} />
                     </button>
                 </div>
-                
-                <nav className="mt-6 flex-1 px-3 space-y-1 overflow-y-auto">
+
+                <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
                     {navItems.map((item) => {
                         const Icon = item.icon;
-                        
+
                         if (item.submenu) {
-                            // Filter submenu items based on permissions
                             const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
-                            
-                            // If no subitems are visible, don't render the group
                             if (visibleSubItems.length === 0) return null;
 
                             const isExpanded = expandedMenus.includes(item.label);
                             const hasActiveChild = visibleSubItems.some(sub => sub.path === location.pathname);
-                            const isActive = hasActiveChild; 
 
                             return (
                                 <div key={item.label} className="mb-1">
                                     <button
                                         onClick={() => toggleMenu(item.label)}
                                         className={clsx(
-                                            "w-full flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200 group relative",
-                                            isActive && !isExpanded
-                                                ? "bg-blue-600/20 text-blue-300" 
-                                                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                            "group relative flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-200",
+                                            hasActiveChild
+                                                ? "bg-white/10 text-white"
+                                                : "text-slate-300 hover:bg-white/10 hover:text-white"
                                         )}
                                     >
                                         <div className="flex items-center">
-                                            <Icon size={22} className={clsx("flex-shrink-0 transition-transform duration-300", isActive ? "text-blue-400" : "")} />
-                                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">{item.label}</span>}
+                                            <Icon size={21} className={clsx("shrink-0 transition-transform duration-300", hasActiveChild ? "text-blue-300" : "")} />
+                                            {isSidebarOpen && <span className="ml-3 text-sm font-medium">{item.label}</span>}
                                         </div>
                                         {isSidebarOpen && (
                                             isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
                                         )}
                                     </button>
-                                    
-                                    {/* Submenu */}
-                                    <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isExpanded && isSidebarOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0")}>
-                                        <div className="bg-slate-900/30 rounded-lg py-1 ml-3 border-l border-slate-700">
+
+                                    <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isExpanded && isSidebarOpen ? "mt-1 max-h-96 opacity-100" : "max-h-0 opacity-0")}>
+                                        <div className="ml-3 rounded-lg border-l border-white/10 bg-black/15 py-1">
                                             {visibleSubItems.map((subItem) => {
                                                 const SubIcon = subItem.icon;
                                                 const isSubActive = location.pathname === subItem.path;
                                                 return (
-                                                    <Link 
-                                                        key={subItem.path} 
+                                                    <Link
+                                                        key={subItem.path}
                                                         to={subItem.path}
                                                         className={clsx(
-                                                            "flex items-center px-3 py-2 ml-2 rounded-lg transition-all duration-200 group relative text-sm",
-                                                            isSubActive 
-                                                                ? "text-blue-400 font-medium bg-blue-600/10" 
-                                                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                                            "group relative ml-2 flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200",
+                                                            isSubActive
+                                                                ? "bg-blue-500/20 font-semibold text-white"
+                                                                : "text-slate-400 hover:bg-white/10 hover:text-white"
                                                         )}
                                                     >
                                                         <SubIcon size={18} className="mr-3" />
@@ -218,25 +215,24 @@ const Layout = () => {
                             );
                         }
 
-                        // Check permission for single items
                         if (!hasPermission(item.permission)) return null;
 
                         const isActive = location.pathname === item.path;
                         return (
-                            <Link 
-                                key={item.path} 
-                                to={item.path!} 
+                            <Link
+                                key={item.path}
+                                to={item.path!}
                                 className={clsx(
-                                    "flex items-center px-3 py-3 rounded-lg transition-all duration-200 group relative mb-1",
-                                    isActive 
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" 
-                                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                    "group relative mb-1 flex items-center rounded-lg px-3 py-2.5 transition-all duration-200",
+                                    isActive
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-slate-300 hover:bg-white/10 hover:text-white"
                                 )}
                             >
-                                <Icon size={22} className={clsx("flex-shrink-0 transition-transform duration-300", isActive ? "scale-110" : "group-hover:scale-110")} />
-                                {isSidebarOpen && <span className="ml-3 font-medium text-sm">{item.label}</span>}
+                                <Icon size={21} className={clsx("shrink-0 transition-transform duration-300", isActive ? "scale-105" : "group-hover:scale-105")} />
+                                {isSidebarOpen && <span className="ml-3 text-sm font-medium">{item.label}</span>}
                                 {!isSidebarOpen && (
-                                    <div className="absolute left-14 bg-slate-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700">
+                                    <div className="pointer-events-none absolute left-14 z-50 whitespace-nowrap rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                                         {item.label}
                                     </div>
                                 )}
@@ -245,23 +241,23 @@ const Layout = () => {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-700/50 bg-slate-900/50 space-y-2">
-                     <button onClick={() => setIsChangePasswordOpen(true)} className="flex items-center px-3 py-2 text-slate-400 hover:bg-slate-700/50 hover:text-white rounded-lg w-full transition-colors group">
-                        <Key size={22} className="group-hover:text-blue-400 transition-colors" />
-                        {isSidebarOpen && <span className="ml-3 font-medium text-sm">Cambiar Contraseña</span>}
+                <div className="space-y-2 border-t border-white/10 bg-black/10 p-4">
+                    <button onClick={() => setIsChangePasswordOpen(true)} className="group flex w-full items-center rounded-lg px-3 py-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
+                        <Key size={21} className="transition-colors group-hover:text-blue-300" />
+                        {isSidebarOpen && <span className="ml-3 text-sm font-medium">Cambiar Contraseña</span>}
                     </button>
-                     <button onClick={handleLogout} className="flex items-center px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg w-full transition-colors group">
-                        <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
-                        {isSidebarOpen && <span className="ml-3 font-medium text-sm">Cerrar Sesión</span>}
+                    <button onClick={handleLogout} className="group flex w-full items-center rounded-lg px-3 py-2 text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200">
+                        <LogOut size={21} className="transition-transform group-hover:translate-x-1" />
+                        {isSidebarOpen && <span className="ml-3 text-sm font-medium">Cerrar Sesión</span>}
                     </button>
                     {isSidebarOpen && (
-                        <div className="mt-4 flex items-center px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+                        <div className="mt-4 flex items-center rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/15 text-xs font-bold text-blue-100">
                                 {user?.email?.charAt(0).toUpperCase()}
                             </div>
                             <div className="ml-3 overflow-hidden">
-                                <div className="text-xs font-medium text-white truncate">Usuario</div>
-                                <div className="text-xs text-slate-400 truncate w-32">{user?.email}</div>
+                                <div className="text-xs font-semibold text-white">Usuario</div>
+                                <div className="w-32 truncate text-xs text-slate-400">{user?.email}</div>
                             </div>
                         </div>
                     )}
@@ -276,17 +272,15 @@ const Layout = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="relative flex-1 min-w-0 overflow-auto bg-gray-50 pt-16 md:pt-0">
-                 {/* Top header could go here if needed */}
-                <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 md:p-8">
+            <main className="k-workspace relative flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
+                <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 md:p-8">
                     <Outlet />
                 </div>
             </main>
-            
-            <ChangePasswordModal 
-                isOpen={isChangePasswordOpen} 
-                onClose={() => setIsChangePasswordOpen(false)} 
+
+            <ChangePasswordModal
+                isOpen={isChangePasswordOpen}
+                onClose={() => setIsChangePasswordOpen(false)}
             />
         </div>
     );

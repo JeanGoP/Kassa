@@ -329,7 +329,7 @@ const POS = () => {
     return (
         <div className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[1600px] flex-col gap-4 sm:p-2 xl:h-[calc(100vh-96px)] xl:flex-row">
             {/* LEFT: Product Catalog */}
-            <div className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-white p-3 shadow-md sm:p-4 xl:min-h-0">
+            <div className="k-card flex min-h-[520px] flex-1 flex-col overflow-hidden p-3 sm:p-4 xl:min-h-0">
                 <div className="mb-4 relative">
                     <Search className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input 
@@ -349,7 +349,7 @@ const POS = () => {
                             {products.map(product => (
                                 <div 
                                     key={product.id} 
-                                    className="group cursor-pointer rounded-xl border border-gray-100 bg-white p-3 transition-all hover:border-blue-200 hover:shadow-lg sm:p-4"
+                                    className="group cursor-pointer rounded-lg border border-slate-200 bg-white p-3 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:p-4"
                                     onClick={() => addToCart(product)}
                                 >
                                     <div className="mb-3 flex h-24 items-center justify-center rounded-lg bg-slate-50 text-gray-300 transition-colors group-hover:bg-blue-50 sm:h-28">
@@ -361,7 +361,7 @@ const POS = () => {
                                     <p className="text-xs text-gray-500 mb-2">SKU: {product.sku}</p>
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span className="text-base font-bold text-blue-600 sm:text-lg">${product.price.toFixed(2)}</span>
-                                        <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", product.stockQuantity > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                                        <span className={clsx("k-badge", product.stockQuantity > 0 ? "k-badge-success" : "k-badge-danger")}>
                                             {product.stockQuantity} stock
                                         </span>
                                     </div>
@@ -373,7 +373,7 @@ const POS = () => {
             </div>
 
             {/* RIGHT: Cart & Checkout */}
-            <div className="flex w-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md xl:w-96 xl:shrink-0">
+            <div className="k-card flex w-full flex-col overflow-hidden xl:w-96 xl:shrink-0">
                 {/* Customer Section */}
                 <div className="p-4 bg-slate-50 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-2">
@@ -476,7 +476,7 @@ const POS = () => {
                     ) : (
                         <div className="space-y-3">
                             {cart.map(item => (
-                                <div key={item.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center group">
+                                <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 shadow-sm group">
                                     <div className="flex-1 min-w-0 mr-3">
                                         <h4 className="font-medium text-gray-800 truncate text-sm">{item.name}</h4>
                                         <div className="flex items-center text-xs text-gray-500 mt-1">
@@ -519,19 +519,19 @@ const POS = () => {
                     <button 
                         onClick={handleInitiateCheckout}
                         disabled={cart.length === 0}
-                        className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-blue-500/30 transition-all transform active:scale-95"
+                        className="k-button-primary w-full py-4 text-lg disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <CreditCard size={24} /> 
-                        <span>PAGAR ${total.toFixed(2)}</span>
+                        <span>Pagar ${total.toFixed(2)}</span>
                     </button>
                 </div>
             </div>
 
             {/* Payment Modal */}
             {showPaymentModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto bg-white animate-in fade-in zoom-in duration-200">
+                        <div className="k-panel-header flex items-center justify-between px-6 py-4">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center">
                                 <CreditCard className="mr-2 text-blue-600" /> Método de Pago
                             </h3>
@@ -595,7 +595,7 @@ const POS = () => {
                             <button 
                                 onClick={processSale}
                                 disabled={processing || amountPaid < Number(total.toFixed(2))}
-                                className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-green-500/30 transition-all"
+                                className="k-button-success w-full py-4 text-lg disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {processing ? (
                                     <span>Procesando...</span>
@@ -612,8 +612,8 @@ const POS = () => {
 
             {/* Ticket Modal */}
             {showTicketModal && lastSale && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden bg-white animate-in fade-in zoom-in duration-200">
                         <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
                             <h3 className="font-bold text-lg flex items-center">
                                 <Check className="mr-2 text-green-400" /> Venta Exitosa
@@ -701,15 +701,15 @@ const POS = () => {
                         <div className="flex flex-col gap-3 border-t bg-white p-4 sm:flex-row">
                             <button 
                                 onClick={() => window.print()} 
-                                className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 flex justify-center items-center gap-2"
+                                className="k-button-secondary flex-1 py-3"
                             >
                                 <Printer size={20} /> Imprimir
                             </button>
                             <button 
                                 onClick={() => setShowTicketModal(false)}
-                                className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 flex justify-center items-center gap-2"
+                                className="k-button-primary flex-1 py-3"
                             >
-                                Nuevo Venta
+                                Nueva Venta
                             </button>
                         </div>
                     </div>
@@ -717,9 +717,9 @@ const POS = () => {
             )}
             {/* Create Customer Modal */}
             {showCreateCustomerModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto bg-white animate-in fade-in zoom-in duration-200">
+                        <div className="k-panel-header flex items-center justify-between px-6 py-4">
                             <h3 className="font-bold text-lg text-slate-800 flex items-center">
                                 <UserPlus className="mr-2 text-blue-600" /> Crear Cliente
                             </h3>
@@ -906,7 +906,7 @@ const POS = () => {
                             <button 
                                 onClick={handleCreateCustomer}
                                 disabled={creatingCustomer}
-                                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-blue-700 flex justify-center items-center gap-2 shadow-lg shadow-blue-500/30 transition-all"
+                                className="k-button-primary mt-6 w-full py-3 text-lg"
                             >
                                 {creatingCustomer ? (
                                     <span>Guardando...</span>

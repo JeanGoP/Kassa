@@ -1,21 +1,21 @@
 import { useAuth } from '../context/AuthContext';
-import { 
-    ShoppingCart, 
-    Package, 
-    DollarSign, 
-    FileBarChart, 
-    TrendingUp, 
-    Users, 
+import {
+    ShoppingCart,
+    Package,
+    DollarSign,
+    FileBarChart,
+    TrendingUp,
+    Users,
     Calendar,
     ArrowUpRight,
     ArrowDownRight,
     Activity
 } from 'lucide-react';
-import { 
-    XAxis, 
-    YAxis, 
-    CartesianGrid, 
-    Tooltip, 
+import {
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
     ResponsiveContainer,
     AreaChart,
     Area,
@@ -36,13 +36,13 @@ interface DashboardData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    'FINALIZADA': '#10b981', // emerald-500
-    'EN PROCESO': '#3b82f6',  // blue-500
-    'PENDIENTE': '#f59e0b',   // amber-500
-    'CANCELADA': '#ef4444',   // red-500
-    'EN DIAGNOSTICO': '#8b5cf6', // violet-500
-    'EN ESPERA': '#64748b',   // slate-500
-    'DEFAULT': '#94a3b8'      // slate-400
+    'FINALIZADA': '#059669',
+    'EN PROCESO': '#2563eb',
+    'PENDIENTE': '#d97706',
+    'CANCELADA': '#dc2626',
+    'EN DIAGNOSTICO': '#0f766e',
+    'EN ESPERA': '#64748b',
+    'DEFAULT': '#94a3b8'
 };
 
 const Dashboard = () => {
@@ -67,7 +67,6 @@ const Dashboard = () => {
         fetchData();
     }, []);
 
-    // Transform data for charts
     const revenueData = data?.revenueExpenseStats?.map(stat => ({
         name: new Date(stat.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
         income: stat.income,
@@ -77,116 +76,121 @@ const Dashboard = () => {
     const serviceStatusData = data?.orderStatusStats?.map(stat => ({
         name: stat.status,
         value: stat.count,
-        color: STATUS_COLORS[stat.status] || STATUS_COLORS['DEFAULT']
+        color: STATUS_COLORS[stat.status] || STATUS_COLORS.DEFAULT
     })) || [];
 
     const totalOrders = serviceStatusData.reduce((acc, curr) => acc + curr.value, 0);
 
-    // Metric Card Component
     const MetricCard = ({ title, value, change, icon: Icon, trend }: any) => (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
+        <div className="k-card p-5 transition-transform hover:-translate-y-0.5">
+            <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-sm font-medium text-slate-500">{title}</p>
-                    <h3 className="text-2xl font-bold text-slate-800 mt-1">{value}</h3>
+                    <p className="text-sm font-bold uppercase tracking-wide text-slate-500">{title}</p>
+                    <h3 className="mt-2 text-2xl font-extrabold text-slate-900">{value}</h3>
                 </div>
-                <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                    <Icon size={20} />
+                <div className={`rounded-lg p-2.5 ${trend === 'up' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                    <Icon size={21} />
                 </div>
             </div>
             <div className="flex items-center text-sm">
                 {change && (
-                    <span className={`flex items-center font-medium ${trend === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`flex items-center font-bold ${trend === 'up' ? 'text-emerald-700' : 'text-amber-700'}`}>
                         {trend === 'up' ? <ArrowUpRight size={16} className="mr-1" /> : <ArrowDownRight size={16} className="mr-1" />}
                         {change}
                     </span>
                 )}
-                <span className="text-slate-400 ml-2">vs mes anterior</span>
+                <span className="ml-2 text-slate-500">vs mes anterior</span>
             </div>
         </div>
     );
 
     if (loading) {
-        return <div className="p-6 flex justify-center items-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
+        return (
+            <div className="flex min-h-[360px] items-center justify-center">
+                <div className="k-card flex items-center gap-3 px-5 py-4 text-sm font-semibold text-slate-600">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-b-blue-600" />
+                    Cargando panel de control
+                </div>
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div className="p-6 flex flex-col justify-center items-center h-full text-center">
-                <div className="text-red-500 mb-2">
-                    <Activity size={48} className="mx-auto mb-2" />
-                    <h3 className="text-lg font-bold">Error de conexión</h3>
+            <div className="flex min-h-[360px] items-center justify-center p-4">
+                <div className="k-card max-w-md p-6 text-center">
+                    <Activity size={44} className="mx-auto mb-3 text-red-600" />
+                    <h3 className="text-lg font-extrabold text-slate-900">Error de conexión</h3>
+                    <p className="mt-2 text-sm text-slate-500">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="k-button-primary mt-5 px-4 py-2 text-sm"
+                    >
+                        Reintentar
+                    </button>
                 </div>
-                <p className="text-slate-500">{error}</p>
-                <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    Reintentar
-                </button>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="k-page">
+            <div className="k-page-header flex-col lg:flex-row lg:items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Panel de Control</h1>
-                    <p className="text-slate-500 mt-1">Bienvenido de nuevo, {user?.firstName || user?.email}</p>
+                    <h1 className="k-page-title">Panel de Control</h1>
+                    <p className="k-page-subtitle">Bienvenido de nuevo, {user?.firstName || user?.email}. Resumen operativo de ventas, taller e inventario.</p>
                 </div>
-                <div className="flex items-center space-x-3 mt-4 md:mt-0">
-                    <button className="flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
-                        <Calendar size={16} className="mr-2" />
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button className="k-button-secondary w-full px-4 py-2 text-sm sm:w-auto">
+                        <Calendar size={16} />
                         Últimos 30 días
                     </button>
-                    <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors shadow-sm shadow-blue-200">
-                        <TrendingUp size={16} className="mr-2" />
+                    <button className="k-button-primary w-full px-4 py-2 text-sm sm:w-auto">
+                        <TrendingUp size={16} />
                         Ver Reportes
                     </button>
                 </div>
             </div>
 
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <MetricCard 
-                    title="Ventas Totales" 
-                    value={`$${(data?.totalRevenue || 0).toLocaleString('es-CO')}`} 
-                    change="--%" 
-                    icon={DollarSign} 
-                    trend="up" 
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard
+                    title="Ventas Totales"
+                    value={`$${(data?.totalRevenue || 0).toLocaleString('es-CO')}`}
+                    change="--%"
+                    icon={DollarSign}
+                    trend="up"
                 />
-                <MetricCard 
-                    title="Órdenes Activas" 
+                <MetricCard
+                    title="Órdenes Activas"
                     value={data?.openOrders || 0}
-                    change="--%" 
-                    icon={Activity} 
-                    trend="up" 
+                    change="--%"
+                    icon={Activity}
+                    trend="up"
                 />
-                <MetricCard 
-                    title="Inventario Bajo" 
+                <MetricCard
+                    title="Inventario Bajo"
                     value={`${data?.lowStockCount || 0} Productos`}
-                    change="--%" 
-                    icon={Package} 
-                    trend="down" 
+                    change="--%"
+                    icon={Package}
+                    trend="down"
                 />
-                <MetricCard 
-                    title="Nuevos Clientes" 
+                <MetricCard
+                    title="Nuevos Clientes"
                     value={data?.newCustomersCount || 0}
-                    change="--%" 
-                    icon={Users} 
-                    trend="up" 
+                    change="--%"
+                    icon={Users}
+                    trend="up"
                 />
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Revenue Chart */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-slate-800">Tendencia de Ingresos</h3>
-                        <select className="bg-slate-50 border border-slate-200 rounded-lg text-sm p-2 outline-none focus:ring-2 focus:ring-blue-100">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className="k-card p-5 xl:col-span-2">
+                    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h3 className="k-section-title">Tendencia de Ingresos</h3>
+                            <p className="mt-1 text-sm text-slate-500">Comportamiento reciente de ingresos del negocio.</p>
+                        </div>
+                        <select className="text-sm">
                             <option>Últimos 7 días</option>
                         </select>
                     </div>
@@ -195,36 +199,36 @@ const Dashboard = () => {
                             <AreaChart data={revenueData}>
                                 <defs>
                                     <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.14} />
+                                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(value) => `$${value}`} />
-                                <Tooltip 
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `$${value}`} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: '1px solid #dbe3ef', boxShadow: '0 12px 32px rgb(15 23 42 / 0.14)' }}
                                     formatter={(value: any) => [`$${value}`, 'Ingresos']}
                                 />
-                                <Area type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                                <Area type="monotone" dataKey="income" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Service Status Chart */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-800 mb-6">Estado de Servicios</h3>
-                    <div className="h-64 w-full relative">
+                <div className="k-card p-5">
+                    <h3 className="k-section-title">Estado de Servicios</h3>
+                    <p className="mt-1 text-sm text-slate-500">Distribución de órdenes por estado.</p>
+                    <div className="relative mt-4 h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={serviceStatusData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
+                                    innerRadius={62}
+                                    outerRadius={82}
+                                    paddingAngle={4}
                                     dataKey="value"
                                 >
                                     {serviceStatusData.map((entry, index) => (
@@ -234,11 +238,10 @@ const Dashboard = () => {
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
-                        {/* Center Text */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                             <div className="text-center">
-                                <span className="block text-2xl font-bold text-slate-800">{totalOrders}</span>
-                                <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+                                <span className="block text-2xl font-extrabold text-slate-900">{totalOrders}</span>
+                                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Total</span>
                             </div>
                         </div>
                     </div>
@@ -246,38 +249,39 @@ const Dashboard = () => {
                         {serviceStatusData.map((item, index) => (
                             <div key={index} className="flex items-center justify-between text-sm">
                                 <div className="flex items-center">
-                                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: item.color }}></div>
+                                    <div className="mr-2 h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
                                     <span className="text-slate-600">{item.name}</span>
                                 </div>
-                                <span className="font-medium text-slate-800">{item.value}</span>
+                                <span className="font-bold text-slate-900">{item.value}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Quick Actions Grid */}
-            <h3 className="text-lg font-bold text-slate-800 mt-8 mb-4">Accesos Rápidos</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    { title: 'Nueva Venta', icon: ShoppingCart, color: 'bg-blue-500', link: '/pos' },
-                    { title: 'Inventario', icon: Package, color: 'bg-emerald-500', link: '/inventory' },
-                    { title: 'Caja', icon: DollarSign, color: 'bg-violet-500', link: '/cash' },
-                    { title: 'Reportes', icon: FileBarChart, color: 'bg-amber-500', link: '/reports' },
-                ].map((action, idx) => {
-                    const Icon = action.icon;
-                    return (
-                        <a href={action.link} key={idx} className="group bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-100 transition-all flex items-center space-x-4">
-                            <div className={`${action.color} p-3 rounded-lg text-white shadow-sm group-hover:scale-110 transition-transform`}>
-                                <Icon size={24} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{action.title}</h4>
-                                <p className="text-xs text-slate-400">Ir a módulo</p>
-                            </div>
-                        </a>
-                    );
-                })}
+            <div>
+                <h3 className="mb-3 text-lg font-extrabold text-slate-900">Accesos Rápidos</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                        { title: 'Nueva Venta', icon: ShoppingCart, color: 'bg-blue-600', link: '/pos' },
+                        { title: 'Inventario', icon: Package, color: 'bg-emerald-600', link: '/inventory' },
+                        { title: 'Caja', icon: DollarSign, color: 'bg-slate-700', link: '/cash' },
+                        { title: 'Reportes', icon: FileBarChart, color: 'bg-amber-600', link: '/reports' },
+                    ].map((action, idx) => {
+                        const Icon = action.icon;
+                        return (
+                            <a href={action.link} key={idx} className="k-card group flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5">
+                                <div className={`${action.color} rounded-lg p-3 text-white shadow-sm transition-transform group-hover:scale-105`}>
+                                    <Icon size={23} />
+                                </div>
+                                <div>
+                                    <h4 className="font-extrabold text-slate-800 transition-colors group-hover:text-blue-700">{action.title}</h4>
+                                    <p className="text-xs font-medium text-slate-500">Ir a módulo</p>
+                                </div>
+                            </a>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

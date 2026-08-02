@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowRight, Lock, Mail } from 'lucide-react';
 import api from '../api/axios';
 import logo from '../assets/Logo.png';
 
@@ -31,71 +32,95 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all hover:scale-105">
-                <div className="flex justify-center mb-6">
-                    <img src={logo} alt="Kassa Logo" className="w-20 h-20 object-contain drop-shadow-xl" />
+        <div className="flex min-h-screen items-center justify-center bg-[#101828] px-4 py-8">
+            <div className="grid w-full max-w-5xl overflow-hidden rounded-[14px] bg-white shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="hidden bg-[#172033] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+                    <div>
+                        <div className="mb-10 flex items-center gap-3">
+                            <img src={logo} alt="Kassa" className="h-12 w-12 rounded-xl bg-white p-2 object-contain" />
+                            <div>
+                                <h1 className="text-2xl font-extrabold leading-none">Kassa</h1>
+                                <p className="mt-1 text-sm text-slate-300">Gestión comercial y taller</p>
+                            </div>
+                        </div>
+                        <h2 className="max-w-md text-4xl font-extrabold leading-tight tracking-tight">
+                            Control claro para vender, cotizar y operar el taller.
+                        </h2>
+                        <p className="mt-5 max-w-md text-sm leading-6 text-slate-300">
+                            Una experiencia diseñada para trabajar rápido, leer mejor la información y mantener el negocio en orden.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                            <div className="font-extrabold">POS</div>
+                            <div className="mt-1 text-xs text-slate-400">Ventas</div>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                            <div className="font-extrabold">Stock</div>
+                            <div className="mt-1 text-xs text-slate-400">Inventario</div>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                            <div className="font-extrabold">Taller</div>
+                            <div className="mt-1 text-xs text-slate-400">Órdenes</div>
+                        </div>
+                    </div>
                 </div>
-                <h2 className="text-3xl font-bold mb-2 text-center text-slate-800">Bienvenido</h2>
-                <p className="text-center text-gray-500 mb-8">Inicia sesión en Kassa</p>
-                
-                {error && (
-                    <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6 text-sm flex items-center animate-pulse">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        {error}
-                    </div>
-                )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Correo Electrónico</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                                </svg>
-                            </div>
-                            <input 
-                                type="email" 
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="ejemplo@kassa.com"
-                                required
-                            />
-                        </div>
+                <div className="k-login-card p-6 sm:p-8 lg:p-10">
+                    <div className="mb-8 flex justify-center lg:hidden">
+                        <img src={logo} alt="Kassa Logo" className="h-20 w-20 object-contain" />
                     </div>
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Contraseña</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <input 
-                                type="password" 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
-                                required
-                            />
-                        </div>
+                    <div className="mb-8">
+                        <p className="text-sm font-extrabold uppercase tracking-wide text-blue-700">Acceso seguro</p>
+                        <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Bienvenido</h2>
+                        <p className="mt-2 text-sm text-slate-500">Inicia sesión para continuar con la operación.</p>
                     </div>
-                    <button 
-                        type="submit" 
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all transform hover:-translate-y-1 shadow-lg font-bold flex justify-center items-center"
-                    >
-                        Ingresar
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                    </button>
-                </form>
+
+                    {error && (
+                        <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                            <AlertCircle size={20} className="mt-0.5 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="mb-2 ml-1 block text-sm">Correo Electrónico</label>
+                            <div className="relative">
+                                <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={19} />
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full py-3 pl-10 pr-4"
+                                    placeholder="ejemplo@kassa.com"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="mb-2 ml-1 block text-sm">Contraseña</label>
+                            <div className="relative">
+                                <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={19} />
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full py-3 pl-10 pr-4"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            className="k-button-primary w-full px-4 py-3 text-base"
+                        >
+                            Ingresar
+                            <ArrowRight size={19} />
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );
