@@ -41,17 +41,25 @@ namespace TPV.Application.Services
 
         public async Task<IEnumerable<MotorcycleServiceDto>> GetAllAsync(string? search = null)
         {
-            await EnsureDefaultsAsync(_currentTenantService.TenantId ?? 0);
+            var tenantId = await ResolveCatalogTenantIdAsync();
+            if (!tenantId.HasValue)
+            {
+                return Enumerable.Empty<MotorcycleServiceDto>();
+            }
+
+            await EnsureDefaultsAsync(tenantId.Value);
+            await DeactivateDuplicateServicesAsync(tenantId.Value);
 
             var normalizedSearch = search?.Trim();
             var services = await _repository.GetAsync(
                 predicate: service => service.IsActive &&
+                    service.TenantId == tenantId.Value &&
                     (string.IsNullOrEmpty(normalizedSearch) ||
                      service.Name.Contains(normalizedSearch) ||
                      (service.Description != null && service.Description.Contains(normalizedSearch))),
                 orderBy: query => query.OrderBy(service => service.DisplayOrder).ThenBy(service => service.Name));
 
-            return services.Select(MapToDto);
+            return DeduplicateByName(services).Select(MapToDto);
         }
 
         public async Task<IEnumerable<MotorcycleServiceDto>> GetPublicByScheduleSlugAsync(string slug, string? search = null)
@@ -87,11 +95,14 @@ namespace TPV.Application.Services
 
         public async Task<MotorcycleServiceDto> CreateAsync(CreateMotorcycleServiceDto dto)
         {
+            var tenantId = await ResolveCatalogTenantIdAsync()
+                ?? throw new Exception("No se pudo determinar la empresa del catalogo de servicios.");
             var name = CleanName(dto.Name);
-            await EnsureUniqueNameAsync(name);
+            await EnsureUniqueNameAsync(name, tenantId);
 
             var entity = new MotorcycleService
             {
+                TenantId = tenantId,
                 Name = name,
                 Description = CleanOptional(dto.Description),
                 EstimatedMinutes = NormalizeMinutes(dto.EstimatedMinutes),
@@ -112,7 +123,7 @@ namespace TPV.Application.Services
             }
 
             var name = CleanName(dto.Name);
-            await EnsureUniqueNameAsync(name, id);
+            await EnsureUniqueNameAsync(name, entity.TenantId, id);
 
             entity.Name = name;
             entity.Description = CleanOptional(dto.Description);
@@ -135,6 +146,8 @@ namespace TPV.Application.Services
 
         private async Task EnsureDefaultsAsync(int tenantId)
         {
+            if (tenantId <= 0) return;
+
             var existing = await _repository.GetAsync(
                 predicate: service => service.TenantId == tenantId);
 
@@ -154,9 +167,55 @@ namespace TPV.Application.Services
             }
         }
 
-        private async Task EnsureUniqueNameAsync(string name, int? currentId = null)
+        private async Task<int?> ResolveCatalogTenantIdAsync()
         {
-            var tenantId = _currentTenantService.TenantId ?? 0;
+            var currentTenantId = _currentTenantService.TenantId;
+            if (currentTenantId.HasValue && currentTenantId.Value > 0)
+            {
+                return currentTenantId.Value;
+            }
+
+            var schedule = (await _scheduleRepository.GetAsync(
+                predicate: item => item.IsActive && item.TenantId > 0,
+                orderBy: query => query.OrderBy(item => item.Id)))
+                .FirstOrDefault();
+
+            if (schedule != null)
+            {
+                return schedule.TenantId;
+            }
+
+            var service = (await _repository.GetAsync(
+                predicate: item => item.TenantId > 0,
+                orderBy: query => query.OrderBy(item => item.TenantId).ThenBy(item => item.DisplayOrder).ThenBy(item => item.Name)))
+                .FirstOrDefault();
+
+            return service?.TenantId;
+        }
+
+        private async Task DeactivateDuplicateServicesAsync(int tenantId)
+        {
+            var activeServices = await _repository.GetAsync(
+                predicate: service => service.IsActive && service.TenantId == tenantId,
+                orderBy: query => query.OrderBy(service => service.DisplayOrder).ThenBy(service => service.Name).ThenBy(service => service.Id),
+                disableTracking: false);
+
+            var duplicates = activeServices
+                .GroupBy(service => NormalizeName(service.Name))
+                .Where(group => !string.IsNullOrWhiteSpace(group.Key) && group.Count() > 1)
+                .SelectMany(group => group.Skip(1))
+                .ToList();
+
+            foreach (var duplicate in duplicates)
+            {
+                duplicate.IsActive = false;
+                duplicate.UpdatedAt = DateTime.UtcNow;
+                await _repository.UpdateAsync(duplicate);
+            }
+        }
+
+        private async Task EnsureUniqueNameAsync(string name, int tenantId, int? currentId = null)
+        {
             var duplicates = await _repository.GetAsync(
                 predicate: service => service.IsActive &&
                     service.TenantId == tenantId &&
@@ -188,6 +247,20 @@ namespace TPV.Application.Services
         {
             if (!minutes.HasValue) return null;
             return Math.Clamp(minutes.Value, 5, 600);
+        }
+
+        private static IEnumerable<MotorcycleService> DeduplicateByName(IEnumerable<MotorcycleService> services)
+        {
+            return services
+                .GroupBy(service => NormalizeName(service.Name))
+                .Select(group => group.OrderBy(service => service.DisplayOrder).ThenBy(service => service.Id).First())
+                .OrderBy(service => service.DisplayOrder)
+                .ThenBy(service => service.Name);
+        }
+
+        private static string NormalizeName(string value)
+        {
+            return (value ?? string.Empty).Trim().ToUpperInvariant();
         }
 
         private static MotorcycleServiceDto MapToDto(MotorcycleService service)
