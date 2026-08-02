@@ -148,6 +148,7 @@ const PublicBooking = () => {
     const [visibleMonth, setVisibleMonth] = useState(startOfMonth(today));
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
+    const [expandedDate, setExpandedDate] = useState('');
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [formData, setFormData] = useState(emptyForm);
     const [createdAppointment, setCreatedAppointment] = useState<CreatedAppointment | null>(null);
@@ -216,6 +217,7 @@ const PublicBooking = () => {
             setVisibleMonth(startOfMonth(today));
             setSelectedDate('');
             setSelectedSlot(null);
+            setExpandedDate('');
         } catch (requestError: any) {
             setError(requestError.response?.data?.message || 'No fue posible cargar la agenda.');
         } finally {
@@ -254,12 +256,19 @@ const PublicBooking = () => {
         setAvailability([]);
         setSelectedDate('');
         setSelectedSlot(null);
+        setExpandedDate('');
     };
 
     const selectDay = (day: CalendarDay) => {
         if (!day.isCurrentMonth || day.date < today || day.date > maxBookableDate) return;
         setSelectedDate(day.key);
         setSelectedSlot(null);
+    };
+
+    const toggleExpandedDate = (dayKey: string) => {
+        setSelectedDate(dayKey);
+        setSelectedSlot(null);
+        setExpandedDate(current => current === dayKey ? '' : dayKey);
     };
 
     const openCreateModal = (slot?: AvailabilitySlot) => {
@@ -470,7 +479,7 @@ const PublicBooking = () => {
                                     <button
                                         key={slot.startAt}
                                         type="button"
-                                        onClick={() => setSelectedSlot(slot)}
+                                        onClick={() => openCreateModal(slot)}
                                         className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-bold transition ${isSelected
                                             ? 'border-blue-600 bg-blue-600 text-white'
                                             : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
@@ -501,8 +510,9 @@ const PublicBooking = () => {
                             {calendarDays.map(day => {
                                 const dayAvailability = availabilityByDate.get(day.key);
                                 const slots = dayAvailability?.slots || [];
-                                const visibleSlots = slots.slice(0, 4);
-                                const hiddenCount = slots.length - visibleSlots.length;
+                                const isExpanded = expandedDate === day.key;
+                                const visibleSlots = isExpanded ? slots : slots.slice(0, 4);
+                                const hiddenCount = isExpanded ? 0 : slots.length - visibleSlots.length;
                                 const isBookable = day.isCurrentMonth && day.date >= today && day.date <= maxBookableDate;
                                 const isSelected = selectedDate === day.key;
                                 const isToday = isSameDay(day.date, today);
@@ -556,8 +566,7 @@ const PublicBooking = () => {
                                                     type="button"
                                                     onClick={(event) => {
                                                         event.stopPropagation();
-                                                        setSelectedDate(day.key);
-                                                        setSelectedSlot(null);
+                                                        toggleExpandedDate(day.key);
                                                     }}
                                                     className="w-full rounded-md px-2 py-1 text-left text-xs font-bold text-blue-600 hover:bg-blue-50"
                                                 >

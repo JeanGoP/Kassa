@@ -236,6 +236,7 @@ const Appointments = () => {
     const [visibleMonth, setVisibleMonth] = useState(startOfMonth(today));
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
+    const [expandedDate, setExpandedDate] = useState('');
     const [loading, setLoading] = useState(true);
     const [availabilityLoading, setAvailabilityLoading] = useState(false);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -376,6 +377,7 @@ const Appointments = () => {
         setVisibleMonth(startOfMonth(today));
         setSelectedDate('');
         setSelectedSlot(null);
+        setExpandedDate('');
     };
 
     const changeMonth = (direction: number) => {
@@ -384,18 +386,26 @@ const Appointments = () => {
         setAppointments([]);
         setSelectedDate('');
         setSelectedSlot(null);
+        setExpandedDate('');
     };
 
     const goToToday = () => {
         setVisibleMonth(startOfMonth(today));
         setSelectedDate(formatDateInput(today));
         setSelectedSlot(null);
+        setExpandedDate('');
     };
 
     const selectDay = (day: CalendarDay) => {
         if (!day.isCurrentMonth) return;
         setSelectedDate(day.key);
         setSelectedSlot(null);
+    };
+
+    const toggleExpandedDate = (dayKey: string) => {
+        setSelectedDate(dayKey);
+        setSelectedSlot(null);
+        setExpandedDate(current => current === dayKey ? '' : dayKey);
     };
 
     const openScheduleModal = (schedule?: AppointmentSchedule) => {
@@ -772,8 +782,9 @@ const Appointments = () => {
                                         const slots = dayAvailability?.slots || [];
                                         const visibleAppointments = dayAppointments.slice(0, 2);
                                         const slotLimit = visibleAppointments.length > 0 ? 3 : 4;
-                                        const visibleSlots = slots.slice(0, slotLimit);
-                                        const hiddenCount = slots.length - visibleSlots.length;
+                                        const isExpanded = expandedDate === day.key;
+                                        const visibleSlots = isExpanded ? slots : slots.slice(0, slotLimit);
+                                        const hiddenCount = isExpanded ? 0 : slots.length - visibleSlots.length;
                                         const isBookable = day.isCurrentMonth && day.date >= today && day.date <= maxBookableDate;
                                         const isSelected = selectedDate === day.key;
                                         const isToday = isSameDay(day.date, today);
@@ -838,14 +849,13 @@ const Appointments = () => {
                                                     })}
                                                     {hiddenCount > 0 && (
                                                         <button
-                                                            type="button"
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                setSelectedDate(day.key);
-                                                                setSelectedSlot(null);
-                                                            }}
-                                                            className="w-full rounded-md px-2 py-1 text-left text-xs font-bold text-blue-600 hover:bg-blue-50"
-                                                        >
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            toggleExpandedDate(day.key);
+                                                        }}
+                                                        className="w-full rounded-md px-2 py-1 text-left text-xs font-bold text-blue-600 hover:bg-blue-50"
+                                                    >
                                                             + {hiddenCount} horarios
                                                         </button>
                                                     )}
