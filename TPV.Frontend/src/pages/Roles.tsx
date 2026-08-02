@@ -33,6 +33,7 @@ const permissionTranslations: { [key: string]: string } = {
     'Menus.Purchases.View': 'Ver Compras y Entradas de Stock',
     'Menus.Workshop.View': 'Ver Taller y Órdenes de Servicio',
     'Menus.Products.View': 'Ver Catálogo de Productos y Categorías',
+    'Menus.MotorcycleServices.View': 'Ver Catalogo de Servicios de Moto',
     'Menus.Customers.View': 'Ver Gestión de Clientes',
     'Menus.Suppliers.View': 'Ver Gestión de Proveedores',
     'Menus.Technicians.View': 'Ver Gestión de Técnicos',

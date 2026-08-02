@@ -1,0 +1,205 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using TPV.Application.DTOs;
+using TPV.Application.Interfaces;
+using TPV.Domain.Entities;
+using TPV.Domain.Interfaces;
+
+namespace TPV.Application.Services
+{
+    public class MotorcycleServiceCatalogService : IMotorcycleServiceCatalogService
+    {
+        private static readonly (string Name, string Description, int Minutes, int Order)[] DefaultServices =
+        {
+            ("Revision general", "Inspeccion general de la moto y puntos de seguridad.", 60, 10),
+            ("Cambio de aceite", "Cambio de aceite y revision basica de niveles.", 30, 20),
+            ("Mantenimiento preventivo", "Servicio preventivo por kilometraje o rutina.", 90, 30),
+            ("Ajuste de frenos", "Revision, ajuste y limpieza del sistema de frenos.", 45, 40),
+            ("Cambio de pastillas o bandas", "Cambio de elementos de freno segun estado.", 60, 50),
+            ("Revision electrica", "Diagnostico de luces, bateria, carga y conexiones.", 60, 60),
+            ("Cambio de llantas", "Montaje o cambio de llanta delantera o trasera.", 45, 70),
+            ("Sincronizacion", "Ajuste de motor, carburacion o parametros de marcha.", 90, 80),
+            ("Revision de suspension", "Inspeccion de amortiguadores, barras y direccion.", 60, 90),
+            ("Kit de arrastre", "Revision o cambio de cadena, sprocket y catalina.", 75, 100)
+        };
+
+        private readonly IRepository<MotorcycleService> _repository;
+        private readonly IRepository<AppointmentSchedule> _scheduleRepository;
+        private readonly ICurrentTenantService _currentTenantService;
+
+        public MotorcycleServiceCatalogService(
+            IRepository<MotorcycleService> repository,
+            IRepository<AppointmentSchedule> scheduleRepository,
+            ICurrentTenantService currentTenantService)
+        {
+            _repository = repository;
+            _scheduleRepository = scheduleRepository;
+            _currentTenantService = currentTenantService;
+        }
+
+        public async Task<IEnumerable<MotorcycleServiceDto>> GetAllAsync(string? search = null)
+        {
+            await EnsureDefaultsAsync(_currentTenantService.TenantId ?? 0);
+
+            var normalizedSearch = search?.Trim();
+            var services = await _repository.GetAsync(
+                predicate: service => service.IsActive &&
+                    (string.IsNullOrEmpty(normalizedSearch) ||
+                     service.Name.Contains(normalizedSearch) ||
+                     (service.Description != null && service.Description.Contains(normalizedSearch))),
+                orderBy: query => query.OrderBy(service => service.DisplayOrder).ThenBy(service => service.Name));
+
+            return services.Select(MapToDto);
+        }
+
+        public async Task<IEnumerable<MotorcycleServiceDto>> GetPublicByScheduleSlugAsync(string slug, string? search = null)
+        {
+            var schedule = (await _scheduleRepository.GetAsync(
+                predicate: item => item.PublicSlug == slug && item.IsActive && item.IsPublicBookingEnabled))
+                .FirstOrDefault();
+
+            if (schedule == null)
+            {
+                return Enumerable.Empty<MotorcycleServiceDto>();
+            }
+
+            await EnsureDefaultsAsync(schedule.TenantId);
+
+            var normalizedSearch = search?.Trim();
+            var services = await _repository.GetAsync(
+                predicate: service => service.IsActive &&
+                    service.TenantId == schedule.TenantId &&
+                    (string.IsNullOrEmpty(normalizedSearch) ||
+                     service.Name.Contains(normalizedSearch) ||
+                     (service.Description != null && service.Description.Contains(normalizedSearch))),
+                orderBy: query => query.OrderBy(service => service.DisplayOrder).ThenBy(service => service.Name));
+
+            return services.Select(MapToDto);
+        }
+
+        public async Task<MotorcycleServiceDto?> GetByIdAsync(int id)
+        {
+            var service = await _repository.GetByIdAsync(id);
+            return service == null || !service.IsActive ? null : MapToDto(service);
+        }
+
+        public async Task<MotorcycleServiceDto> CreateAsync(CreateMotorcycleServiceDto dto)
+        {
+            var name = CleanName(dto.Name);
+            await EnsureUniqueNameAsync(name);
+
+            var entity = new MotorcycleService
+            {
+                Name = name,
+                Description = CleanOptional(dto.Description),
+                EstimatedMinutes = NormalizeMinutes(dto.EstimatedMinutes),
+                DisplayOrder = Math.Max(0, dto.DisplayOrder),
+                IsActive = true
+            };
+
+            var created = await _repository.AddAsync(entity);
+            return MapToDto(created);
+        }
+
+        public async Task UpdateAsync(int id, CreateMotorcycleServiceDto dto)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null || !entity.IsActive)
+            {
+                throw new Exception("Servicio no encontrado.");
+            }
+
+            var name = CleanName(dto.Name);
+            await EnsureUniqueNameAsync(name, id);
+
+            entity.Name = name;
+            entity.Description = CleanOptional(dto.Description);
+            entity.EstimatedMinutes = NormalizeMinutes(dto.EstimatedMinutes);
+            entity.DisplayOrder = Math.Max(0, dto.DisplayOrder);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.UpdateAsync(entity);
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return;
+
+            entity.IsActive = false;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateAsync(entity);
+        }
+
+        private async Task EnsureDefaultsAsync(int tenantId)
+        {
+            var existing = await _repository.GetAsync(
+                predicate: service => service.TenantId == tenantId);
+
+            if (existing.Any()) return;
+
+            foreach (var service in DefaultServices)
+            {
+                await _repository.AddAsync(new MotorcycleService
+                {
+                    TenantId = tenantId,
+                    Name = service.Name,
+                    Description = service.Description,
+                    EstimatedMinutes = service.Minutes,
+                    DisplayOrder = service.Order,
+                    IsActive = true
+                });
+            }
+        }
+
+        private async Task EnsureUniqueNameAsync(string name, int? currentId = null)
+        {
+            var tenantId = _currentTenantService.TenantId ?? 0;
+            var duplicates = await _repository.GetAsync(
+                predicate: service => service.IsActive &&
+                    service.TenantId == tenantId &&
+                    service.Name == name &&
+                    (!currentId.HasValue || service.Id != currentId.Value));
+
+            if (duplicates.Any())
+            {
+                throw new Exception("Ya existe un servicio con ese nombre.");
+            }
+        }
+
+        private static string CleanName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new Exception("El nombre del servicio es obligatorio.");
+            }
+
+            return value.Trim();
+        }
+
+        private static string? CleanOptional(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static int? NormalizeMinutes(int? minutes)
+        {
+            if (!minutes.HasValue) return null;
+            return Math.Clamp(minutes.Value, 5, 600);
+        }
+
+        private static MotorcycleServiceDto MapToDto(MotorcycleService service)
+        {
+            return new MotorcycleServiceDto
+            {
+                Id = service.Id,
+                Name = service.Name,
+                Description = service.Description,
+                EstimatedMinutes = service.EstimatedMinutes,
+                DisplayOrder = service.DisplayOrder
+            };
+        }
+    }
+}

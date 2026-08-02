@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../api/axios';
+import MotorcycleServicePicker from '../components/MotorcycleServicePicker';
+import type { MotorcycleServiceOption } from '../components/MotorcycleServicePicker';
 import {
     CalendarCheck,
     CalendarDays,
@@ -115,7 +117,7 @@ const emptyAppointmentForm = {
     customerName: '',
     customerPhone: '',
     customerEmail: '',
-    serviceType: 'Revision de vehiculo',
+    serviceType: '',
     vehiclePlate: '',
     vehicleBrand: '',
     vehicleModel: '',
@@ -244,6 +246,8 @@ const Appointments = () => {
     const [scheduleForm, setScheduleForm] = useState(emptyScheduleForm);
     const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
     const [appointmentForm, setAppointmentForm] = useState(emptyAppointmentForm);
+    const [serviceOptions, setServiceOptions] = useState<MotorcycleServiceOption[]>([]);
+    const [serviceOptionsLoading, setServiceOptionsLoading] = useState(false);
 
     const selectedSchedule = useMemo(
         () => schedules.find(schedule => schedule.id.toString() === selectedScheduleId) || null,
@@ -293,6 +297,7 @@ const Appointments = () => {
 
     useEffect(() => {
         fetchInitialData();
+        fetchServiceOptions();
     }, []);
 
     useEffect(() => {
@@ -334,6 +339,19 @@ const Appointments = () => {
             alert('Error al cargar el modulo de agenda.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchServiceOptions = async () => {
+        try {
+            setServiceOptionsLoading(true);
+            const response = await api.get('/motorcycleservices');
+            setServiceOptions(response.data);
+        } catch (error) {
+            console.error(error);
+            setServiceOptions([]);
+        } finally {
+            setServiceOptionsLoading(false);
         }
     };
 
@@ -508,7 +526,7 @@ const Appointments = () => {
 
     const saveAppointment = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (!selectedScheduleId || !appointmentForm.startAt) return;
+        if (!selectedScheduleId || !appointmentForm.startAt || !appointmentForm.serviceType) return;
 
         try {
             await api.post('/appointments', {
@@ -1065,9 +1083,13 @@ const Appointments = () => {
                                     <label className="k-form-label">Correo</label>
                                     <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={appointmentForm.customerEmail} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerEmail: event.target.value })} />
                                 </div>
-                                <div>
-                                    <label className="k-form-label">Servicio</label>
-                                    <input required className="k-form-control" placeholder="Revision, diagnostico, mantenimiento..." value={appointmentForm.serviceType} onChange={(event) => setAppointmentForm({ ...appointmentForm, serviceType: event.target.value })} />
+                                <div className="md:col-span-2">
+                                    <MotorcycleServicePicker
+                                        services={serviceOptions}
+                                        value={appointmentForm.serviceType}
+                                        onChange={(serviceType) => setAppointmentForm({ ...appointmentForm, serviceType })}
+                                        emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios configurados.'}
+                                    />
                                 </div>
                                 <div>
                                     <label className="k-form-label">Placa</label>
@@ -1088,7 +1110,11 @@ const Appointments = () => {
                             </div>
                             <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                                 <button type="button" onClick={closeAppointmentModal} className="rounded-lg border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
-                                <button type="submit" className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">
+                                <button
+                                    type="submit"
+                                    disabled={!appointmentForm.serviceType}
+                                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
                                     <CalendarCheck size={18} className="mr-2" /> Agendar
                                 </button>
                             </div>

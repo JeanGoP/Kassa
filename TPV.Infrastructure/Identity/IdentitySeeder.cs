@@ -96,6 +96,7 @@ namespace TPV.Infrastructure.Identity
                     Permissions.MenusPosView,
                     Permissions.MenusQuotationsView,
                     Permissions.MenusAppointmentsView,
+                    Permissions.MenusMotorcycleServicesView,
                     Permissions.MenusInventoryView,
                     Permissions.MenusCashView
                 };
@@ -124,6 +125,7 @@ namespace TPV.Infrastructure.Identity
                     Permissions.MenusBranchesView,
                     Permissions.MenusWorkshopManagersView,
                     Permissions.MenusAppointmentsView,
+                    Permissions.MenusMotorcycleServicesView,
                     Permissions.MenusPurchasesView
                 };
 
@@ -166,6 +168,7 @@ namespace TPV.Infrastructure.Identity
                     Permissions.MenusWorkshopManagersView,
                     Permissions.MenusWarrantiesView,
                     Permissions.MenusAppointmentsView,
+                    Permissions.MenusMotorcycleServicesView,
                     Permissions.MenusDashboardView,
                     Permissions.MenusReportsView,
                     Permissions.MenusCustomersView

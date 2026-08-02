@@ -20,6 +20,7 @@ import Quotations from './pages/Quotations';
 import QuotationPrint from './pages/QuotationPrint';
 import Appointments from './pages/Appointments';
 import PublicBooking from './pages/PublicBooking';
+import MotorcycleServices from './pages/MotorcycleServices';
 import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
@@ -64,6 +65,7 @@ const AppRoutes = () => {
                 <Route path="pos" element={<POS />} />
                 <Route path="quotations" element={<Quotations />} />
                 <Route path="appointments" element={<Appointments />} />
+                <Route path="motorcycle-services" element={<MotorcycleServices />} />
                 <Route path="sales-history" element={<SalesHistory />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="inventory/adjustments" element={<StockAdjustments />} />

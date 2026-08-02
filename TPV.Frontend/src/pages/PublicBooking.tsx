@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
+import MotorcycleServicePicker from '../components/MotorcycleServicePicker';
+import type { MotorcycleServiceOption } from '../components/MotorcycleServicePicker';
 import { Building2, CalendarCheck, CheckCircle, ChevronLeft, ChevronRight, Clock, Mail, Phone, Plus, X } from 'lucide-react';
 import logo from '../assets/Logo.png';
 
@@ -48,7 +50,7 @@ const emptyForm = {
     customerName: '',
     customerPhone: '',
     customerEmail: '',
-    serviceType: 'Revision de vehiculo',
+    serviceType: '',
     vehiclePlate: '',
     vehicleBrand: '',
     vehicleModel: '',
@@ -156,6 +158,8 @@ const PublicBooking = () => {
     const [availabilityLoading, setAvailabilityLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [serviceOptions, setServiceOptions] = useState<MotorcycleServiceOption[]>([]);
+    const [serviceOptionsLoading, setServiceOptionsLoading] = useState(false);
 
     const maxBookableDate = useMemo(
         () => addDays(today, info?.advanceBookingDays || 14),
@@ -183,6 +187,7 @@ const PublicBooking = () => {
 
     useEffect(() => {
         fetchBookingInfo();
+        fetchServiceOptions();
     }, [slug]);
 
     useEffect(() => {
@@ -222,6 +227,21 @@ const PublicBooking = () => {
             setError(requestError.response?.data?.message || 'No fue posible cargar la agenda.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchServiceOptions = async () => {
+        if (!slug) return;
+
+        try {
+            setServiceOptionsLoading(true);
+            const response = await api.get(`/motorcycleservices/public/${slug}`);
+            setServiceOptions(response.data);
+        } catch (requestError) {
+            console.error(requestError);
+            setServiceOptions([]);
+        } finally {
+            setServiceOptionsLoading(false);
         }
     };
 
@@ -277,6 +297,7 @@ const PublicBooking = () => {
 
         setSelectedSlot(nextSlot);
         setError('');
+        setFormData(emptyForm);
         setIsBookingModalOpen(true);
     };
 
@@ -287,7 +308,7 @@ const PublicBooking = () => {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (!slug || !selectedSlot) return;
+        if (!slug || !selectedSlot || !formData.serviceType) return;
 
         try {
             setSubmitting(true);
@@ -613,9 +634,13 @@ const PublicBooking = () => {
                                     <label className="k-form-label">Correo</label>
                                     <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
                                 </div>
-                                <div>
-                                    <label className="k-form-label">Servicio</label>
-                                    <input required className="k-form-control" placeholder="Revision, diagnostico, mantenimiento..." value={formData.serviceType} onChange={(event) => setFormData({ ...formData, serviceType: event.target.value })} />
+                                <div className="sm:col-span-2">
+                                    <MotorcycleServicePicker
+                                        services={serviceOptions}
+                                        value={formData.serviceType}
+                                        onChange={(serviceType) => setFormData({ ...formData, serviceType })}
+                                        emptyMessage={serviceOptionsLoading ? 'Cargando servicios...' : 'No hay servicios disponibles.'}
+                                    />
                                 </div>
                                 <div>
                                     <label className="k-form-label">Placa</label>
@@ -639,7 +664,7 @@ const PublicBooking = () => {
                                 <button type="button" onClick={closeCreateModal} className="rounded-lg border border-slate-200 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
                                 <button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || !formData.serviceType}
                                     className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-bold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <CalendarCheck size={18} className="mr-2" />

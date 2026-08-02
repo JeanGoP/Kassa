@@ -48,6 +48,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<AppointmentSchedule> AppointmentSchedules { get; set; }
         public DbSet<AppointmentAvailabilityRule> AppointmentAvailabilityRules { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<MotorcycleService> MotorcycleServices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -302,6 +303,18 @@ namespace TPV.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(a => a.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<MotorcycleService>()
+                .Property(s => s.Name)
+                .HasMaxLength(160);
+
+            builder.Entity<MotorcycleService>()
+                .Property(s => s.Description)
+                .HasMaxLength(500);
+
+            builder.Entity<MotorcycleService>()
+                .HasIndex(s => new { s.TenantId, s.Name })
+                .IsUnique();
 
             // Unique Index for Customer (TenantId + TaxId)
             builder.Entity<Customer>()

@@ -57,6 +57,7 @@ const Layout = () => {
                 { path: '/categories', label: 'Categorías', icon: Tags, permission: 'Menus.Products.View' },
                 { path: '/customers', label: 'Clientes', icon: UserCircle, permission: 'Menus.Customers.View' },
                 { path: '/suppliers', label: 'Proveedores', icon: Users, permission: 'Menus.Suppliers.View' },
+                { path: '/motorcycle-services', label: 'Servicios de Moto', icon: Wrench, permission: 'Menus.MotorcycleServices.View' },
                 { path: '/technicians', label: 'Técnicos', icon: UserCog, permission: 'Menus.Technicians.View' },
                 { path: '/workshop-managers', label: 'Jefes de Taller', icon: UserCheck, permission: 'Menus.WorkshopManagers.View' },
                 { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },

@@ -24,6 +24,7 @@ namespace TPV.Infrastructure.Identity
         public const string MenusWorkshopView = "Menus.Workshop.View";
         public const string MenusWarrantiesView = "Menus.Warranties.View";
         public const string MenusAppointmentsView = "Menus.Appointments.View";
+        public const string MenusMotorcycleServicesView = "Menus.MotorcycleServices.View";
 
         public static IReadOnlyCollection<string> All =>
             new[]
@@ -46,7 +47,8 @@ namespace TPV.Infrastructure.Identity
                 MenusWorkshopManagersView,
                 MenusWorkshopView,
                 MenusWarrantiesView,
-                MenusAppointmentsView
+                MenusAppointmentsView,
+                MenusMotorcycleServicesView
             };
     }
 }
