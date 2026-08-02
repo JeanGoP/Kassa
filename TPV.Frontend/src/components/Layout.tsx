@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, UserCheck, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, UserCheck, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText, CalendarDays } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -30,6 +30,7 @@ const Layout = () => {
             icon: ShoppingCart,
             submenu: [
                 { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
+                { path: '/appointments', label: 'Agenda de Citas', icon: CalendarDays, permission: 'Menus.Appointments.View' },
                 { path: '/quotations', label: 'Cotización', icon: FileText, permission: 'Menus.Quotations.View' },
                 { path: '/sales-history', label: 'Historial de Ventas', icon: FileText, permission: 'Menus.POS.View' },
                 { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },

@@ -18,6 +18,8 @@ import PurchasePrint from './pages/PurchasePrint';
 import SalesHistory from './pages/SalesHistory';
 import Quotations from './pages/Quotations';
 import QuotationPrint from './pages/QuotationPrint';
+import Appointments from './pages/Appointments';
+import PublicBooking from './pages/PublicBooking';
 import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
@@ -46,6 +48,7 @@ const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/reservar/:slug" element={<PublicBooking />} />
             <Route path="/purchases/print/:id" element={
                 <ProtectedRoute>
                     <PurchasePrint />
@@ -60,6 +63,7 @@ const AppRoutes = () => {
                 <Route index element={<Dashboard />} />
                 <Route path="pos" element={<POS />} />
                 <Route path="quotations" element={<Quotations />} />
+                <Route path="appointments" element={<Appointments />} />
                 <Route path="sales-history" element={<SalesHistory />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="inventory/adjustments" element={<StockAdjustments />} />

@@ -45,6 +45,9 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<QuotationSearchHistory> QuotationSearchHistories { get; set; }
         public DbSet<Quotation> Quotations { get; set; }
         public DbSet<QuotationDetail> QuotationDetails { get; set; }
+        public DbSet<AppointmentSchedule> AppointmentSchedules { get; set; }
+        public DbSet<AppointmentAvailabilityRule> AppointmentAvailabilityRules { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -190,6 +193,114 @@ namespace TPV.Infrastructure.Persistence
                 .HasOne(d => d.Product)
                 .WithMany()
                 .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<AppointmentSchedule>()
+                .Property(s => s.Name)
+                .HasMaxLength(150);
+
+            builder.Entity<AppointmentSchedule>()
+                .Property(s => s.PublicSlug)
+                .HasMaxLength(120);
+
+            builder.Entity<AppointmentSchedule>()
+                .Property(s => s.CalendarProvider)
+                .HasMaxLength(40);
+
+            builder.Entity<AppointmentSchedule>()
+                .Property(s => s.ExternalCalendarId)
+                .HasMaxLength(300);
+
+            builder.Entity<AppointmentSchedule>()
+                .Property(s => s.TimeZone)
+                .HasMaxLength(80);
+
+            builder.Entity<AppointmentSchedule>()
+                .HasIndex(s => s.PublicSlug)
+                .IsUnique();
+
+            builder.Entity<AppointmentSchedule>()
+                .HasIndex(s => new { s.TenantId, s.BranchId });
+
+            builder.Entity<AppointmentSchedule>()
+                .HasOne(s => s.Branch)
+                .WithMany()
+                .HasForeignKey(s => s.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<AppointmentSchedule>()
+                .HasMany(s => s.AvailabilityRules)
+                .WithOne(r => r.AppointmentSchedule)
+                .HasForeignKey(r => r.AppointmentScheduleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AppointmentAvailabilityRule>()
+                .HasIndex(r => new { r.AppointmentScheduleId, r.DayOfWeek });
+
+            builder.Entity<Appointment>()
+                .Property(a => a.CustomerName)
+                .HasMaxLength(200);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.CustomerPhone)
+                .HasMaxLength(80);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.CustomerEmail)
+                .HasMaxLength(200);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.ServiceType)
+                .HasMaxLength(160);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.VehiclePlate)
+                .HasMaxLength(40);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.VehicleBrand)
+                .HasMaxLength(80);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.VehicleModel)
+                .HasMaxLength(120);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.Notes)
+                .HasMaxLength(800);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.Status)
+                .HasMaxLength(40);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.Source)
+                .HasMaxLength(40);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.ConfirmationCode)
+                .HasMaxLength(40);
+
+            builder.Entity<Appointment>()
+                .Property(a => a.CreatedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<Appointment>()
+                .HasIndex(a => new { a.AppointmentScheduleId, a.StartAt });
+
+            builder.Entity<Appointment>()
+                .HasIndex(a => new { a.TenantId, a.StartAt });
+
+            builder.Entity<Appointment>()
+                .HasOne(a => a.AppointmentSchedule)
+                .WithMany(s => s.Appointments)
+                .HasForeignKey(a => a.AppointmentScheduleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Appointment>()
+                .HasOne(a => a.Branch)
+                .WithMany()
+                .HasForeignKey(a => a.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Unique Index for Customer (TenantId + TaxId)

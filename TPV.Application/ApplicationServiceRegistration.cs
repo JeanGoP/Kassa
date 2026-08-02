@@ -28,6 +28,7 @@ namespace TPV.Application
             services.AddScoped<IWorkshopDashboardService, WorkshopDashboardService>();
             services.AddScoped<ITenantService, TenantService>();
             services.AddScoped<IQuotationService, QuotationService>();
+            services.AddScoped<IAppointmentService, AppointmentService>();
             services.AddHttpClient<IElectronicInvoicingService, ElectronicInvoicingService>();
               
             return services;
