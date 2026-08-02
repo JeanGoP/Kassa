@@ -643,7 +643,7 @@ const Appointments = () => {
                                     <input
                                         readOnly
                                         value={`${window.location.origin}${selectedSchedule.publicBookingPath}`}
-                                        className="min-w-0 flex-1 rounded-lg border-slate-200 bg-white text-sm"
+                                        className="k-form-control min-w-0 flex-1 text-sm"
                                     />
                                     <button onClick={() => copyPublicLink(selectedSchedule)} className="rounded-lg bg-slate-900 px-3 text-white hover:bg-slate-700" title="Copiar">
                                         <Copy size={18} />
@@ -722,7 +722,7 @@ const Appointments = () => {
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                                     <div className="min-w-[220px]">
                                         <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Agenda</label>
-                                        <select className="w-full rounded-lg border-slate-300" value={selectedScheduleId} onChange={(event) => handleScheduleChange(event.target.value)}>
+                                        <select className="k-form-select" value={selectedScheduleId} onChange={(event) => handleScheduleChange(event.target.value)}>
                                             <option value="">Seleccionar</option>
                                             {schedules.map(schedule => <option key={schedule.id} value={schedule.id}>{schedule.name}</option>)}
                                         </select>
@@ -890,7 +890,7 @@ const Appointments = () => {
                                     </div>
                                     <div className="flex flex-wrap gap-2 lg:justify-end">
                                         <select
-                                            className="rounded-lg border-slate-300 text-sm"
+                                            className="k-form-select text-sm"
                                             value={appointment.status}
                                             onChange={(event) => updateStatus(appointment, event.target.value)}
                                         >
@@ -922,51 +922,51 @@ const Appointments = () => {
                         <form onSubmit={saveSchedule} className="space-y-5 p-6">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={scheduleForm.name} onChange={(event) => setScheduleForm({ ...scheduleForm, name: event.target.value })} />
+                                    <label className="k-form-label">Nombre</label>
+                                    <input required className="k-form-control" placeholder="Nombre de la agenda" value={scheduleForm.name} onChange={(event) => setScheduleForm({ ...scheduleForm, name: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Sucursal</label>
-                                    <select required className="w-full rounded-lg border-slate-300" value={scheduleForm.branchId} onChange={(event) => setScheduleForm({ ...scheduleForm, branchId: event.target.value })}>
+                                    <label className="k-form-label">Sucursal</label>
+                                    <select required className="k-form-select" value={scheduleForm.branchId} onChange={(event) => setScheduleForm({ ...scheduleForm, branchId: event.target.value })}>
                                         <option value="">Seleccionar sucursal</option>
                                         {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Proveedor calendario</label>
-                                    <select className="w-full rounded-lg border-slate-300" value={scheduleForm.calendarProvider} onChange={(event) => setScheduleForm({ ...scheduleForm, calendarProvider: event.target.value })}>
+                                    <label className="k-form-label">Proveedor calendario</label>
+                                    <select className="k-form-select" value={scheduleForm.calendarProvider} onChange={(event) => setScheduleForm({ ...scheduleForm, calendarProvider: event.target.value })}>
                                         <option value="Internal">Agenda propia</option>
                                         <option value="Microsoft365">Microsoft 365</option>
                                         <option value="Google">Google Calendar</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">ID calendario externo</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={scheduleForm.externalCalendarId} onChange={(event) => setScheduleForm({ ...scheduleForm, externalCalendarId: event.target.value })} />
+                                    <label className="k-form-label">ID calendario externo</label>
+                                    <input className="k-form-control" placeholder="Opcional" value={scheduleForm.externalCalendarId} onChange={(event) => setScheduleForm({ ...scheduleForm, externalCalendarId: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Slug publico</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={scheduleForm.publicSlug} onChange={(event) => setScheduleForm({ ...scheduleForm, publicSlug: event.target.value })} />
+                                    <label className="k-form-label">Slug publico</label>
+                                    <input className="k-form-control" placeholder="agenda-sucursal-principal" value={scheduleForm.publicSlug} onChange={(event) => setScheduleForm({ ...scheduleForm, publicSlug: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Zona horaria</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={scheduleForm.timeZone} onChange={(event) => setScheduleForm({ ...scheduleForm, timeZone: event.target.value })} />
+                                    <label className="k-form-label">Zona horaria</label>
+                                    <input className="k-form-control" placeholder="America/Bogota" value={scheduleForm.timeZone} onChange={(event) => setScheduleForm({ ...scheduleForm, timeZone: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Duracion del turno</label>
-                                    <input type="number" min={15} max={240} className="w-full rounded-lg border-slate-300" value={scheduleForm.slotDurationMinutes} onChange={(event) => setScheduleForm({ ...scheduleForm, slotDurationMinutes: Number(event.target.value) })} />
+                                    <label className="k-form-label">Duracion del turno</label>
+                                    <input type="number" min={15} max={240} className="k-form-control" value={scheduleForm.slotDurationMinutes} onChange={(event) => setScheduleForm({ ...scheduleForm, slotDurationMinutes: Number(event.target.value) })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Cupos por hora</label>
-                                    <input type="number" min={1} max={20} className="w-full rounded-lg border-slate-300" value={scheduleForm.maxAppointmentsPerSlot} onChange={(event) => setScheduleForm({ ...scheduleForm, maxAppointmentsPerSlot: Number(event.target.value) })} />
+                                    <label className="k-form-label">Cupos por hora</label>
+                                    <input type="number" min={1} max={20} className="k-form-control" value={scheduleForm.maxAppointmentsPerSlot} onChange={(event) => setScheduleForm({ ...scheduleForm, maxAppointmentsPerSlot: Number(event.target.value) })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Dias anticipados</label>
-                                    <input type="number" min={1} max={180} className="w-full rounded-lg border-slate-300" value={scheduleForm.advanceBookingDays} onChange={(event) => setScheduleForm({ ...scheduleForm, advanceBookingDays: Number(event.target.value) })} />
+                                    <label className="k-form-label">Dias anticipados</label>
+                                    <input type="number" min={1} max={180} className="k-form-control" value={scheduleForm.advanceBookingDays} onChange={(event) => setScheduleForm({ ...scheduleForm, advanceBookingDays: Number(event.target.value) })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Horas minimas antes</label>
-                                    <input type="number" min={0} max={240} className="w-full rounded-lg border-slate-300" value={scheduleForm.minNoticeHours} onChange={(event) => setScheduleForm({ ...scheduleForm, minNoticeHours: Number(event.target.value) })} />
+                                    <label className="k-form-label">Horas minimas antes</label>
+                                    <input type="number" min={0} max={240} className="k-form-control" value={scheduleForm.minNoticeHours} onChange={(event) => setScheduleForm({ ...scheduleForm, minNoticeHours: Number(event.target.value) })} />
                                 </div>
                             </div>
 
@@ -988,8 +988,8 @@ const Appointments = () => {
                                                 </label>
                                                 {rule && (
                                                     <div className="mt-3 grid grid-cols-2 gap-2">
-                                                        <input type="time" className="rounded-lg border-slate-300" value={rule.startTime} onChange={(event) => updateRule(index, 'startTime', event.target.value)} />
-                                                        <input type="time" className="rounded-lg border-slate-300" value={rule.endTime} onChange={(event) => updateRule(index, 'endTime', event.target.value)} />
+                                                        <input type="time" className="k-form-control" value={rule.startTime} onChange={(event) => updateRule(index, 'startTime', event.target.value)} />
+                                                        <input type="time" className="k-form-control" value={rule.endTime} onChange={(event) => updateRule(index, 'endTime', event.target.value)} />
                                                     </div>
                                                 )}
                                             </div>
@@ -1025,10 +1025,10 @@ const Appointments = () => {
                         </div>
                         <form onSubmit={saveAppointment} className="space-y-4 p-6">
                             <div>
-                                <label className="mb-1 block text-sm font-semibold text-slate-700">Horario disponible</label>
+                                <label className="k-form-label">Horario disponible</label>
                                 <select
                                     required
-                                    className="w-full rounded-lg border-slate-300"
+                                    className="k-form-select"
                                     value={appointmentForm.startAt}
                                     onChange={(event) => {
                                         const nextSlot = availableSlots.find(slot => slot.startAt === event.target.value) || null;
@@ -1044,36 +1044,36 @@ const Appointments = () => {
                             </div>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre solicitante</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={appointmentForm.customerName} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerName: event.target.value })} />
+                                    <label className="k-form-label">Nombre solicitante</label>
+                                    <input required className="k-form-control" placeholder="Nombre completo" value={appointmentForm.customerName} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerName: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={appointmentForm.customerPhone} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerPhone: event.target.value })} />
+                                    <label className="k-form-label">Telefono</label>
+                                    <input required className="k-form-control" placeholder="300 000 0000" value={appointmentForm.customerPhone} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerPhone: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Correo</label>
-                                    <input type="email" className="w-full rounded-lg border-slate-300" value={appointmentForm.customerEmail} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerEmail: event.target.value })} />
+                                    <label className="k-form-label">Correo</label>
+                                    <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={appointmentForm.customerEmail} onChange={(event) => setAppointmentForm({ ...appointmentForm, customerEmail: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Servicio</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={appointmentForm.serviceType} onChange={(event) => setAppointmentForm({ ...appointmentForm, serviceType: event.target.value })} />
+                                    <label className="k-form-label">Servicio</label>
+                                    <input required className="k-form-control" placeholder="Revision, diagnostico, mantenimiento..." value={appointmentForm.serviceType} onChange={(event) => setAppointmentForm({ ...appointmentForm, serviceType: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Placa</label>
-                                    <input className="w-full rounded-lg border-slate-300 uppercase" value={appointmentForm.vehiclePlate} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehiclePlate: event.target.value })} />
+                                    <label className="k-form-label">Placa</label>
+                                    <input className="k-form-control uppercase" placeholder="ABC123" value={appointmentForm.vehiclePlate} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehiclePlate: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Marca</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={appointmentForm.vehicleBrand} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehicleBrand: event.target.value })} />
+                                    <label className="k-form-label">Marca</label>
+                                    <input className="k-form-control" placeholder="Toyota, Chevrolet..." value={appointmentForm.vehicleBrand} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehicleBrand: event.target.value })} />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Modelo</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={appointmentForm.vehicleModel} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehicleModel: event.target.value })} />
+                                    <label className="k-form-label">Modelo</label>
+                                    <input className="k-form-control" placeholder="Linea, version o ano" value={appointmentForm.vehicleModel} onChange={(event) => setAppointmentForm({ ...appointmentForm, vehicleModel: event.target.value })} />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Notas</label>
-                                    <textarea rows={3} className="w-full rounded-lg border-slate-300" value={appointmentForm.notes} onChange={(event) => setAppointmentForm({ ...appointmentForm, notes: event.target.value })} />
+                                    <label className="k-form-label">Notas</label>
+                                    <textarea rows={3} className="k-form-textarea" placeholder="Observaciones para el taller" value={appointmentForm.notes} onChange={(event) => setAppointmentForm({ ...appointmentForm, notes: event.target.value })} />
                                 </div>
                             </div>
                             <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">

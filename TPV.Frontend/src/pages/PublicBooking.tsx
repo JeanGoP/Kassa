@@ -593,36 +593,36 @@ const PublicBooking = () => {
                         <form onSubmit={handleSubmit} className="space-y-4 p-5">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Nombre</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={formData.customerName} onChange={(event) => setFormData({ ...formData, customerName: event.target.value })} />
+                                    <label className="k-form-label">Nombre</label>
+                                    <input required className="k-form-control" placeholder="Nombre completo" value={formData.customerName} onChange={(event) => setFormData({ ...formData, customerName: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Telefono</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={formData.customerPhone} onChange={(event) => setFormData({ ...formData, customerPhone: event.target.value })} />
+                                    <label className="k-form-label">Telefono</label>
+                                    <input required className="k-form-control" placeholder="300 000 0000" value={formData.customerPhone} onChange={(event) => setFormData({ ...formData, customerPhone: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Correo</label>
-                                    <input type="email" className="w-full rounded-lg border-slate-300" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
+                                    <label className="k-form-label">Correo</label>
+                                    <input type="email" className="k-form-control" placeholder="correo@cliente.com" value={formData.customerEmail} onChange={(event) => setFormData({ ...formData, customerEmail: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Servicio</label>
-                                    <input required className="w-full rounded-lg border-slate-300" value={formData.serviceType} onChange={(event) => setFormData({ ...formData, serviceType: event.target.value })} />
+                                    <label className="k-form-label">Servicio</label>
+                                    <input required className="k-form-control" placeholder="Revision, diagnostico, mantenimiento..." value={formData.serviceType} onChange={(event) => setFormData({ ...formData, serviceType: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Placa</label>
-                                    <input className="w-full rounded-lg border-slate-300 uppercase" value={formData.vehiclePlate} onChange={(event) => setFormData({ ...formData, vehiclePlate: event.target.value })} />
+                                    <label className="k-form-label">Placa</label>
+                                    <input className="k-form-control uppercase" placeholder="ABC123" value={formData.vehiclePlate} onChange={(event) => setFormData({ ...formData, vehiclePlate: event.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Marca</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={formData.vehicleBrand} onChange={(event) => setFormData({ ...formData, vehicleBrand: event.target.value })} />
+                                    <label className="k-form-label">Marca</label>
+                                    <input className="k-form-control" placeholder="Toyota, Chevrolet..." value={formData.vehicleBrand} onChange={(event) => setFormData({ ...formData, vehicleBrand: event.target.value })} />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Modelo</label>
-                                    <input className="w-full rounded-lg border-slate-300" value={formData.vehicleModel} onChange={(event) => setFormData({ ...formData, vehicleModel: event.target.value })} />
+                                    <label className="k-form-label">Modelo</label>
+                                    <input className="k-form-control" placeholder="Linea, version o ano" value={formData.vehicleModel} onChange={(event) => setFormData({ ...formData, vehicleModel: event.target.value })} />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="mb-1 block text-sm font-semibold text-slate-700">Notas</label>
-                                    <textarea rows={3} className="w-full rounded-lg border-slate-300" value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} />
+                                    <label className="k-form-label">Notas</label>
+                                    <textarea rows={3} className="k-form-textarea" placeholder="Observaciones para el taller" value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} />
                                 </div>
                             </div>
                             {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</div>}
