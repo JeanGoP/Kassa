@@ -400,10 +400,18 @@ namespace TPV.Web.Controllers.Api.Integrations
                 DocumentType = "Purchase",
                 DocumentNumber = p.ReferenceNumber,
                 Date = p.Date,
+                SupplierInvoiceDate = p.SupplierInvoiceDate,
                 ReceptionDate = null,
+                ItemsSubTotal = p.ItemsSubTotal,
+                ItemsTaxAmount = p.ItemsTaxAmount,
                 TotalAmount = p.TotalAmount,
                 Freight = p.Freight,
+                FreightTaxRate = p.FreightTaxRate,
+                FreightTaxAmount = p.FreightTaxAmount,
                 Status = p.Status,
+                AccountingStatus = p.AccountingStatus,
+                AccountingReference = p.AccountingReference,
+                AccountingExportedAt = p.AccountingExportedAt,
                 CreatedAt = p.CreatedAt,
                 ModifiedAt = p.UpdatedAt ?? p.CreatedAt,
                 Lines = p.PurchaseDetails.Select(d => new MchPurchaseLineDto
@@ -917,10 +925,18 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string DocumentType { get; set; } = string.Empty;
         public string DocumentNumber { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+        public DateTime? SupplierInvoiceDate { get; set; }
         public DateTime? ReceptionDate { get; set; }
+        public decimal ItemsSubTotal { get; set; }
+        public decimal ItemsTaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal Freight { get; set; }
+        public decimal FreightTaxRate { get; set; }
+        public decimal FreightTaxAmount { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string AccountingStatus { get; set; } = string.Empty;
+        public string? AccountingReference { get; set; }
+        public DateTime? AccountingExportedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
         public List<MchPurchaseLineDto> Lines { get; set; } = new();

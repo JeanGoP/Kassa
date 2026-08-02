@@ -700,11 +700,27 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("AccountingExportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AccountingReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("AccountingStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
@@ -712,8 +728,20 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("Freight")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("FreightTaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FreightTaxRate")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<decimal>("ItemsSubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ItemsTaxAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ReferenceNumber")
                         .IsRequired()
@@ -725,6 +753,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("SupplierInvoiceDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");

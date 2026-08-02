@@ -46,26 +46,51 @@ namespace TPV.Application.Services
                 throw new UnauthorizedAccessException("El usuario no tiene permiso para realizar compras en esta sucursal.");
             }
 
+            if (dto.Details == null || !dto.Details.Any())
+            {
+                throw new InvalidOperationException("Debe agregar al menos un articulo a la entrada de mercancia.");
+            }
+
+            if (dto.Freight < 0 || dto.FreightTaxRate < 0)
+            {
+                throw new InvalidOperationException("El flete y su IVA no pueden ser negativos.");
+            }
+
             var purchase = new Purchase
             {
                 SupplierId = dto.SupplierId,
                 BranchId = dto.BranchId,
-                Date = dto.Date,
-                ReferenceNumber = dto.ReferenceNumber,
+                Date = dto.Date == default ? DateTime.Today : dto.Date,
+                SupplierInvoiceDate = dto.SupplierInvoiceDate,
+                ReferenceNumber = dto.ReferenceNumber?.Trim() ?? string.Empty,
                 Status = "Completed",
                 Freight = dto.Freight,
+                FreightTaxRate = dto.FreightTaxRate,
+                FreightTaxAmount = dto.Freight * (dto.FreightTaxRate / 100),
+                AccountingStatus = "Pending",
+                CreatedByUserId = userId,
                 PurchaseDetails = new List<PurchaseDetail>(),
                 IsActive = true
             };
 
-            decimal totalAmount = 0;
+            decimal itemsTaxAmount = 0;
             decimal totalItemsSubTotal = dto.Details.Sum(d => d.Quantity * d.UnitCost);
 
             foreach (var item in dto.Details)
             {
+                if (item.Quantity <= 0)
+                {
+                    throw new InvalidOperationException("Las cantidades de los articulos deben ser mayores a cero.");
+                }
+
+                if (item.UnitCost < 0 || item.TaxRate < 0)
+                {
+                    throw new InvalidOperationException("El costo y el IVA de los articulos no pueden ser negativos.");
+                }
+
                 var subTotal = item.Quantity * item.UnitCost;
                 var taxAmount = subTotal * (item.TaxRate / 100);
-                totalAmount += subTotal + taxAmount;
+                itemsTaxAmount += taxAmount;
 
                 var detail = new PurchaseDetail
                 {
@@ -140,7 +165,9 @@ namespace TPV.Application.Services
 
             }
 
-            purchase.TotalAmount = totalAmount + dto.Freight;
+            purchase.ItemsSubTotal = totalItemsSubTotal;
+            purchase.ItemsTaxAmount = itemsTaxAmount;
+            purchase.TotalAmount = totalItemsSubTotal + itemsTaxAmount + purchase.Freight + purchase.FreightTaxAmount;
             var createdPurchase = await _purchaseRepository.AddAsync(purchase);
 
             return await GetByIdAsync(createdPurchase.Id) ?? new PurchaseDto();
@@ -161,18 +188,16 @@ namespace TPV.Application.Services
         {
             var purchases = await _purchaseRepository.GetAsync(
                 p => p.Id == id,
-                null,
-                "Supplier,Branch,PurchaseDetails.Product");
+                includeString: "Supplier,Branch,PurchaseDetails.Product");
             var purchase = purchases.FirstOrDefault();
             return purchase == null ? null : MapToDto(purchase);
         }
 
-        public async Task<bool> DeleteAsync(int id, string userId)
+        public async Task<bool> DeleteAsync(int id, string? userId)
         {
             var purchases = await _purchaseRepository.GetAsync(
                 p => p.Id == id,
-                null,
-                "PurchaseDetails");
+                includeString: "PurchaseDetails");
 
             var purchase = purchases.FirstOrDefault();
             if (purchase == null)
@@ -210,26 +235,40 @@ namespace TPV.Application.Services
 
         private PurchaseDto MapToDto(Purchase p)
         {
+            var detailDtos = p.PurchaseDetails?.Select(d => new PurchaseDetailDto
+            {
+                ProductId = d.ProductId,
+                ProductName = d.Product?.Name ?? "Unknown",
+                Quantity = d.Quantity,
+                UnitCost = d.UnitCost,
+                SubTotal = d.SubTotal,
+                TaxRate = d.TaxRate,
+                TaxAmount = d.TaxAmount
+            }).ToList() ?? new List<PurchaseDetailDto>();
+
+            var itemsSubTotal = p.ItemsSubTotal != 0 ? p.ItemsSubTotal : detailDtos.Sum(d => d.SubTotal);
+            var itemsTaxAmount = p.ItemsTaxAmount != 0 ? p.ItemsTaxAmount : detailDtos.Sum(d => d.TaxAmount);
+            var freightTaxAmount = p.FreightTaxAmount != 0 ? p.FreightTaxAmount : p.Freight * (p.FreightTaxRate / 100);
+
             return new PurchaseDto
             {
                 Id = p.Id,
                 SupplierName = p.Supplier?.Name ?? "Unknown",
                 BranchName = p.Branch?.Name ?? "Unknown",
                 Date = p.Date,
+                SupplierInvoiceDate = p.SupplierInvoiceDate,
                 ReferenceNumber = p.ReferenceNumber,
                 TotalAmount = p.TotalAmount,
+                ItemsSubTotal = itemsSubTotal,
+                ItemsTaxAmount = itemsTaxAmount,
                 Freight = p.Freight,
+                FreightTaxRate = p.FreightTaxRate,
+                FreightTaxAmount = freightTaxAmount,
                 Status = p.Status,
-                Details = p.PurchaseDetails?.Select(d => new PurchaseDetailDto
-                {
-                    ProductId = d.ProductId,
-                    ProductName = d.Product?.Name ?? "Unknown",
-                    Quantity = d.Quantity,
-                    UnitCost = d.UnitCost,
-                    SubTotal = d.SubTotal,
-                    TaxRate = d.TaxRate,
-                    TaxAmount = d.TaxAmount
-                }).ToList() ?? new List<PurchaseDetailDto>()
+                AccountingStatus = string.IsNullOrWhiteSpace(p.AccountingStatus) ? "Pending" : p.AccountingStatus,
+                AccountingReference = p.AccountingReference,
+                AccountingExportedAt = p.AccountingExportedAt,
+                Details = detailDtos
             };
         }
     }

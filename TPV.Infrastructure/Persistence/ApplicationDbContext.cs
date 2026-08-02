@@ -74,8 +74,36 @@ namespace TPV.Infrastructure.Persistence
                 .HasColumnType("decimal(18,2)");
 
             builder.Entity<Purchase>()
+                .Property(p => p.ItemsSubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
+                .Property(p => p.ItemsTaxAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
                 .Property(p => p.Freight)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
+                .Property(p => p.FreightTaxRate)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
+                .Property(p => p.FreightTaxAmount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Purchase>()
+                .Property(p => p.AccountingStatus)
+                .HasMaxLength(40);
+
+            builder.Entity<Purchase>()
+                .Property(p => p.AccountingReference)
+                .HasMaxLength(120);
+
+            builder.Entity<Purchase>()
+                .Property(p => p.CreatedByUserId)
+                .HasMaxLength(450);
             
             builder.Entity<PurchaseDetail>()
                 .Property(pd => pd.UnitCost)

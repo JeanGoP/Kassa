@@ -16,14 +16,32 @@ interface PurchaseDetail {
 interface Purchase {
     id: number;
     supplierName: string;
+    branchName: string;
     date: string;
+    supplierInvoiceDate?: string | null;
     referenceNumber: string;
     totalAmount: number;
+    itemsSubTotal: number;
+    itemsTaxAmount: number;
     freight?: number;
+    freightTaxRate?: number;
+    freightTaxAmount?: number;
     status: string;
+    accountingStatus: string;
     details: PurchaseDetail[];
-    branchName: string;
 }
+
+const money = (value?: number) =>
+    new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+    }).format(Number.isFinite(value ?? 0) ? value ?? 0 : 0);
+
+const formatDate = (value?: string | null) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('es-CO');
+};
 
 const PurchasePrint = () => {
     const { id } = useParams<{ id: string }>();
@@ -43,23 +61,18 @@ const PurchasePrint = () => {
             }
         };
 
-        if (id) {
-            fetchPurchase();
-        }
+        fetchPurchase();
     }, [id]);
 
     useEffect(() => {
         if (!loading && purchase) {
-            // Give a small delay to ensure rendering is complete (including styles)
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            setTimeout(() => window.print(), 500);
         }
     }, [loading, purchase]);
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen">
+            <div className="flex h-screen items-center justify-center">
                 <Loader2 className="animate-spin text-blue-600" size={48} />
             </div>
         );
@@ -69,48 +82,54 @@ const PurchasePrint = () => {
         return <div className="p-8 text-center text-red-600">Entrada no encontrada.</div>;
     }
 
+    const freight = purchase.freight ?? 0;
+    const freightTaxAmount = purchase.freightTaxAmount ?? 0;
+
     return (
-        <div className="max-w-4xl mx-auto p-8 bg-white text-black print:p-0">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-8 border-b pb-4">
+        <div className="mx-auto max-w-4xl bg-white p-8 text-black print:p-0">
+            <div className="mb-8 flex items-start justify-between border-b border-gray-300 pb-5">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">ENTRADA DE MERCANCÍA</h1>
-                    <p className="text-sm text-gray-500 mt-1">Ref: {purchase.referenceNumber}</p>
+                    <h1 className="text-3xl font-black tracking-tight text-gray-900">ENTRADA DE MERCANCIA</h1>
+                    <p className="mt-1 text-sm text-gray-500">Comprobante interno #{purchase.id}</p>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                    <button 
-                        onClick={() => window.close()} 
-                        className="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg print:hidden transition-colors"
+                <div className="text-right">
+                    <button
+                        type="button"
+                        onClick={() => window.close()}
+                        className="mb-4 rounded-lg bg-gray-200 px-4 py-2 text-sm font-bold text-gray-800 transition hover:bg-gray-300 print:hidden"
                     >
                         Cerrar
                     </button>
-                    <div className="text-xl font-bold text-gray-800">{purchase.branchName}</div>
-                    <div className="text-sm text-gray-600">
-                        Fecha: {new Date(purchase.date).toLocaleDateString()}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                        Estado: <span className="uppercase font-semibold">{purchase.status}</span>
-                    </div>
+                    <div className="text-lg font-black text-gray-900">{purchase.branchName}</div>
+                    <div className="mt-1 text-sm text-gray-600">Estado: {purchase.status}</div>
+                    <div className="text-sm text-gray-600">ERP: {purchase.accountingStatus || 'Pending'}</div>
                 </div>
             </div>
 
-            {/* Supplier Info */}
-            <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 print:border-gray-300">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-2">Proveedor</h3>
-                <div className="text-lg font-semibold">{purchase.supplierName}</div>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 print:bg-white">
+                    <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-gray-500">Proveedor</h2>
+                    <div className="text-lg font-bold text-gray-900">{purchase.supplierName}</div>
+                    <div className="mt-2 text-sm text-gray-600">Factura: {purchase.referenceNumber || '-'}</div>
+                    <div className="text-sm text-gray-600">Fecha factura: {formatDate(purchase.supplierInvoiceDate)}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 print:bg-white">
+                    <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-gray-500">Movimiento</h2>
+                    <div className="text-sm text-gray-600">Fecha entrada: {formatDate(purchase.date)}</div>
+                    <div className="text-sm text-gray-600">Bodega: {purchase.branchName}</div>
+                </div>
             </div>
 
-            {/* Details Table */}
             <div className="mb-8">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full border-collapse text-left">
                     <thead>
-                        <tr className="border-b-2 border-gray-800">
-                            <th className="py-2 font-bold text-gray-700">Producto</th>
-                            <th className="py-2 text-center font-bold text-gray-700">Cant.</th>
-                            <th className="py-2 text-right font-bold text-gray-700">Costo Unit.</th>
-                            <th className="py-2 text-right font-bold text-gray-700">Subtotal</th>
-                            <th className="py-2 text-right font-bold text-gray-700">IVA</th>
-                            <th className="py-2 text-right font-bold text-gray-700">Total</th>
+                        <tr className="border-b-2 border-gray-900 text-sm">
+                            <th className="py-2 font-black text-gray-800">Articulo</th>
+                            <th className="py-2 text-center font-black text-gray-800">Cant.</th>
+                            <th className="py-2 text-right font-black text-gray-800">Costo</th>
+                            <th className="py-2 text-right font-black text-gray-800">Base</th>
+                            <th className="py-2 text-right font-black text-gray-800">IVA</th>
+                            <th className="py-2 text-right font-black text-gray-800">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,59 +138,51 @@ const PurchasePrint = () => {
                             const taxRate = detail.taxRate || 0;
                             const totalLine = detail.subTotal + taxAmount;
                             return (
-                            <tr key={index} className="border-b border-gray-200">
-                                <td className="py-3">{detail.productName}</td>
-                                <td className="py-3 text-center">{detail.quantity}</td>
-                                <td className="py-3 text-right">${detail.unitCost.toLocaleString()}</td>
-                                <td className="py-3 text-right">${detail.subTotal.toLocaleString()}</td>
-                                <td className="py-3 text-right text-xs text-gray-500">
-                                    ${taxAmount.toLocaleString()} 
-                                    <br/>({taxRate}%)
-                                </td>
-                                <td className="py-3 text-right font-medium">${totalLine.toLocaleString()}</td>
-                            </tr>
+                                <tr key={`${detail.productId}-${index}`} className="border-b border-gray-200 text-sm">
+                                    <td className="py-3">{detail.productName}</td>
+                                    <td className="py-3 text-center">{detail.quantity}</td>
+                                    <td className="py-3 text-right">{money(detail.unitCost)}</td>
+                                    <td className="py-3 text-right">{money(detail.subTotal)}</td>
+                                    <td className="py-3 text-right">
+                                        <div>{money(taxAmount)}</div>
+                                        <div className="text-xs text-gray-500">({taxRate}%)</div>
+                                    </td>
+                                    <td className="py-3 text-right font-bold">{money(totalLine)}</td>
+                                </tr>
                             );
                         })}
                     </tbody>
-                    <tfoot>
-                        {purchase.freight && purchase.freight > 0 ? (
-                            <>
-                                <tr>
-                                    <td colSpan={5} className="pt-4 text-right font-bold text-gray-600">Subtotal Productos:</td>
-                                    <td className="pt-4 text-right font-bold text-gray-600">
-                                        ${(purchase.totalAmount - purchase.freight).toLocaleString()}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colSpan={5} className="pt-2 text-right font-bold text-gray-600">Flete:</td>
-                                    <td className="pt-2 text-right font-bold text-gray-600">
-                                        ${purchase.freight.toLocaleString()}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colSpan={5} className="pt-2 text-right font-bold text-xl text-gray-800">Total:</td>
-                                    <td className="pt-2 text-right font-bold text-xl text-gray-800">
-                                        ${purchase.totalAmount.toLocaleString()}
-                                    </td>
-                                </tr>
-                            </>
-                        ) : (
-                            <tr>
-                                <td colSpan={5} className="pt-4 text-right font-bold text-xl text-gray-800">Total:</td>
-                                <td className="pt-4 text-right font-bold text-xl text-gray-800">
-                                    ${purchase.totalAmount.toLocaleString()}
-                                </td>
-                            </tr>
-                        )}
+                    <tfoot className="text-sm">
+                        <tr>
+                            <td colSpan={5} className="pt-5 text-right font-bold text-gray-600">Base articulos:</td>
+                            <td className="pt-5 text-right font-bold text-gray-800">{money(purchase.itemsSubTotal)}</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={5} className="pt-2 text-right font-bold text-gray-600">IVA articulos:</td>
+                            <td className="pt-2 text-right font-bold text-gray-800">{money(purchase.itemsTaxAmount)}</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={5} className="pt-2 text-right font-bold text-gray-600">Flete:</td>
+                            <td className="pt-2 text-right font-bold text-gray-800">{money(freight)}</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={5} className="pt-2 text-right font-bold text-gray-600">
+                                IVA flete ({purchase.freightTaxRate || 0}%):
+                            </td>
+                            <td className="pt-2 text-right font-bold text-gray-800">{money(freightTaxAmount)}</td>
+                        </tr>
+                        <tr>
+                            <td colSpan={5} className="pt-4 text-right text-xl font-black text-gray-900">Total entrada:</td>
+                            <td className="pt-4 text-right text-xl font-black text-gray-900">{money(purchase.totalAmount)}</td>
+                        </tr>
                     </tfoot>
                 </table>
             </div>
 
-            {/* Footer */}
-            <div className="mt-12 text-center text-xs text-gray-400 border-t pt-4">
-                <p>Generado el {new Date().toLocaleString()}</p>
+            <div className="mt-12 border-t border-gray-200 pt-4 text-center text-xs text-gray-400">
+                Generado el {new Date().toLocaleString('es-CO')}
             </div>
-            
+
             <style>{`
                 @media print {
                     @page { margin: 20mm; }

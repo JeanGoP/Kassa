@@ -33,7 +33,6 @@ const Layout = () => {
                 { path: '/appointments', label: 'Agenda de Citas', icon: CalendarDays, permission: 'Menus.Appointments.View' },
                 { path: '/quotations', label: 'Cotización', icon: FileText, permission: 'Menus.Quotations.View' },
                 { path: '/sales-history', label: 'Historial de Ventas', icon: FileText, permission: 'Menus.POS.View' },
-                { path: '/purchases', label: 'Entradas Stock', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
             ]
         },
         {
@@ -67,6 +66,7 @@ const Layout = () => {
             label: 'Movimientos',
             icon: ArrowLeftRight,
             submenu: [
+                { path: '/purchases', label: 'Entradas de Mercancia', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
                 { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
                 { path: '/inventory/adjustments', label: 'Ajustes', icon: Sliders, permission: 'Menus.Inventory.View' },
                 { path: '/inventory/transfers', label: 'Traslados', icon: Truck, permission: 'Menus.Inventory.View' },

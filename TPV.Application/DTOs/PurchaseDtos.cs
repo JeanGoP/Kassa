@@ -9,7 +9,9 @@ namespace TPV.Application.DTOs
         public int BranchId { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+        public DateTime? SupplierInvoiceDate { get; set; }
         public decimal Freight { get; set; }
+        public decimal FreightTaxRate { get; set; }
         public List<CreatePurchaseDetailDto> Details { get; set; } = new();
     }
 
@@ -27,10 +29,18 @@ namespace TPV.Application.DTOs
         public string SupplierName { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+        public DateTime? SupplierInvoiceDate { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
+        public decimal ItemsSubTotal { get; set; }
+        public decimal ItemsTaxAmount { get; set; }
         public decimal Freight { get; set; }
+        public decimal FreightTaxRate { get; set; }
+        public decimal FreightTaxAmount { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string AccountingStatus { get; set; } = string.Empty;
+        public string? AccountingReference { get; set; }
+        public DateTime? AccountingExportedAt { get; set; }
         public List<PurchaseDetailDto> Details { get; set; } = new();
     }
 
