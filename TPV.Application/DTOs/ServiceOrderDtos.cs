@@ -17,6 +17,8 @@ namespace TPV.Application.DTOs
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
+        public List<string> VisualEvidenceImages { get; set; } = new List<string>();
+        public string? IntakeCustomerSignatureDataUrl { get; set; }
         public string Technician { get; set; }
         public string? WorkshopManager { get; set; }
         public string Status { get; set; }
@@ -39,6 +41,8 @@ namespace TPV.Application.DTOs
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
+        public List<string> VisualEvidenceImages { get; set; } = new List<string>();
+        public string? IntakeCustomerSignatureDataUrl { get; set; }
         public string? WorkshopManager { get; set; }
         public string Status { get; set; }
     }

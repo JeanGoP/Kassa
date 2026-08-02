@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
@@ -83,6 +84,12 @@ namespace TPV.Application.Services
             }
 
             var workshopManagerName = branch.WorkshopManager?.Name ?? branch.ManagerName;
+            var visualEvidenceImages = NormalizeVisualEvidenceImages(dto.VisualEvidenceImages);
+            var intakeSignature = NormalizeDataUrl(dto.IntakeCustomerSignatureDataUrl, "La firma del cliente", 700_000);
+            if (string.IsNullOrWhiteSpace(intakeSignature))
+            {
+                throw new InvalidOperationException("La firma del cliente es obligatoria para registrar el ingreso del vehiculo.");
+            }
 
             var entity = new ServiceOrder
             {
@@ -96,6 +103,8 @@ namespace TPV.Application.Services
                 FuelLevel = dto.FuelLevel,
                 InitialObservations = dto.InitialObservations,
                 VisualCondition = dto.VisualCondition,
+                VisualEvidenceImagesJson = JsonSerializer.Serialize(visualEvidenceImages),
+                IntakeCustomerSignatureDataUrl = intakeSignature,
                 Technician = string.Empty,
                 WorkshopManager = workshopManagerName,
                 Status = dto.Status
@@ -572,6 +581,8 @@ namespace TPV.Application.Services
                 FuelLevel = entity.FuelLevel,
                 InitialObservations = entity.InitialObservations,
                 VisualCondition = entity.VisualCondition,
+                VisualEvidenceImages = DeserializeVisualEvidenceImages(entity.VisualEvidenceImagesJson),
+                IntakeCustomerSignatureDataUrl = entity.IntakeCustomerSignatureDataUrl,
                 Technician = entity.Technician,
                 WorkshopManager = entity.WorkshopManager,
                 Status = entity.Status,
@@ -581,6 +592,60 @@ namespace TPV.Application.Services
                 CloseReason = entity.CloseReason,
                 CustomerSignatureName = entity.CustomerSignatureName
             };
+        }
+
+        private static List<string> NormalizeVisualEvidenceImages(IEnumerable<string> images)
+        {
+            var normalized = (images ?? Enumerable.Empty<string>())
+                .Select(image => NormalizeDataUrl(image, "Cada evidencia fotografica", 1_600_000))
+                .Where(image => !string.IsNullOrWhiteSpace(image))
+                .Take(6)
+                .ToList();
+
+            if ((images?.Count() ?? 0) > 6)
+            {
+                throw new InvalidOperationException("Solo se permiten hasta 6 evidencias fotograficas por ingreso.");
+            }
+
+            return normalized!;
+        }
+
+        private static string? NormalizeDataUrl(string? value, string fieldName, int maxLength)
+        {
+            var cleanValue = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (cleanValue == null)
+            {
+                return null;
+            }
+
+            if (!cleanValue.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"{fieldName} debe ser una imagen valida.");
+            }
+
+            if (cleanValue.Length > maxLength)
+            {
+                throw new InvalidOperationException($"{fieldName} supera el tamano permitido.");
+            }
+
+            return cleanValue;
+        }
+
+        private static List<string> DeserializeVisualEvidenceImages(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return new List<string>();
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(value) ?? new List<string>();
+            }
+            catch (JsonException)
+            {
+                return new List<string>();
+            }
         }
     }
 }

@@ -412,6 +412,14 @@ namespace TPV.Infrastructure.Persistence
                 .Property(so => so.Mileage)
                 .HasColumnType("decimal(18,2)");
 
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.VisualEvidenceImagesJson)
+                .HasColumnType("nvarchar(max)");
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.IntakeCustomerSignatureDataUrl)
+                .HasColumnType("nvarchar(max)");
+
             builder.Entity<ServiceOrderWork>()
                 .Property(w => w.LaborCost)
                 .HasColumnType("decimal(18,2)");

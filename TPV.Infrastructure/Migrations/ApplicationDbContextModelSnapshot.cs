@@ -1153,6 +1153,9 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("IntakeCustomerSignatureDataUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("IntakeDateTime")
                         .HasColumnType("datetime2");
 
@@ -1192,6 +1195,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<string>("VisualCondition")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VisualEvidenceImagesJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("WorkshopManager")

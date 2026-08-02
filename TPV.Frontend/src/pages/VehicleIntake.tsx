@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
+import { Camera, Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -45,6 +45,41 @@ const formatDateTimeLocal = (date = new Date()) => {
     return localDate.toISOString().slice(0, 16);
 };
 
+const MAX_VISUAL_EVIDENCE_IMAGES = 6;
+
+const compressImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        image.onload = () => {
+            const maxSize = 1280;
+            const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+
+            const context = canvas.getContext('2d');
+            if (!context) {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('No fue posible procesar la imagen.'));
+                return;
+            }
+
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(objectUrl);
+            resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+
+        image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('No fue posible cargar la imagen.'));
+        };
+
+        image.src = objectUrl;
+    });
+};
+
 const VehicleIntake = () => {
     const [formData, setFormData] = useState({
         plate: '',
@@ -85,6 +120,11 @@ const VehicleIntake = () => {
     const [orderSearch, setOrderSearch] = useState('');
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
+    const evidenceInputRef = useRef<HTMLInputElement | null>(null);
+    const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [visualEvidenceImages, setVisualEvidenceImages] = useState<string[]>([]);
+    const [signatureDataUrl, setSignatureDataUrl] = useState('');
+    const [isSigning, setIsSigning] = useState(false);
 
     // Warranty State
     const [activeWarranties, setActiveWarranties] = useState<any[]>([]);
@@ -227,16 +267,118 @@ const VehicleIntake = () => {
         return () => clearTimeout(timeoutId);
     }, [formData.plate]);
 
+    const handleEvidenceFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFiles = Array.from(event.target.files || []);
+        event.target.value = '';
+
+        if (selectedFiles.length === 0) return;
+
+        const remainingSlots = MAX_VISUAL_EVIDENCE_IMAGES - visualEvidenceImages.length;
+        if (remainingSlots <= 0) {
+            alert(`Solo puedes adjuntar hasta ${MAX_VISUAL_EVIDENCE_IMAGES} evidencias.`);
+            return;
+        }
+
+        try {
+            const compressedImages = await Promise.all(
+                selectedFiles
+                    .filter(file => file.type.startsWith('image/'))
+                    .slice(0, remainingSlots)
+                    .map(compressImageFile)
+            );
+
+            setVisualEvidenceImages(prev => [...prev, ...compressedImages].slice(0, MAX_VISUAL_EVIDENCE_IMAGES));
+        } catch (error) {
+            console.error('Error processing evidence images', error);
+            alert('No fue posible procesar una de las fotografias.');
+        }
+    };
+
+    const removeEvidenceImage = (index: number) => {
+        setVisualEvidenceImages(prev => prev.filter((_, currentIndex) => currentIndex !== index));
+    };
+
+    const getSignaturePoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+        const canvas = signatureCanvasRef.current;
+        if (!canvas) return null;
+
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (event.clientX - rect.left) * (canvas.width / rect.width),
+            y: (event.clientY - rect.top) * (canvas.height / rect.height)
+        };
+    };
+
+    const startSignature = (event: React.PointerEvent<HTMLCanvasElement>) => {
+        const canvas = signatureCanvasRef.current;
+        const point = getSignaturePoint(event);
+        if (!canvas || !point) return;
+
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        event.currentTarget.setPointerCapture(event.pointerId);
+        context.strokeStyle = '#0f172a';
+        context.lineWidth = 3;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.beginPath();
+        context.moveTo(point.x, point.y);
+        setIsSigning(true);
+    };
+
+    const drawSignature = (event: React.PointerEvent<HTMLCanvasElement>) => {
+        if (!isSigning) return;
+
+        const canvas = signatureCanvasRef.current;
+        const point = getSignaturePoint(event);
+        if (!canvas || !point) return;
+
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        context.lineTo(point.x, point.y);
+        context.stroke();
+    };
+
+    const finishSignature = (event: React.PointerEvent<HTMLCanvasElement>) => {
+        if (!isSigning) return;
+
+        const canvas = signatureCanvasRef.current;
+        if (!canvas) return;
+
+        setIsSigning(false);
+        setSignatureDataUrl(canvas.toDataURL('image/png'));
+        event.currentTarget.releasePointerCapture(event.pointerId);
+    };
+
+    const clearSignature = () => {
+        const canvas = signatureCanvasRef.current;
+        const context = canvas?.getContext('2d');
+        if (canvas && context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        setSignatureDataUrl('');
+        setIsSigning(false);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCustomer) {
             alert('Por favor seleccione un cliente.');
             return;
         }
+
+        if (!signatureDataUrl) {
+            alert('Solicita la firma del cliente antes de guardar el ingreso.');
+            return;
+        }
         
         const intakeData = {
             ...formData,
             intakeDateTime: formData.intakeDateTime || formatDateTimeLocal(),
+            visualEvidenceImages,
+            intakeCustomerSignatureDataUrl: signatureDataUrl,
             customerId: selectedCustomer.id,
             customerName: `${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
             status: "ABIERTA"
@@ -261,6 +403,8 @@ const VehicleIntake = () => {
             }));
             setSelectedCustomer(null);
             setCustomerSearch('');
+            setVisualEvidenceImages([]);
+            clearSignature();
         } catch (error) {
             console.error('Error saving service order', error);
             alert('Error al registrar el ingreso.');
@@ -272,6 +416,21 @@ const VehicleIntake = () => {
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
+
+        const evidenceImages = Array.isArray(orderToPrint.visualEvidenceImages)
+            ? orderToPrint.visualEvidenceImages
+            : [];
+        const evidenceHtml = evidenceImages.length > 0
+            ? evidenceImages.map((image: string, index: number) => `
+                <div class="evidence-item">
+                    <img src="${image}" alt="Evidencia ${index + 1}" />
+                    <div>Evidencia ${index + 1}</div>
+                </div>
+            `).join('')
+            : '<div class="empty-evidence">Sin evidencias fotograficas adjuntas.</div>';
+        const signatureHtml = orderToPrint.intakeCustomerSignatureDataUrl
+            ? `<img class="signature-image" src="${orderToPrint.intakeCustomerSignatureDataUrl}" alt="Firma del cliente" />`
+            : '<div class="empty-evidence">Firma no capturada.</div>';
 
         const html = `
 <!DOCTYPE html>
@@ -425,6 +584,56 @@ const VehicleIntake = () => {
             white-space: pre-wrap;
         }
 
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .evidence-item {
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #ffffff;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .evidence-item img {
+            display: block;
+            width: 100%;
+            height: 105px;
+            object-fit: cover;
+        }
+
+        .evidence-item div {
+            padding: 6px 8px;
+        }
+
+        .signature-box {
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 10px;
+            min-height: 118px;
+        }
+
+        .signature-image {
+            display: block;
+            max-width: 100%;
+            max-height: 105px;
+            margin: 0 auto;
+        }
+
+        .empty-evidence {
+            border: 1px dashed var(--border-subtle);
+            border-radius: 10px;
+            padding: 14px;
+            color: var(--text-muted);
+            background-color: #f9fafb;
+            font-size: 12px;
+        }
+
         .footer {
             margin-top: 26px;
             font-size: 11px;
@@ -531,6 +740,20 @@ const VehicleIntake = () => {
             </div>
         </div>
 
+        <div class="section">
+            <div class="section-title">Evidencias fotograficas</div>
+            <div class="evidence-grid">
+                ${evidenceHtml}
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Firma de aceptacion del cliente</div>
+            <div class="signature-box">
+                ${signatureHtml}
+            </div>
+        </div>
+
         <div class="footer-divider"></div>
         <div class="footer">
             <div>Este documento es solo informativo para el ingreso del vehículo.</div>
@@ -552,6 +775,11 @@ const VehicleIntake = () => {
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
+
+        const evidenceCount = Array.isArray(orderToPrint.visualEvidenceImages)
+            ? orderToPrint.visualEvidenceImages.length
+            : 0;
+        const signatureStatus = orderToPrint.intakeCustomerSignatureDataUrl ? 'Capturada' : 'No capturada';
 
         const html = `
 <!DOCTYPE html>
@@ -657,6 +885,16 @@ const VehicleIntake = () => {
     <br/>
     <div class="label">ESTADO VISUAL:</div>
     <div class="text-wrap">${orderToPrint.visualCondition || 'Sin novedades'}</div>
+
+    <div class="divider"></div>
+    <div class="info-row">
+        <span class="label">EVIDENCIAS:</span>
+        <span>${evidenceCount}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">FIRMA:</span>
+        <span>${signatureStatus}</span>
+    </div>
 
     <div class="footer">
         <div class="divider"></div>
@@ -945,6 +1183,85 @@ const VehicleIntake = () => {
                             onChange={handleChange}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 h-28 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
                         />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Evidencias del estado visual</h3>
+                                <p className="text-sm text-slate-500">Toma fotografias de golpes, rayones o accesorios al recibir el vehiculo.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => evidenceInputRef.current?.click()}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
+                            >
+                                <Camera size={17} />
+                                Tomar foto
+                            </button>
+                            <input
+                                ref={evidenceInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                multiple
+                                className="hidden"
+                                onChange={handleEvidenceFiles}
+                            />
+                        </div>
+
+                        {visualEvidenceImages.length > 0 ? (
+                            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                {visualEvidenceImages.map((image, index) => (
+                                    <div key={`${image.slice(0, 40)}-${index}`} className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                        <img src={image} alt={`Evidencia ${index + 1}`} className="aspect-video w-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeEvidenceImage(index)}
+                                            className="absolute right-2 top-2 rounded-full bg-white/95 p-1.5 text-red-600 shadow transition hover:bg-red-50"
+                                            title="Eliminar evidencia"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm font-medium text-slate-500">
+                                Sin fotografias adjuntas.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Firma del cliente</h3>
+                                <p className="text-sm text-slate-500">Acepta el ingreso y el estado visual registrado.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={clearSignature}
+                                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                            >
+                                Limpiar
+                            </button>
+                        </div>
+                        <canvas
+                            ref={signatureCanvasRef}
+                            width={700}
+                            height={220}
+                            onPointerDown={startSignature}
+                            onPointerMove={drawSignature}
+                            onPointerUp={finishSignature}
+                            onPointerCancel={finishSignature}
+                            className="h-44 w-full touch-none rounded-lg border border-slate-300 bg-white shadow-inner"
+                        />
+                        <p className={`mt-2 text-xs font-semibold ${signatureDataUrl ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {signatureDataUrl ? 'Firma capturada.' : 'La firma es obligatoria para guardar el ingreso.'}
+                        </p>
                     </div>
                 </div>
 
