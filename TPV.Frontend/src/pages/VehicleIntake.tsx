@@ -46,6 +46,7 @@ const formatDateTimeLocal = (date = new Date()) => {
 };
 
 const MAX_VISUAL_EVIDENCE_IMAGES = 6;
+const SIGNATURE_MIN_STROKE_DISTANCE = 10;
 
 const compressImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -124,9 +125,13 @@ const VehicleIntake = () => {
     const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState<number | null>(null);
     const evidenceInputRef = useRef<HTMLInputElement | null>(null);
     const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const signatureStartPointRef = useRef<{ x: number; y: number } | null>(null);
+    const signatureLastPointRef = useRef<{ x: number; y: number } | null>(null);
+    const signatureStrokeDistanceRef = useRef(0);
+    const signatureHasDrawnRef = useRef(false);
+    const isSigningRef = useRef(false);
     const [visualEvidenceImages, setVisualEvidenceImages] = useState<string[]>([]);
     const [signatureDataUrl, setSignatureDataUrl] = useState('');
-    const [isSigning, setIsSigning] = useState(false);
 
     // Warranty State
     const [activeWarranties, setActiveWarranties] = useState<any[]>([]);
@@ -320,17 +325,22 @@ const VehicleIntake = () => {
         if (!context) return;
 
         event.currentTarget.setPointerCapture(event.pointerId);
+        event.preventDefault();
+        signatureStartPointRef.current = point;
+        signatureLastPointRef.current = point;
+        signatureStrokeDistanceRef.current = 0;
+        signatureHasDrawnRef.current = false;
+        isSigningRef.current = true;
         context.strokeStyle = '#0f172a';
         context.lineWidth = 3;
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.beginPath();
         context.moveTo(point.x, point.y);
-        setIsSigning(true);
     };
 
     const drawSignature = (event: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!isSigning) return;
+        if (!isSigningRef.current) return;
 
         const canvas = signatureCanvasRef.current;
         const point = getSignaturePoint(event);
@@ -339,19 +349,44 @@ const VehicleIntake = () => {
         const context = canvas.getContext('2d');
         if (!context) return;
 
-        context.lineTo(point.x, point.y);
-        context.stroke();
+        const lastPoint = signatureLastPointRef.current ?? point;
+        const movement = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
+        signatureStrokeDistanceRef.current += movement;
+
+        if (signatureStrokeDistanceRef.current >= SIGNATURE_MIN_STROKE_DISTANCE) {
+            if (!signatureHasDrawnRef.current) {
+                const startPoint = signatureStartPointRef.current ?? lastPoint;
+                context.beginPath();
+                context.moveTo(startPoint.x, startPoint.y);
+                signatureHasDrawnRef.current = true;
+            }
+
+            context.lineTo(point.x, point.y);
+            context.stroke();
+        }
+
+        signatureLastPointRef.current = point;
     };
 
     const finishSignature = (event: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!isSigning) return;
+        if (!isSigningRef.current) return;
 
         const canvas = signatureCanvasRef.current;
         if (!canvas) return;
 
-        setIsSigning(false);
-        setSignatureDataUrl(canvas.toDataURL('image/png'));
-        event.currentTarget.releasePointerCapture(event.pointerId);
+        isSigningRef.current = false;
+        if (signatureStrokeDistanceRef.current >= SIGNATURE_MIN_STROKE_DISTANCE && signatureHasDrawnRef.current) {
+            setSignatureDataUrl(canvas.toDataURL('image/png'));
+        }
+
+        signatureStartPointRef.current = null;
+        signatureLastPointRef.current = null;
+        signatureStrokeDistanceRef.current = 0;
+        signatureHasDrawnRef.current = false;
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
     };
 
     const clearSignature = () => {
@@ -361,7 +396,11 @@ const VehicleIntake = () => {
             context.clearRect(0, 0, canvas.width, canvas.height);
         }
         setSignatureDataUrl('');
-        setIsSigning(false);
+        isSigningRef.current = false;
+        signatureStartPointRef.current = null;
+        signatureLastPointRef.current = null;
+        signatureStrokeDistanceRef.current = 0;
+        signatureHasDrawnRef.current = false;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
