@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, MapPin, Plus, ReceiptText, Save, Search, Trash2, Truck } from 'lucide-react';
@@ -52,7 +52,16 @@ const CreatePurchase = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [stockItems, setStockItems] = useState<StockItem[]>([]);
     const [search, setSearch] = useState('');
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [activeProductIndex, setActiveProductIndex] = useState(0);
+    const [quickQuantity, setQuickQuantity] = useState('1');
+    const [quickUnitCost, setQuickUnitCost] = useState('');
+    const [quickTaxRate, setQuickTaxRate] = useState('0');
     const [isSaving, setIsSaving] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
+    const quantityInputRef = useRef<HTMLInputElement | null>(null);
+    const costInputRef = useRef<HTMLInputElement | null>(null);
+    const taxInputRef = useRef<HTMLInputElement | null>(null);
 
     const [supplierId, setSupplierId] = useState<number | ''>('');
     const [branchId, setBranchId] = useState<number | ''>('');
@@ -105,6 +114,11 @@ const CreatePurchase = () => {
 
     useEffect(() => {
         const delay = setTimeout(async () => {
+            if (selectedProduct) {
+                setProducts([]);
+                return;
+            }
+
             if (search.trim().length < 2) {
                 setProducts([]);
                 return;
@@ -124,29 +138,125 @@ const CreatePurchase = () => {
         }, 300);
 
         return () => clearTimeout(delay);
-    }, [search, branchId]);
+    }, [search, branchId, selectedProduct]);
 
-    const addProduct = (product: Product) => {
-        if (details.some(d => d.productId === product.id)) {
-            alert('El articulo ya esta en la entrada.');
+    useEffect(() => {
+        setActiveProductIndex(0);
+    }, [products]);
+
+    const clearQuickCapture = (focusSearch = true) => {
+        setSelectedProduct(null);
+        setSearch('');
+        setProducts([]);
+        setActiveProductIndex(0);
+        setQuickQuantity('1');
+        setQuickUnitCost('');
+        setQuickTaxRate('0');
+
+        if (focusSearch) {
+            setTimeout(() => searchInputRef.current?.focus(), 0);
+        }
+    };
+
+    const selectProductForCapture = (product: Product) => {
+        const stockCost = stockItems.find(item => item.productId === product.id)?.cost ?? 0;
+        setSelectedProduct(product);
+        setSearch(`${product.sku} - ${product.name}`);
+        setProducts([]);
+        setQuickQuantity('1');
+        setQuickUnitCost(stockCost > 0 ? String(stockCost) : '');
+        setQuickTaxRate(String(product.ivaRate || 0));
+        setTimeout(() => quantityInputRef.current?.focus(), 0);
+    };
+
+    const addQuickProduct = () => {
+        if (!selectedProduct) {
+            searchInputRef.current?.focus();
             return;
         }
 
-        const stockCost = stockItems.find(item => item.productId === product.id)?.cost ?? 0;
-        setDetails(prev => [
-            ...prev,
-            {
-                productId: product.id,
-                productName: product.name,
-                sku: product.sku,
-                quantity: 1,
-                unitCost: stockCost,
-                taxRate: product.ivaRate || 0,
-                unitOfMeasure: product.unitOfMeasure || 'UND'
+        const quantity = Number(quickQuantity);
+        const unitCost = Number(quickUnitCost);
+        const taxRate = Number(quickTaxRate);
+
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+            alert('Ingrese una cantidad mayor a cero.');
+            quantityInputRef.current?.focus();
+            return;
+        }
+
+        if (!Number.isFinite(unitCost) || unitCost < 0) {
+            alert('Ingrese un costo valido.');
+            costInputRef.current?.focus();
+            return;
+        }
+
+        if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) {
+            alert('Ingrese un IVA entre 0 y 100.');
+            taxInputRef.current?.focus();
+            return;
+        }
+
+        const newItem: PurchaseItem = {
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            sku: selectedProduct.sku,
+            quantity,
+            unitCost,
+            taxRate,
+            unitOfMeasure: selectedProduct.unitOfMeasure || 'UND'
+        };
+
+        setDetails(prev => {
+            const existingIndex = prev.findIndex(item => item.productId === selectedProduct.id);
+            if (existingIndex >= 0) {
+                return prev.map((item, index) =>
+                    index === existingIndex
+                        ? {
+                            ...item,
+                            quantity: item.quantity + quantity,
+                            unitCost,
+                            taxRate,
+                            unitOfMeasure: newItem.unitOfMeasure
+                        }
+                        : item
+                );
             }
-        ]);
-        setSearch('');
-        setProducts([]);
+
+            return [...prev, newItem];
+        });
+
+        clearQuickCapture();
+    };
+
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (products.length === 0) {
+            return;
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setActiveProductIndex(current => (current + 1) % products.length);
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveProductIndex(current => (current - 1 + products.length) % products.length);
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            selectProductForCapture(products[activeProductIndex] || products[0]);
+        }
+    };
+
+    const handleQuickFieldKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addQuickProduct();
+        }
     };
 
     const updateDetail = (index: number, field: 'quantity' | 'unitCost' | 'taxRate', value: number) => {
@@ -313,6 +423,7 @@ const CreatePurchase = () => {
                                         onChange={(event) => {
                                             setBranchId(Number(event.target.value));
                                             setDetails([]);
+                                            clearQuickCapture(false);
                                         }}
                                         required
                                     >
@@ -326,39 +437,121 @@ const CreatePurchase = () => {
                     </section>
 
                     <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="mb-4">
                             <div>
                                 <h2 className="text-base font-extrabold text-slate-900">Articulos comprados</h2>
-                                <p className="text-sm text-slate-500">Costo base e IVA por articulo.</p>
+                                <p className="text-sm text-slate-500">Capture cada articulo en una sola linea y agreguelo al cuerpo de la compra.</p>
                             </div>
-                            <div className="relative w-full lg:max-w-md">
-                                <Search className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
-                                <input
-                                    type="text"
-                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pl-10 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                    placeholder="Buscar por nombre, SKU o codigo"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                    disabled={!branchId}
-                                />
-                                {products.length > 0 && (
-                                    <div className="absolute right-0 z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
-                                        {products.map(product => (
-                                            <button
-                                                key={product.id}
-                                                type="button"
-                                                onClick={() => addProduct(product)}
-                                                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-blue-50"
-                                            >
-                                                <span className="min-w-0">
-                                                    <span className="block truncate text-sm font-bold text-slate-800">{product.name}</span>
-                                                    <span className="block text-xs text-slate-500">{product.sku} - IVA {product.ivaRate || 0}%</span>
-                                                </span>
-                                                <Plus size={18} className="shrink-0 text-blue-700" />
-                                            </button>
-                                        ))}
+                        </div>
+
+                        <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/50 p-3 sm:p-4">
+                            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,1fr)_120px_150px_110px_120px] xl:items-end">
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Buscar articulo</span>
+                                    <div className="relative">
+                                        <Search className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
+                                        <input
+                                            ref={searchInputRef}
+                                            type="text"
+                                            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pl-10 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            placeholder="Nombre, SKU o codigo"
+                                            value={search}
+                                            onChange={(event) => {
+                                                setSearch(event.target.value);
+                                                setSelectedProduct(null);
+                                                setQuickQuantity('1');
+                                                setQuickUnitCost('');
+                                                setQuickTaxRate('0');
+                                            }}
+                                            onKeyDown={handleSearchKeyDown}
+                                            disabled={!branchId}
+                                            autoComplete="off"
+                                        />
+                                        {products.length > 0 && (
+                                            <div className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
+                                                {products.map((product, index) => (
+                                                    <button
+                                                        key={product.id}
+                                                        type="button"
+                                                        onMouseDown={(event) => {
+                                                            event.preventDefault();
+                                                            selectProductForCapture(product);
+                                                        }}
+                                                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition ${index === activeProductIndex ? 'bg-blue-50 text-blue-900' : 'hover:bg-blue-50'}`}
+                                                    >
+                                                        <span className="min-w-0">
+                                                            <span className="block truncate text-sm font-bold">{product.name}</span>
+                                                            <span className="block text-xs text-slate-500">{product.sku} - IVA {product.ivaRate || 0}%</span>
+                                                        </span>
+                                                        <Plus size={18} className="shrink-0 text-blue-700" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                    {selectedProduct && (
+                                        <div className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                                            Seleccionado: <span className="text-slate-900">{selectedProduct.sku}</span> - {selectedProduct.name}
+                                        </div>
+                                    )}
+                                </label>
+
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Cantidad</span>
+                                    <input
+                                        ref={quantityInputRef}
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-center text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                                        value={quickQuantity}
+                                        onChange={(event) => setQuickQuantity(event.target.value)}
+                                        onKeyDown={handleQuickFieldKeyDown}
+                                        disabled={!selectedProduct}
+                                    />
+                                </label>
+
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Costo unitario</span>
+                                    <input
+                                        ref={costInputRef}
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-right text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                                        value={quickUnitCost}
+                                        onChange={(event) => setQuickUnitCost(event.target.value)}
+                                        onKeyDown={handleQuickFieldKeyDown}
+                                        placeholder="0"
+                                        disabled={!selectedProduct}
+                                    />
+                                </label>
+
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">IVA %</span>
+                                    <input
+                                        ref={taxInputRef}
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.01"
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-center text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                                        value={quickTaxRate}
+                                        onChange={(event) => setQuickTaxRate(event.target.value)}
+                                        onKeyDown={handleQuickFieldKeyDown}
+                                        disabled={!selectedProduct}
+                                    />
+                                </label>
+
+                                <button
+                                    type="button"
+                                    onClick={addQuickProduct}
+                                    disabled={!selectedProduct}
+                                    className="flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-extrabold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <Plus size={18} />
+                                    Agregar
+                                </button>
                             </div>
                         </div>
 
