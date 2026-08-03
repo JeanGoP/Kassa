@@ -411,7 +411,49 @@ const VehicleIntake = () => {
         }
     };
 
-    const handlePrint = (orderToPrint = lastServiceOrder) => {
+    const waitForPrintImages = (targetWindow: Window, timeoutMs = 3000) => {
+        return new Promise<void>((resolve) => {
+            const images = Array.from(targetWindow.document.images);
+            if (images.length === 0) {
+                resolve();
+                return;
+            }
+
+            let pendingImages = images.filter(image => !(image.complete && image.naturalWidth > 0)).length;
+            let resolved = false;
+
+            const finish = () => {
+                if (resolved) return;
+                resolved = true;
+                images.forEach(image => {
+                    image.onload = null;
+                    image.onerror = null;
+                });
+                resolve();
+            };
+
+            if (pendingImages === 0) {
+                finish();
+                return;
+            }
+
+            const markImageDone = () => {
+                pendingImages -= 1;
+                if (pendingImages <= 0) {
+                    finish();
+                }
+            };
+
+            window.setTimeout(finish, timeoutMs);
+            images.forEach(image => {
+                if (image.complete && image.naturalWidth > 0) return;
+                image.onload = markImageDone;
+                image.onerror = markImageDone;
+            });
+        });
+    };
+
+    const handlePrint = async (orderToPrint = lastServiceOrder) => {
         if (!orderToPrint) return;
 
         const printWindow = window.open('', '_blank');
@@ -597,6 +639,8 @@ const VehicleIntake = () => {
             background-color: #ffffff;
             font-size: 10px;
             color: var(--text-muted);
+            break-inside: avoid;
+            page-break-inside: avoid;
         }
 
         .evidence-item img {
@@ -766,8 +810,9 @@ const VehicleIntake = () => {
         printWindow.document.write(html);
         printWindow.document.close();
         printWindow.focus();
+        await waitForPrintImages(printWindow);
         printWindow.print();
-        printWindow.close();
+        window.setTimeout(() => printWindow.close(), 500);
     };
 
     const handlePrintThermal = (orderToPrint = lastServiceOrder) => {
