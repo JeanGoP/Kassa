@@ -563,9 +563,10 @@ namespace TPV.Application.Services
 
         private ServiceOrderDto MapToDto(ServiceOrder entity, Customer customer = null)
         {
-            var customerName = customer != null
-                ? $"{customer.FirstName} {customer.LastName}"
-                : null;
+            var sourceCustomer = customer ?? entity.Customer;
+            var customerName = sourceCustomer != null
+                ? $"{sourceCustomer.FirstName} {sourceCustomer.LastName}".Trim()
+                : string.Empty;
 
             return new ServiceOrderDto
             {

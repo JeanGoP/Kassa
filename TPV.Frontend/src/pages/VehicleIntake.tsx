@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Camera, Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
+import { Camera, Images, Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -120,6 +120,7 @@ const VehicleIntake = () => {
     const [orderSearch, setOrderSearch] = useState('');
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
+    const [evidenceOrder, setEvidenceOrder] = useState<any | null>(null);
     const evidenceInputRef = useRef<HTMLInputElement | null>(null);
     const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const [visualEvidenceImages, setVisualEvidenceImages] = useState<string[]>([]);
@@ -1399,6 +1400,20 @@ const VehicleIntake = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <div className="flex gap-2">
                                                 <button
+                                                    type="button"
+                                                    onClick={() => setEvidenceOrder(order)}
+                                                    className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-800"
+                                                    title="Ver evidencias"
+                                                >
+                                                    <Images size={18} />
+                                                    <span className="text-xs font-semibold">
+                                                        Evidencia
+                                                        {Array.isArray(order.visualEvidenceImages) && order.visualEvidenceImages.length > 0
+                                                            ? ` (${order.visualEvidenceImages.length})`
+                                                            : ''}
+                                                    </span>
+                                                </button>
+                                                <button
                                                     onClick={() => handlePrint(order)}
                                                     className="text-blue-600 hover:text-blue-900"
                                                     title="Imprimir Carta"
@@ -1421,6 +1436,111 @@ const VehicleIntake = () => {
                     </div>
                 )}
             </div>
+
+            {evidenceOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                        <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                                    <Images className="text-emerald-600" size={22} />
+                                    Evidencias de ingreso
+                                </h3>
+                                <p className="text-sm text-slate-500">
+                                    Orden #{evidenceOrder.id} · Placa {evidenceOrder.plate} · {evidenceOrder.customerName || 'Cliente sin nombre'}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handlePrint(evidenceOrder)}
+                                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                                >
+                                    <Printer size={16} />
+                                    Imprimir
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEvidenceOrder(null)}
+                                    className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                                    title="Cerrar"
+                                >
+                                    <X size={22} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-5 p-6">
+                            <div className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-3">
+                                <div>
+                                    <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">Fecha ingreso</span>
+                                    <span className="font-semibold text-slate-900">{new Date(evidenceOrder.intakeDateTime).toLocaleString()}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">Vehiculo</span>
+                                    <span className="font-semibold text-slate-900">{evidenceOrder.brand} {evidenceOrder.model}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">Firma</span>
+                                    <span className={`font-semibold ${evidenceOrder.intakeCustomerSignatureDataUrl ? 'text-emerald-700' : 'text-red-600'}`}>
+                                        {evidenceOrder.intakeCustomerSignatureDataUrl ? 'Capturada' : 'No capturada'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <section>
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <h4 className="font-bold text-slate-900">Fotografias</h4>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                        {Array.isArray(evidenceOrder.visualEvidenceImages) ? evidenceOrder.visualEvidenceImages.length : 0} evidencia(s)
+                                    </span>
+                                </div>
+
+                                {Array.isArray(evidenceOrder.visualEvidenceImages) && evidenceOrder.visualEvidenceImages.length > 0 ? (
+                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                        {evidenceOrder.visualEvidenceImages.map((image: string, index: number) => (
+                                            <a
+                                                key={`${image.slice(0, 32)}-${index}`}
+                                                href={image}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                                                title="Abrir evidencia"
+                                            >
+                                                <img src={image} alt={`Evidencia ${index + 1}`} className="aspect-video w-full object-cover" />
+                                                <div className="px-3 py-2 text-sm font-semibold text-slate-700 group-hover:text-blue-700">
+                                                    Evidencia {index + 1}
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+                                        Este ingreso no tiene fotografias adjuntas.
+                                    </div>
+                                )}
+                            </section>
+
+                            <section>
+                                <h4 className="mb-3 font-bold text-slate-900">Firma del cliente</h4>
+                                {evidenceOrder.intakeCustomerSignatureDataUrl ? (
+                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                        <img
+                                            src={evidenceOrder.intakeCustomerSignatureDataUrl}
+                                            alt="Firma del cliente"
+                                            className="mx-auto max-h-48 max-w-full"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+                                        Este ingreso no tiene firma capturada.
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create Customer Modal */}
             {showCreateCustomerModal && (
