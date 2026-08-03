@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Camera, Images, Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Images, Maximize2, Search, X, UserPlus, Printer, MapPin, ScrollText } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -121,6 +121,7 @@ const VehicleIntake = () => {
     const [orderResults, setOrderResults] = useState<any[]>([]);
     const [searchingOrders, setSearchingOrders] = useState(false);
     const [evidenceOrder, setEvidenceOrder] = useState<any | null>(null);
+    const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState<number | null>(null);
     const evidenceInputRef = useRef<HTMLInputElement | null>(null);
     const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const [visualEvidenceImages, setVisualEvidenceImages] = useState<string[]>([]);
@@ -977,6 +978,12 @@ const VehicleIntake = () => {
         }
     };
 
+    const evidenceImages = Array.isArray(evidenceOrder?.visualEvidenceImages)
+        ? evidenceOrder.visualEvidenceImages.filter((image: string) => Boolean(image))
+        : [];
+    const selectedEvidenceImage =
+        selectedEvidenceIndex !== null ? evidenceImages[selectedEvidenceIndex] : null;
+
     return (
         <div className="bg-white rounded-xl shadow-md p-6 relative">
             <h1 className="text-2xl font-bold mb-4 text-slate-800">Ingreso del Vehículo</h1>
@@ -1401,7 +1408,10 @@ const VehicleIntake = () => {
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setEvidenceOrder(order)}
+                                                    onClick={() => {
+                                                        setEvidenceOrder(order);
+                                                        setSelectedEvidenceIndex(null);
+                                                    }}
                                                     className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-800"
                                                     title="Ver evidencias"
                                                 >
@@ -1461,7 +1471,10 @@ const VehicleIntake = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setEvidenceOrder(null)}
+                                    onClick={() => {
+                                        setEvidenceOrder(null);
+                                        setSelectedEvidenceIndex(null);
+                                    }}
                                     className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                                     title="Cerrar"
                                 >
@@ -1492,26 +1505,28 @@ const VehicleIntake = () => {
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <h4 className="font-bold text-slate-900">Fotografias</h4>
                                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                        {Array.isArray(evidenceOrder.visualEvidenceImages) ? evidenceOrder.visualEvidenceImages.length : 0} evidencia(s)
+                                        {evidenceImages.length} evidencia(s)
                                     </span>
                                 </div>
 
-                                {Array.isArray(evidenceOrder.visualEvidenceImages) && evidenceOrder.visualEvidenceImages.length > 0 ? (
+                                {evidenceImages.length > 0 ? (
                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                        {evidenceOrder.visualEvidenceImages.map((image: string, index: number) => (
-                                            <a
+                                        {evidenceImages.map((image: string, index: number) => (
+                                            <button
+                                                type="button"
                                                 key={`${image.slice(0, 32)}-${index}`}
-                                                href={image}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-300 hover:shadow-md"
-                                                title="Abrir evidencia"
+                                                onClick={() => setSelectedEvidenceIndex(index)}
+                                                className="group overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                title="Ver evidencia completa"
                                             >
-                                                <img src={image} alt={`Evidencia ${index + 1}`} className="aspect-video w-full object-cover" />
-                                                <div className="px-3 py-2 text-sm font-semibold text-slate-700 group-hover:text-blue-700">
-                                                    Evidencia {index + 1}
+                                                <div className="flex aspect-video w-full items-center justify-center bg-slate-100 p-2">
+                                                    <img src={image} alt={`Evidencia ${index + 1}`} className="h-full w-full object-contain" />
                                                 </div>
-                                            </a>
+                                                <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-slate-700 group-hover:text-blue-700">
+                                                    <span>Evidencia {index + 1}</span>
+                                                    <Maximize2 size={15} />
+                                                </div>
+                                            </button>
                                         ))}
                                     </div>
                                 ) : (
@@ -1537,6 +1552,69 @@ const VehicleIntake = () => {
                                     </div>
                                 )}
                             </section>
+
+                            {selectedEvidenceImage && (
+                                <div className="fixed inset-0 z-[70] flex flex-col bg-slate-950/95 p-3 text-white sm:p-6">
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-200">
+                                                Evidencia {(selectedEvidenceIndex ?? 0) + 1} de {evidenceImages.length}
+                                            </p>
+                                            <p className="text-xs text-slate-400">
+                                                Orden #{evidenceOrder.id} · Placa {evidenceOrder.plate}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedEvidenceIndex(null)}
+                                            className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+                                            title="Cerrar vista ampliada"
+                                        >
+                                            <X size={24} />
+                                        </button>
+                                    </div>
+
+                                    <div className="relative flex min-h-0 flex-1 items-center justify-center">
+                                        {evidenceImages.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setSelectedEvidenceIndex(current =>
+                                                        current === null
+                                                            ? 0
+                                                            : (current - 1 + evidenceImages.length) % evidenceImages.length
+                                                    )
+                                                }
+                                                className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white shadow-lg transition hover:bg-white/20 sm:left-4"
+                                                title="Evidencia anterior"
+                                            >
+                                                <ChevronLeft size={30} />
+                                            </button>
+                                        )}
+
+                                        <img
+                                            src={selectedEvidenceImage}
+                                            alt={`Evidencia ${(selectedEvidenceIndex ?? 0) + 1} completa`}
+                                            className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                                        />
+
+                                        {evidenceImages.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setSelectedEvidenceIndex(current =>
+                                                        current === null ? 0 : (current + 1) % evidenceImages.length
+                                                    )
+                                                }
+                                                className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white shadow-lg transition hover:bg-white/20 sm:right-4"
+                                                title="Siguiente evidencia"
+                                            >
+                                                <ChevronRight size={30} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
