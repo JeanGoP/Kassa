@@ -547,10 +547,14 @@ const CreatePurchase = () => {
                                     type="button"
                                     onClick={addQuickProduct}
                                     disabled={!selectedProduct}
-                                    className="flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-extrabold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-blue-700 bg-blue-600 px-3 text-sm font-extrabold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                                    title="Agregar producto a la compra"
+                                    aria-label="Agregar producto a la compra"
                                 >
-                                    <Plus size={18} />
-                                    Agregar
+                                    <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-xl font-black leading-none text-blue-700">
+                                        +
+                                    </span>
+                                    <span className="hidden 2xl:inline">Agregar</span>
                                 </button>
                             </div>
                         </div>
