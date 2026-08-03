@@ -547,11 +547,11 @@ const CreatePurchase = () => {
                                     type="button"
                                     onClick={addQuickProduct}
                                     disabled={!selectedProduct}
-                                    className="flex h-11 w-full items-center justify-center rounded-lg border border-blue-700 bg-blue-600 text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                                    className="flex h-11 w-full items-center justify-center rounded-lg border border-blue-300 bg-white text-3xl font-black leading-none text-blue-700 shadow-sm transition hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
                                     title="Agregar producto a la compra"
                                     aria-label="Agregar producto a la compra"
                                 >
-                                    <Plus size={24} strokeWidth={3} />
+                                    +
                                 </button>
                             </div>
                         </div>
