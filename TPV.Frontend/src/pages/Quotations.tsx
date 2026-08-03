@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api/axios';
-import { CheckCircle, FileText, PackageSearch, Plus, Printer, Search, Trash2, X, XCircle } from 'lucide-react';
+import { CheckCircle, FileText, Plus, Printer, Search, Trash2, X, XCircle } from 'lucide-react';
 
 interface BranchAvailability {
     branchId: number;
@@ -73,38 +73,174 @@ const Quotations = () => {
     const [notes, setNotes] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [result, setResult] = useState<SearchResult | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<ProductAvailability | null>(null);
+    const [activeProductIndex, setActiveProductIndex] = useState(0);
+    const [quickQuantity, setQuickQuantity] = useState('1');
+    const [quickUnitPrice, setQuickUnitPrice] = useState('');
     const [items, setItems] = useState<QuoteItem[]>([]);
     const [lastQuotation, setLastQuotation] = useState<SavedQuotation | null>(null);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
+    const quantityInputRef = useRef<HTMLInputElement | null>(null);
+    const priceInputRef = useRef<HTMLInputElement | null>(null);
+    const lastRecordedSearchRef = useRef('');
 
     const totalAmount = useMemo(
         () => items.reduce((total, item) => total + item.quantity * item.unitPrice, 0),
         [items]
     );
 
-    const handleSearch = async (event: React.FormEvent) => {
-        event.preventDefault();
-        const term = searchTerm.trim();
-        if (!term) return;
+    const suggestedProducts = result?.products ?? [];
 
-        setIsSearching(true);
-        setError('');
-        setResult(null);
-        try {
-            const response = await api.get(`/quotations/search?term=${encodeURIComponent(term)}`);
-            setResult(response.data);
-        } catch (err: any) {
-            const message = err?.response?.data?.message || 'No se pudo buscar el repuesto.';
-            setError(message);
-        } finally {
+    useEffect(() => {
+        const term = searchTerm.trim();
+
+        if (selectedProduct) {
             setIsSearching(false);
+            return;
+        }
+
+        if (term.length < 2) {
+            setResult(null);
+            setIsSearching(false);
+            return;
+        }
+
+        let isCurrent = true;
+        const delay = setTimeout(async () => {
+            setIsSearching(true);
+            setError('');
+
+            try {
+                const response = await api.get('/quotations/search', {
+                    params: {
+                        term,
+                        recordHistory: false
+                    }
+                });
+
+                if (isCurrent) {
+                    setResult(response.data);
+                }
+            } catch (err: any) {
+                if (isCurrent) {
+                    const message = err?.response?.data?.message || 'No se pudo buscar el repuesto.';
+                    setError(message);
+                    setResult(null);
+                }
+            } finally {
+                if (isCurrent) {
+                    setIsSearching(false);
+                }
+            }
+        }, 300);
+
+        return () => {
+            isCurrent = false;
+            clearTimeout(delay);
+        };
+    }, [searchTerm, selectedProduct]);
+
+    useEffect(() => {
+        setActiveProductIndex(0);
+    }, [result]);
+
+    const recordSearchHistory = (term: string) => {
+        const cleanTerm = term.trim();
+        const normalized = cleanTerm.toLowerCase();
+        if (cleanTerm.length < 2 || lastRecordedSearchRef.current === normalized) return;
+
+        lastRecordedSearchRef.current = normalized;
+        api.get('/quotations/search', {
+            params: {
+                term: cleanTerm,
+                recordHistory: true
+            }
+        }).catch((err) => {
+            console.error('Error recording quotation search', err);
+        });
+    };
+
+    const clearProductCapture = (focusSearch = true) => {
+        setSelectedProduct(null);
+        setSearchTerm('');
+        setResult(null);
+        setActiveProductIndex(0);
+        setQuickQuantity('1');
+        setQuickUnitPrice('');
+
+        if (focusSearch) {
+            setTimeout(() => searchInputRef.current?.focus(), 0);
         }
     };
 
-    const addItem = (product: ProductAvailability) => {
+    const selectProductForCapture = (product: ProductAvailability) => {
+        setSelectedProduct(product);
+        setSearchTerm(`${product.sku} - ${product.name}`);
+        setResult(null);
+        setQuickQuantity('1');
+        setQuickUnitPrice(String(product.price || 0));
+        recordSearchHistory(searchTerm || product.sku || product.name);
+        setTimeout(() => quantityInputRef.current?.focus(), 0);
+    };
+
+    const addCapturedItem = () => {
+        if (!selectedProduct) {
+            searchInputRef.current?.focus();
+            return;
+        }
+
+        const quantity = Number(quickQuantity);
+        const unitPrice = Number(quickUnitPrice);
+
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+            setError('Ingrese una cantidad mayor a cero.');
+            quantityInputRef.current?.focus();
+            return;
+        }
+
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+            setError('Ingrese un precio valido.');
+            priceInputRef.current?.focus();
+            return;
+        }
+
+        addItem(selectedProduct, quantity, unitPrice);
+        clearProductCapture();
+    };
+
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (suggestedProducts.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setActiveProductIndex((current) => (current + 1) % suggestedProducts.length);
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveProductIndex((current) => (current - 1 + suggestedProducts.length) % suggestedProducts.length);
+            return;
+        }
+
+        if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault();
+            selectProductForCapture(suggestedProducts[activeProductIndex] || suggestedProducts[0]);
+        }
+    };
+
+    const handleQuickFieldKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addCapturedItem();
+        }
+    };
+
+    const addItem = (product: ProductAvailability, quantity = 1, unitPrice = product.price) => {
         setError('');
         setLastQuotation(null);
         setIsPrintModalOpen(false);
@@ -113,7 +249,7 @@ const Quotations = () => {
             if (existing) {
                 return current.map((item) =>
                     item.productId === product.productId
-                        ? { ...item, quantity: item.quantity + 1 }
+                        ? { ...item, quantity: item.quantity + quantity, unitPrice }
                         : item
                 );
             }
@@ -126,8 +262,8 @@ const Quotations = () => {
                     sku: product.sku,
                     barcode: product.barcode,
                     availableQuantity: product.totalQuantity,
-                    quantity: 1,
-                    unitPrice: product.price
+                    quantity,
+                    unitPrice
                 }
             ];
         });
@@ -158,6 +294,10 @@ const Quotations = () => {
         setNotes('');
         setSearchTerm('');
         setResult(null);
+        setSelectedProduct(null);
+        setActiveProductIndex(0);
+        setQuickQuantity('1');
+        setQuickUnitPrice('');
         setItems([]);
         setError('');
         setLastQuotation(null);
@@ -300,42 +440,136 @@ const Quotations = () => {
                     </section>
 
                     <section className="k-card p-4">
-                        <h3 className="mb-4 k-section-title">Buscar repuestos o artículos</h3>
-                        <form onSubmit={handleSearch} className="flex flex-col gap-3 md:flex-row">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Buscar por nombre, SKU o código..."
-                                    className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                />
+                        <div className="mb-4">
+                            <h3 className="k-section-title">Repuestos o artículos</h3>
+                            <p className="text-sm text-slate-500">Busca, selecciona, tabula cantidad/precio y agrega a la cotización.</p>
+                        </div>
+
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 sm:p-4">
+                            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(260px,1fr)_120px_150px_110px] xl:items-end">
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Buscar artículo</span>
+                                    <div className="relative">
+                                        <Search className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
+                                        <input
+                                            ref={searchInputRef}
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => {
+                                                setSearchTerm(e.target.value);
+                                                setSelectedProduct(null);
+                                                setQuickQuantity('1');
+                                                setQuickUnitPrice('');
+                                            }}
+                                            onKeyDown={handleSearchKeyDown}
+                                            onBlur={() => {
+                                                if (!selectedProduct && result && result.products.length === 0) {
+                                                    recordSearchHistory(searchTerm);
+                                                }
+                                            }}
+                                            placeholder="Nombre, SKU o código"
+                                            className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pl-10 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                            autoComplete="off"
+                                        />
+
+                                        {suggestedProducts.length > 0 && !selectedProduct && (
+                                            <div className="absolute left-0 right-0 z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
+                                                {suggestedProducts.map((product, index) => (
+                                                    <button
+                                                        key={product.productId}
+                                                        type="button"
+                                                        onMouseDown={(event) => {
+                                                            event.preventDefault();
+                                                            selectProductForCapture(product);
+                                                        }}
+                                                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition ${index === activeProductIndex ? 'bg-blue-50 text-blue-900' : 'hover:bg-blue-50'}`}
+                                                    >
+                                                        <span className="min-w-0">
+                                                            <span className="block truncate text-sm font-bold">{product.name}</span>
+                                                            <span className="block text-xs text-slate-500">
+                                                                {product.sku || 'N/A'} - Disp. {product.totalQuantity} - {formatCurrency(product.price)}
+                                                            </span>
+                                                        </span>
+                                                        <Plus size={18} className="shrink-0 text-blue-700" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {isSearching && (
+                                        <div className="text-xs font-semibold text-blue-700">Buscando coincidencias...</div>
+                                    )}
+                                    {!isSearching && searchTerm.trim().length >= 2 && result && suggestedProducts.length === 0 && !selectedProduct && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                                            No hay coincidencias para esta búsqueda.
+                                        </div>
+                                    )}
+                                    {selectedProduct && (
+                                        <div className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                                            Seleccionado: <span className="text-slate-900">{selectedProduct.sku || 'N/A'}</span> - {selectedProduct.name}
+                                        </div>
+                                    )}
+                                </label>
+
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Cantidad</span>
+                                    <input
+                                        ref={quantityInputRef}
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={quickQuantity}
+                                        onChange={(e) => setQuickQuantity(e.target.value)}
+                                        onKeyDown={handleQuickFieldKeyDown}
+                                        disabled={!selectedProduct}
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-center text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                                    />
+                                </label>
+
+                                <label className="space-y-1.5">
+                                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Precio unitario</span>
+                                    <input
+                                        ref={priceInputRef}
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        value={quickUnitPrice}
+                                        onChange={(e) => setQuickUnitPrice(e.target.value)}
+                                        onKeyDown={handleQuickFieldKeyDown}
+                                        disabled={!selectedProduct}
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-right text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                                        placeholder="0"
+                                    />
+                                </label>
+
+                                <button
+                                    type="button"
+                                    onClick={addCapturedItem}
+                                    disabled={!selectedProduct}
+                                    className="flex h-11 w-full items-center justify-center rounded-lg border border-blue-300 bg-white text-3xl font-black leading-none text-blue-700 shadow-sm transition hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+                                    title="Agregar producto a la cotización"
+                                    aria-label="Agregar producto a la cotización"
+                                >
+                                    +
+                                </button>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={isSearching || !searchTerm.trim()}
-                                className="k-button-primary px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-55"
-                            >
-                                <PackageSearch size={18} />
-                                {isSearching ? 'Buscando...' : 'Buscar'}
-                            </button>
-                        </form>
+                        </div>
                     </section>
 
-                    {result && (
+                    {selectedProduct && (
                         <section className="k-card overflow-hidden">
                             <div className="k-panel-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                 <div>
-                                    <h3 className="k-section-title">Resultado de búsqueda</h3>
+                                    <h3 className="k-section-title">Disponibilidad del artículo</h3>
                                     <p className="text-sm text-slate-500">
-                                        "{result.searchTerm}" - {result.totalQuantity} unidades disponibles
+                                        {selectedProduct.name}
                                     </p>
                                 </div>
-                                {result.foundInStock ? (
+                                {selectedProduct.totalQuantity > 0 ? (
                                     <span className="k-badge k-badge-success w-fit">
                                         <CheckCircle size={16} />
-                                        En existencia
+                                        {selectedProduct.totalQuantity} disponibles
                                     </span>
                                 ) : (
                                     <span className="k-badge k-badge-danger w-fit">
@@ -345,69 +579,28 @@ const Quotations = () => {
                                 )}
                             </div>
 
-                            {result.products.length === 0 ? (
-                                <div className="p-8 text-center text-slate-500">
-                                    No se encontró ningún producto asociado a la búsqueda.
+                            {selectedProduct.branches.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse text-left text-sm">
+                                        <thead className="bg-gray-50 text-xs uppercase text-slate-500">
+                                            <tr>
+                                                <th className="border-b px-4 py-3">Bodega</th>
+                                                <th className="border-b px-4 py-3 text-right">Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedProduct.branches.map((branch) => (
+                                                <tr key={`${selectedProduct.productId}-${branch.branchId}`} className="border-b last:border-0">
+                                                    <td className="px-4 py-3 text-slate-700">{branch.branchName}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-slate-900">{branch.quantity}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {result.products.map((product) => (
-                                        <div key={product.productId} className="p-4">
-                                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                                <div>
-                                                    <h4 className="font-bold text-slate-800">{product.name}</h4>
-                                                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                                                        <span className="rounded-full bg-slate-100 px-2 py-1">SKU: {product.sku || 'N/A'}</span>
-                                                        {product.barcode && (
-                                                            <span className="rounded-full bg-slate-100 px-2 py-1">Código: {product.barcode}</span>
-                                                        )}
-                                                        <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">
-                                                            Precio: {formatCurrency(product.price)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 md:justify-end">
-                                                    <div className="text-left md:text-right">
-                                                        <div className="text-2xl font-bold text-slate-800">{product.totalQuantity}</div>
-                                                        <div className="text-xs uppercase text-slate-400">Disponibles</div>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => addItem(product)}
-                                                        className="k-button-secondary px-3 py-2 text-sm"
-                                                    >
-                                                        <Plus size={16} />
-                                                        Agregar
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {product.branches.length > 0 ? (
-                                                <div className="mt-4 overflow-x-auto">
-                                                    <table className="w-full border-collapse text-left text-sm">
-                                                        <thead className="bg-gray-50 text-xs uppercase text-slate-500">
-                                                            <tr>
-                                                                <th className="border-b px-3 py-2">Bodega</th>
-                                                                <th className="border-b px-3 py-2 text-right">Cantidad</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {product.branches.map((branch) => (
-                                                                <tr key={`${product.productId}-${branch.branchId}`} className="border-b last:border-0">
-                                                                    <td className="px-3 py-3 text-slate-700">{branch.branchName}</td>
-                                                                    <td className="px-3 py-3 text-right font-semibold text-slate-800">{branch.quantity}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            ) : (
-                                                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                                                    Producto encontrado, pero sin cantidades disponibles en bodegas.
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                <div className="bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                                    Producto encontrado, pero sin cantidades disponibles en bodegas.
                                 </div>
                             )}
                         </section>

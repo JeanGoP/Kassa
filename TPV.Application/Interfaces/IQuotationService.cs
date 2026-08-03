@@ -7,7 +7,7 @@ namespace TPV.Application.Interfaces
 {
     public interface IQuotationService
     {
-        Task<QuotationSearchResultDto> SearchAsync(string searchTerm, string? userId);
+        Task<QuotationSearchResultDto> SearchAsync(string searchTerm, string? userId, bool recordHistory = true);
         Task<IEnumerable<QuotationSearchHistoryDto>> GetHistoryAsync(DateTime? date = null);
         Task<QuotationDto> CreateAsync(CreateQuotationDto dto, string? userId);
         Task<QuotationDto?> GetByIdAsync(int id);

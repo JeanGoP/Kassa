@@ -25,7 +25,7 @@ namespace TPV.Application.Services
             _quotationRepository = quotationRepository;
         }
 
-        public async Task<QuotationSearchResultDto> SearchAsync(string searchTerm, string? userId)
+        public async Task<QuotationSearchResultDto> SearchAsync(string searchTerm, string? userId, bool recordHistory = true)
         {
             var normalizedTerm = searchTerm?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(normalizedTerm))
@@ -44,21 +44,30 @@ namespace TPV.Application.Services
             var totalQuantity = productResults.Sum(p => p.TotalQuantity);
             var foundInStock = totalQuantity > 0;
 
-            var history = await _historyRepository.AddAsync(new QuotationSearchHistory
+            var searchedAt = DateTime.Now;
+            var historyId = 0;
+
+            if (recordHistory)
             {
-                SearchTerm = normalizedTerm,
-                SearchedAt = DateTime.Now,
-                MatchedProductName = productResults.FirstOrDefault()?.Name,
-                FoundInStock = foundInStock,
-                TotalQuantity = totalQuantity,
-                UserId = userId
-            });
+                var history = await _historyRepository.AddAsync(new QuotationSearchHistory
+                {
+                    SearchTerm = normalizedTerm,
+                    SearchedAt = searchedAt,
+                    MatchedProductName = productResults.FirstOrDefault()?.Name,
+                    FoundInStock = foundInStock,
+                    TotalQuantity = totalQuantity,
+                    UserId = userId
+                });
+
+                historyId = history.Id;
+                searchedAt = history.SearchedAt;
+            }
 
             return new QuotationSearchResultDto
             {
-                HistoryId = history.Id,
+                HistoryId = historyId,
                 SearchTerm = normalizedTerm,
-                SearchedAt = history.SearchedAt,
+                SearchedAt = searchedAt,
                 FoundInStock = foundInStock,
                 TotalQuantity = totalQuantity,
                 Products = productResults

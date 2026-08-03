@@ -22,12 +22,12 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<QuotationSearchResultDto>> Search([FromQuery] string term)
+        public async Task<ActionResult<QuotationSearchResultDto>> Search([FromQuery] string term, [FromQuery] bool recordHistory = true)
         {
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                return Ok(await _quotationService.SearchAsync(term, userId));
+                return Ok(await _quotationService.SearchAsync(term, userId, recordHistory));
             }
             catch (InvalidOperationException ex)
             {
