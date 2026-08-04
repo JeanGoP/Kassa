@@ -240,6 +240,7 @@
     font-weight: 800;
     letter-spacing: 0.02em;
     margin-bottom: 0.4rem;
+    text-transform: uppercase;
   }
 
   .k-form-control,
@@ -311,6 +312,24 @@
   .k-login-card label {
     color: #334155;
     font-weight: 700;
+  }
+
+  .k-workspace label:not(.flex):not(.inline-flex),
+  .k-workspace label.block,
+  .k-workspace label > span:first-child,
+  .k-login-card label {
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .k-workspace label input,
+  .k-workspace label select,
+  .k-workspace label textarea,
+  .k-login-card label input,
+  .k-login-card label select,
+  .k-login-card label textarea {
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   .k-workspace table {
