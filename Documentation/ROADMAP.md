@@ -8,6 +8,7 @@
 - Mover secretos a variables de entorno o Secret Manager.
 - Revisar permisos finos por modulo: ventas, compras, inventario, caja, reportes y administracion.
 - Agregar transacciones en operaciones que modifican stock o caja.
+- Definir si los consumos de alistamiento deben descontar inventario automaticamente o solo quedar como trazabilidad.
 
 ## Prioridad Media
 

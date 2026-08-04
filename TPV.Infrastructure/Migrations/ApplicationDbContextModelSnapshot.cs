@@ -620,6 +620,181 @@ namespace TPV.Infrastructure.Migrations
                     b.ToTable("MotorcycleServices");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.PreparationOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ChassisNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("CommercialDocumentReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EngineNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ExecutedBy")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("Findings")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("Mileage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Plate")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RequestedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("WarrantyId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("WarrantyOpened")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("WarrantyId");
+
+                    b.HasIndex("TenantId", "ChassisNumber");
+
+                    b.HasIndex("TenantId", "RequestedAt");
+
+                    b.ToTable("PreparationOrders");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.PreparationOrderItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PreparationOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("UnitValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PreparationOrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PreparationOrderItems");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -1807,6 +1982,48 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.PreparationOrder", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.PreparationOrderItem", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.PreparationOrder", "PreparationOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("PreparationOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PreparationOrder");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>
                 {
                     b.HasOne("TPV.Domain.Entities.Category", "Category")
@@ -2018,6 +2235,11 @@ namespace TPV.Infrastructure.Migrations
             modelBuilder.Entity("TPV.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.PreparationOrder", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>

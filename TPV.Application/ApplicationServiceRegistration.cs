@@ -30,6 +30,7 @@ namespace TPV.Application
             services.AddScoped<IQuotationService, QuotationService>();
             services.AddScoped<IAppointmentService, AppointmentService>();
             services.AddScoped<IMotorcycleServiceCatalogService, MotorcycleServiceCatalogService>();
+            services.AddScoped<IPreparationOrderService, PreparationOrderService>();
             services.AddHttpClient<IElectronicInvoicingService, ElectronicInvoicingService>();
               
             return services;

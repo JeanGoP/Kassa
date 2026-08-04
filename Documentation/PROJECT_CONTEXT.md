@@ -21,7 +21,7 @@ Kassa es un sistema TPV/POS orientado a negocios con venta de productos, manejo 
 - Inventario: stock por sucursal, alertas, ajustes y traslados.
 - Compras: entrada de mercancia, costos promedio ponderados y fletes.
 - Productos, categorias, clientes, proveedores y sucursales.
-- Taller: ordenes de servicio, ingreso de vehiculo, diagnostico, trabajos, repuestos, cierre y tablero.
+- Taller: ordenes de servicio, alistamientos, ingreso de vehiculo, diagnostico, trabajos, repuestos, cierre y tablero.
 - Citas: agenda interna y reserva publica por slug.
 - Catalogo de servicios de moto.
 - Garantias.

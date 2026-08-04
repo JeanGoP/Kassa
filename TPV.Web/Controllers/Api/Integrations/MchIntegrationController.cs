@@ -48,6 +48,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "sales",
                     "purchases",
                     "service-orders",
+                    "preparation-orders",
                     "coverage"
                 }
             });
@@ -70,6 +71,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "Catalogo basico de articulos y servicios",
                     "Inventario por sucursal con costo y niveles minimo/maximo",
                     "Ventas, compras y ordenes de taller basicas",
+                    "Ordenes de alistamiento con solicitud, vehiculo, ejecutante, consumos y hallazgos",
                     "Filtros por empresa, sucursal, marca, fechas y modificado_desde donde aplica",
                     "Paginacion por continuationToken"
                 },
@@ -81,7 +83,6 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "Bodegas/ubicaciones reales y movimientos de inventario",
                     "Cantidades decimales y conversiones de unidades",
                     "Historial de estados y anulaciones completas",
-                    "Ordenes de alistamiento",
                     "Garantias de fabricante con trazabilidad completa",
                     "Equivalencias, sustitutos, aplicabilidad por modelo y kits"
                 }
@@ -542,6 +543,69 @@ namespace TPV.Web.Controllers.Api.Integrations
             return Ok(paged);
         }
 
+        [HttpGet("preparation-orders")]
+        public async Task<IActionResult> GetPreparationOrders([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<PreparationOrder> source = _dbContext.PreparationOrders
+                .IgnoreQueryFilters()
+                .Include(o => o.Branch)
+                .Include(o => o.Customer)
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.Product)
+                .AsNoTracking();
+
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            source = ApplyDateRange(source, query, o => o.RequestedAt);
+
+            var paged = await PageEntitiesAsync(source.OrderBy(o => o.Id), query, orders => orders.Select(o => new MchPreparationOrderDto
+            {
+                Id = o.Id,
+                CompanyId = o.TenantId,
+                BranchId = o.BranchId,
+                BranchName = o.Branch?.Name,
+                Number = o.OrderNumber,
+                Status = o.Status,
+                CommercialDocumentReference = o.CommercialDocumentReference,
+                ChassisNumber = o.ChassisNumber,
+                EngineNumber = o.EngineNumber,
+                Plate = o.Plate,
+                Brand = o.Brand,
+                Model = o.Model,
+                Year = o.Year,
+                Mileage = o.Mileage,
+                RequestedAt = o.RequestedAt,
+                CompletedAt = o.CompletedAt,
+                ExecutedBy = o.ExecutedBy,
+                CustomerId = o.CustomerId,
+                CustomerName = o.Customer != null ? $"{o.Customer.FirstName} {o.Customer.LastName}".Trim() : null,
+                Findings = o.Findings,
+                WarrantyOpened = o.WarrantyOpened,
+                WarrantyId = o.WarrantyId,
+                Notes = o.Notes,
+                CreatedAt = o.CreatedAt,
+                ModifiedAt = o.UpdatedAt ?? o.CreatedAt,
+                Consumptions = o.Items.Select(i => new MchPreparationOrderConsumptionDto
+                {
+                    Id = i.Id,
+                    ProductId = i.ProductId,
+                    Reference = string.IsNullOrWhiteSpace(i.Reference) ? i.Product != null ? i.Product.SKU : null : i.Reference,
+                    Description = string.IsNullOrWhiteSpace(i.Description) ? i.Product != null ? i.Product.Name : null : i.Description,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    UnitValue = i.UnitValue,
+                    TotalValue = i.TotalValue,
+                    Notes = i.Notes
+                }).ToList()
+            }).ToList());
+
+            return Ok(paged);
+        }
+
         private IActionResult? ValidateAccess()
         {
             var enabled = _configuration.GetValue("Integrations:MCH:Enabled", false);
@@ -634,6 +698,23 @@ namespace TPV.Web.Controllers.Api.Integrations
             if (query.SucursalId.HasValue)
             {
                 source = source.Where(p => p.BranchId == query.SucursalId.Value);
+            }
+
+            return source;
+        }
+
+        private IQueryable<PreparationOrder> ApplyEntityFilters(IQueryable<PreparationOrder> source, MchQuery query)
+        {
+            source = ApplyEntityFilters<PreparationOrder>(source, query);
+
+            if (query.SucursalId.HasValue)
+            {
+                source = source.Where(o => o.BranchId == query.SucursalId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+            {
+                source = source.Where(o => o.Brand.Contains(query.Marca));
             }
 
             return source;
@@ -959,6 +1040,49 @@ namespace TPV.Web.Controllers.Api.Integrations
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal SubTotal { get; set; }
+    }
+
+    public class MchPreparationOrderDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public int BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? CommercialDocumentReference { get; set; }
+        public string ChassisNumber { get; set; } = string.Empty;
+        public string? EngineNumber { get; set; }
+        public string? Plate { get; set; }
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int? Year { get; set; }
+        public decimal? Mileage { get; set; }
+        public DateTime RequestedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string? ExecutedBy { get; set; }
+        public int? CustomerId { get; set; }
+        public string? CustomerName { get; set; }
+        public string? Findings { get; set; }
+        public bool WarrantyOpened { get; set; }
+        public int? WarrantyId { get; set; }
+        public string? Notes { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+        public List<MchPreparationOrderConsumptionDto> Consumptions { get; set; } = new();
+    }
+
+    public class MchPreparationOrderConsumptionDto
+    {
+        public int Id { get; set; }
+        public int? ProductId { get; set; }
+        public string? Reference { get; set; }
+        public string? Description { get; set; }
+        public decimal Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal UnitValue { get; set; }
+        public decimal TotalValue { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class MchServiceOrderDto

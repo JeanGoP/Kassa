@@ -21,7 +21,6 @@ Brechas principales:
 
 - Marca no esta modelada como dimension independiente en todos los hechos.
 - Vehiculo maestro por VIN/chasis no existe.
-- Ordenes de alistamiento no existen como recurso propio.
 - Garantias no tienen ciclo completo contra fabricante.
 - Unidades de medida son texto libre y no hay conversiones compra/base/venta.
 - Cantidades de algunas entidades siguen siendo enteras donde MCH exige decimales.
@@ -38,7 +37,7 @@ Brechas principales:
 | MCH-T04 | Alcance ampliable a nuevas razones sociales | Cumple | `Integrations:MCH:AllowedTenantIds` permite varios tenants sin cambiar respuestas. |
 | MCH-T05 | Revocacion y rotacion documentada | Parcial | Se puede rotar `Integrations:MCH:ApiKey`, pero falta runbook operativo. |
 | MCH-T06 | Disponibilidad y ventana de mantenimiento | No cumple | No hay documento/SLA operativo. |
-| MCH-T07 | Filtros empresa, marca, sucursal, fechas, modificado_desde | Parcial | `MchQuery` tiene todos los parametros, pero `Marca` solo aplica claramente en ordenes de servicio. |
+| MCH-T07 | Filtros empresa, marca, sucursal, fechas, modificado_desde | Parcial | `MchQuery` tiene todos los parametros; `Marca` aplica en ordenes de servicio y alistamientos, falta extenderla al resto de recursos donde MCH la exige. |
 | MCH-T08 | Paginacion obligatoria | Cumple | `PageSize`, `ContinuationToken`, `NextContinuationToken`. |
 | MCH-T09 | Identificadores estables | Parcial | Usa IDs internos estables; falta documentar politica de estabilidad. |
 | MCH-T10 | creado_en y modificado_en con zona horaria | Parcial | Expone `CreatedAt`/`ModifiedAt`, pero sin zona horaria explicita. |
@@ -62,7 +61,7 @@ Brechas principales:
 | Compras | Parcial | `GET /api/integrations/mch/purchases` | Encabezado y lineas basicas; falta recepcion real, pedido asociado, marca y unidad estricta de compra. |
 | Ordenes de taller | Parcial | `GET /api/integrations/mch/service-orders` | Encabezado, trabajos y repuestos basicos; faltan VIN/chasis, tipo de orden, historia de estados, quien paga, suma al total, revision asociada y tiempos reales. |
 | Vehiculos UIO | No cumple | Sin endpoint dedicado | Falta maestro por chasis/VIN, motor, propietario, historial por chasis y revisiones atendidas. |
-| Ordenes de alistamiento | No cumple | Sin entidad/endpoint dedicado | Falta flujo comercial -> posventa con trazabilidad propia. |
+| Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Pendiente definir si los consumos descuentan inventario automaticamente. |
 | Garantias fabricante | No cumple | Entidad `Warranty` basica | Falta ciclo completo: deteccion, causa, pieza causante, autorizacion, radicacion, respuesta, facturacion y pago fabricante. |
 | Marcas | No cumple | Sin endpoint dedicado | Falta catalogo formal de marcas y relacion por hechos/articulos/vehiculos. |
 | Personal | Parcial | No expuesto por MCH actualmente | Existen usuarios/tecnicos/encargados, pero falta endpoint consolidado para personal. |
@@ -78,4 +77,3 @@ Antes de cerrar cualquier cambio relevante:
 4. Ejecutar `dotnet build TPV.sln -v:m`.
 5. Si toca frontend, ejecutar `npm run build` en `TPV.Frontend`.
 6. No subir secretos ni credenciales de integracion.
-

@@ -49,6 +49,8 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<AppointmentAvailabilityRule> AppointmentAvailabilityRules { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<MotorcycleService> MotorcycleServices { get; set; }
+        public DbSet<PreparationOrder> PreparationOrders { get; set; }
+        public DbSet<PreparationOrderItem> PreparationOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -343,6 +345,108 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<MotorcycleService>()
                 .HasIndex(s => new { s.TenantId, s.Name })
                 .IsUnique();
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.OrderNumber)
+                .HasMaxLength(40);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.CommercialDocumentReference)
+                .HasMaxLength(120);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.Status)
+                .HasMaxLength(40);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.ChassisNumber)
+                .HasMaxLength(80);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.EngineNumber)
+                .HasMaxLength(80);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.Plate)
+                .HasMaxLength(40);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.Brand)
+                .HasMaxLength(80);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.Model)
+                .HasMaxLength(120);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.Mileage)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.ExecutedBy)
+                .HasMaxLength(160);
+
+            builder.Entity<PreparationOrder>()
+                .Property(o => o.RequestedByUserId)
+                .HasMaxLength(450);
+
+            builder.Entity<PreparationOrder>()
+                .HasIndex(o => o.OrderNumber)
+                .IsUnique();
+
+            builder.Entity<PreparationOrder>()
+                .HasIndex(o => new { o.TenantId, o.RequestedAt });
+
+            builder.Entity<PreparationOrder>()
+                .HasIndex(o => new { o.TenantId, o.ChassisNumber });
+
+            builder.Entity<PreparationOrder>()
+                .HasOne(o => o.Branch)
+                .WithMany()
+                .HasForeignKey(o => o.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PreparationOrder>()
+                .HasOne(o => o.Customer)
+                .WithMany()
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<PreparationOrder>()
+                .HasMany(o => o.Items)
+                .WithOne(i => i.PreparationOrder)
+                .HasForeignKey(i => i.PreparationOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.Reference)
+                .HasMaxLength(100);
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.Description)
+                .HasMaxLength(250);
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.Quantity)
+                .HasColumnType("decimal(18,3)");
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.Unit)
+                .HasMaxLength(40);
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.UnitValue)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PreparationOrderItem>()
+                .Property(i => i.TotalValue)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PreparationOrderItem>()
+                .HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Unique Index for Customer (TenantId + TaxId)
             builder.Entity<Customer>()
