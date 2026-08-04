@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using System.Linq;
 using System.Security.Claims;
+using System;
 using Microsoft.AspNetCore.Identity;
 using TPV.Infrastructure.Persistence;
 
@@ -30,6 +31,13 @@ namespace TPV.Infrastructure.Identity
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {
+                var adminPassword = Environment.GetEnvironmentVariable("KASSA_SEED_ADMIN_PASSWORD");
+                if (string.IsNullOrWhiteSpace(adminPassword))
+                {
+                    logger.LogWarning("Default admin user was not created because KASSA_SEED_ADMIN_PASSWORD is not configured.");
+                    return;
+                }
+
                 logger.LogInformation("Creating default admin user...");
                 var user = new ApplicationUser
                 {
@@ -47,7 +55,7 @@ namespace TPV.Infrastructure.Identity
                     user.CurrentBranchId = defaultBranch.Id;
                 }
 
-                var result = await userManager.CreateAsync(user, "Admin123!");
+                var result = await userManager.CreateAsync(user, adminPassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "Admin");

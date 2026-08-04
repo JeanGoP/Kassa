@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
@@ -7,6 +8,7 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/workshop-dashboard")]
     [ApiController]
+    [Authorize]
     public class WorkshopDashboardController : ControllerBase
     {
         private readonly IWorkshopDashboardService _dashboardService;

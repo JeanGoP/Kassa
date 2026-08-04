@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Security.Claims;
@@ -9,6 +10,7 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PurchasesController : ControllerBase
     {
         private readonly IPurchaseService _purchaseService;

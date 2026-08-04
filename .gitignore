@@ -30,6 +30,9 @@ publish/
 npm-debug.log
 yarn-error.log
 .env
+TPV.Web/appsettings.Production.json
+TPV.Web/appsettings.Local.json
+TPV.Web/appsettings.*.local.json
 .DS_Store
 
 # React

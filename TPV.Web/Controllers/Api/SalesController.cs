@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using TPV.Application.Interfaces;
 using TPV.Application.DTOs;
 using System.Security.Claims;
@@ -9,6 +10,7 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class SalesController : ControllerBase
     {
         private readonly ISalesService _salesService;

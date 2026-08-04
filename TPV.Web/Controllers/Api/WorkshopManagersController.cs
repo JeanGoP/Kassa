@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TPV.Application.DTOs;
 using TPV.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class WorkshopManagersController : ControllerBase
     {
         private readonly IWorkshopManagerService _service;

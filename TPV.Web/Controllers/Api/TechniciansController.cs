@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TPV.Application.DTOs;
@@ -8,6 +9,7 @@ namespace TPV.Web.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TechniciansController : ControllerBase
     {
         private readonly ITechnicianService _service;
