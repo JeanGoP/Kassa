@@ -10,6 +10,9 @@ Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluy
 4. **Pendiente - Garantias de fabricante.** Ciclo desde deteccion hasta autorizacion, radicacion, respuesta, factura y pago del fabricante.
 5. **Pendiente - Unidades e inventario.** Cantidades decimales, unidades cerradas por registro, conversiones, bodegas, ubicaciones y movimientos trazables.
 6. **Pendiente - Catalogo avanzado de articulos.** Clasificacion cerrada, original/homologo/generico, fabricante, aplicabilidad, equivalencias, sustitutos, kits y reposicion.
+7. **Pendiente - Ventas y compras completas.** En ventas: costo y marca por linea, clasificacion contable, devoluciones y notas credito relacionadas con el documento original. En compras: recepcion efectiva, pedido asociado, proveedor oficial o tercero y unidad exacta de compra por linea.
+8. **Pendiente - Personal y datos empresariales.** Exponer el endpoint MCH de personal y completar NIT de empresas, marca principal de sucursales e identificacion de proveedores oficiales de cada marca.
+9. **Pendiente - Requisitos operativos de la API.** Documentar endpoints, campos y tipos, rotacion y revocacion de credenciales, versionamiento, limites de uso, disponibilidad, ventana de mantenimiento, notificacion de cambios y ambiente de pruebas con datos representativos.
 
 Siguiente punto activo: **2. Catalogos formales de marcas y modelos**.
 
