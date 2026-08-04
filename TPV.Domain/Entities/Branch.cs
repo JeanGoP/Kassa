@@ -15,6 +15,8 @@ namespace TPV.Domain.Entities
         public WorkshopManager? WorkshopManager { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
+        public int? MainBrandId { get; set; }
+        public Brand? MainBrand { get; set; }
 
         // Navigation properties
         public ICollection<Stock> Stocks { get; set; }

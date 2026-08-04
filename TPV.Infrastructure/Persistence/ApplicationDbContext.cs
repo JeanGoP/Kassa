@@ -53,6 +53,8 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<PreparationOrderItem> PreparationOrderItems { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleOwnerHistory> VehicleOwnerHistories { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+        public DbSet<VehicleModel> VehicleModels { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -348,6 +350,44 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(s => new { s.TenantId, s.Name })
                 .IsUnique();
 
+            builder.Entity<Brand>()
+                .Property(b => b.Code)
+                .HasMaxLength(40);
+
+            builder.Entity<Brand>()
+                .Property(b => b.Name)
+                .HasMaxLength(100);
+
+            builder.Entity<Brand>()
+                .HasIndex(b => new { b.TenantId, b.Code })
+                .IsUnique();
+
+            builder.Entity<Brand>()
+                .HasIndex(b => new { b.TenantId, b.Name })
+                .IsUnique();
+
+            builder.Entity<VehicleModel>()
+                .Property(m => m.Code)
+                .HasMaxLength(60);
+
+            builder.Entity<VehicleModel>()
+                .Property(m => m.Name)
+                .HasMaxLength(120);
+
+            builder.Entity<VehicleModel>()
+                .HasIndex(m => new { m.TenantId, m.BrandId, m.Code })
+                .IsUnique();
+
+            builder.Entity<VehicleModel>()
+                .HasIndex(m => new { m.TenantId, m.BrandId, m.Name })
+                .IsUnique();
+
+            builder.Entity<VehicleModel>()
+                .HasOne(m => m.Brand)
+                .WithMany(b => b.VehicleModels)
+                .HasForeignKey(m => m.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<Vehicle>()
                 .Property(v => v.ChassisNumber)
                 .HasMaxLength(17);
@@ -390,6 +430,18 @@ namespace TPV.Infrastructure.Persistence
                 .WithMany()
                 .HasForeignKey(v => v.CurrentOwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Vehicle>()
+                .HasOne(v => v.BrandCatalog)
+                .WithMany()
+                .HasForeignKey(v => v.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Vehicle>()
+                .HasOne(v => v.VehicleModel)
+                .WithMany()
+                .HasForeignKey(v => v.VehicleModelId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<VehicleOwnerHistory>()
                 .HasIndex(h => new { h.VehicleId, h.OwnedFrom });
@@ -477,6 +529,18 @@ namespace TPV.Infrastructure.Persistence
                 .WithMany(v => v.PreparationOrders)
                 .HasForeignKey(o => o.VehicleId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<PreparationOrder>()
+                .HasOne(o => o.BrandCatalog)
+                .WithMany()
+                .HasForeignKey(o => o.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PreparationOrder>()
+                .HasOne(o => o.VehicleModel)
+                .WithMany()
+                .HasForeignKey(o => o.VehicleModelId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<PreparationOrder>()
                 .HasMany(o => o.Items)
@@ -640,6 +704,18 @@ namespace TPV.Infrastructure.Persistence
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<Product>()
+                .HasOne(p => p.Brand)
+                .WithMany()
+                .HasForeignKey(p => p.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Branch>()
+                .HasOne(b => b.MainBrand)
+                .WithMany()
+                .HasForeignKey(b => b.MainBrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<Sale>()
                 .HasOne(s => s.Branch)
                 .WithMany(b => b.Sales)
@@ -660,6 +736,18 @@ namespace TPV.Infrastructure.Persistence
                 .HasOne(so => so.Sale)
                 .WithOne(s => s.ServiceOrder)
                 .HasForeignKey<Sale>(s => s.ServiceOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ServiceOrder>()
+                .HasOne(so => so.BrandCatalog)
+                .WithMany()
+                .HasForeignKey(so => so.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ServiceOrder>()
+                .HasOne(so => so.VehicleModel)
+                .WithMany()
+                .HasForeignKey(so => so.VehicleModelId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Warranty Configuration

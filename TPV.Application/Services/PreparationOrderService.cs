@@ -71,7 +71,7 @@ namespace TPV.Application.Services
             var branch = await ResolveBranchAsync(dto.BranchId, userId);
             await ValidateCustomerAsync(dto.CustomerId, branch.TenantId);
             var requestedAt = dto.RequestedAt ?? DateTime.Now;
-            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
+            var registeredVehicle = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
             {
                 TenantId = branch.TenantId,
                 BranchId = branch.Id,
@@ -79,6 +79,8 @@ namespace TPV.Application.Services
                 ChassisNumber = dto.ChassisNumber,
                 EngineNumber = dto.EngineNumber,
                 Plate = dto.Plate,
+                BrandId = dto.BrandId,
+                VehicleModelId = dto.VehicleModelId,
                 Brand = dto.Brand,
                 Model = dto.Model,
                 Year = dto.Year,
@@ -93,15 +95,17 @@ namespace TPV.Application.Services
                 CommercialDocumentReference = Clean(dto.CommercialDocumentReference),
                 BranchId = branch.Id,
                 CustomerId = dto.CustomerId,
-                VehicleId = vehicleId,
+                VehicleId = registeredVehicle.VehicleId,
                 RequestedByUserId = userId,
                 RequestedAt = requestedAt,
                 Status = "Solicitada",
                 ChassisNumber = Required(dto.ChassisNumber, "El chasis/VIN es obligatorio."),
                 EngineNumber = Clean(dto.EngineNumber),
                 Plate = Clean(dto.Plate),
-                Brand = Required(dto.Brand, "La marca es obligatoria."),
-                Model = Required(dto.Model, "El modelo es obligatorio."),
+                BrandId = registeredVehicle.BrandId,
+                VehicleModelId = registeredVehicle.VehicleModelId,
+                Brand = registeredVehicle.Brand,
+                Model = registeredVehicle.Model,
                 Year = dto.Year,
                 Mileage = dto.Mileage,
                 ExecutedBy = Clean(dto.ExecutedBy),
@@ -126,7 +130,7 @@ namespace TPV.Application.Services
 
             var branch = await ResolveBranchAsync(dto.BranchId ?? order.BranchId, userId);
             await ValidateCustomerAsync(dto.CustomerId, branch.TenantId);
-            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
+            var registeredVehicle = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
             {
                 TenantId = branch.TenantId,
                 BranchId = branch.Id,
@@ -134,6 +138,8 @@ namespace TPV.Application.Services
                 ChassisNumber = dto.ChassisNumber,
                 EngineNumber = dto.EngineNumber,
                 Plate = dto.Plate,
+                BrandId = dto.BrandId,
+                VehicleModelId = dto.VehicleModelId,
                 Brand = dto.Brand,
                 Model = dto.Model,
                 Year = dto.Year,
@@ -144,15 +150,17 @@ namespace TPV.Application.Services
             order.CommercialDocumentReference = Clean(dto.CommercialDocumentReference);
             order.BranchId = branch.Id;
             order.CustomerId = dto.CustomerId;
-            order.VehicleId = vehicleId;
+            order.VehicleId = registeredVehicle.VehicleId;
             order.RequestedAt = dto.RequestedAt ?? order.RequestedAt;
             order.CompletedAt = dto.CompletedAt;
             order.Status = string.IsNullOrWhiteSpace(dto.Status) ? order.Status : dto.Status.Trim();
             order.ChassisNumber = Required(dto.ChassisNumber, "El chasis/VIN es obligatorio.");
             order.EngineNumber = Clean(dto.EngineNumber);
             order.Plate = Clean(dto.Plate);
-            order.Brand = Required(dto.Brand, "La marca es obligatoria.");
-            order.Model = Required(dto.Model, "El modelo es obligatorio.");
+            order.BrandId = registeredVehicle.BrandId;
+            order.VehicleModelId = registeredVehicle.VehicleModelId;
+            order.Brand = registeredVehicle.Brand;
+            order.Model = registeredVehicle.Model;
             order.Year = dto.Year;
             order.Mileage = dto.Mileage;
             order.ExecutedBy = Clean(dto.ExecutedBy);
@@ -330,6 +338,8 @@ namespace TPV.Application.Services
                 ChassisNumber = order.ChassisNumber,
                 EngineNumber = order.EngineNumber,
                 Plate = order.Plate,
+                BrandId = order.BrandId,
+                VehicleModelId = order.VehicleModelId,
                 Brand = order.Brand,
                 Model = order.Model,
                 Year = order.Year,

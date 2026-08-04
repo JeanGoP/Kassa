@@ -41,6 +41,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                 {
                     "companies",
                     "branches",
+                    "brands",
+                    "models",
                     "customers",
                     "suppliers",
                     "article-catalog",
@@ -69,7 +71,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                 availableNow = new[]
                 {
                     "Empresas, sucursales, clientes, proveedores y personal basico",
-                    "Catalogo basico de articulos y servicios",
+                    "Catalogos formales de marcas y modelos por empresa",
+                    "Catalogo basico de articulos y servicios con marca",
                     "Inventario por sucursal con costo y niveles minimo/maximo",
                     "Ventas, compras y ordenes de taller basicas",
                     "Ordenes de alistamiento con solicitud, vehiculo, ejecutante, consumos y hallazgos",
@@ -79,8 +82,6 @@ namespace TPV.Web.Controllers.Api.Integrations
                 },
                 pendingModelWork = new[]
                 {
-                    "Normalizacion formal de marcas y modelos del vehiculo",
-                    "Marca formal en todos los recursos",
                     "Bodegas/ubicaciones reales y movimientos de inventario",
                     "Cantidades decimales y conversiones de unidades",
                     "Historial de estados y anulaciones completas",
@@ -148,12 +149,65 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Phone = b.Phone,
                     Email = b.Email,
                     WorkshopManager = b.WorkshopManager != null ? b.WorkshopManager.Name : b.ManagerName,
-                    MainBrand = null,
+                    MainBrandId = b.MainBrandId,
+                    MainBrand = b.MainBrand != null ? b.MainBrand.Name : null,
                     Status = ToStatus(b.IsActive),
                     CreatedAt = b.CreatedAt,
                     ModifiedAt = b.UpdatedAt ?? b.CreatedAt
                 });
 
+            return Ok(await ToPagedResponseAsync(projected, query));
+        }
+
+        [HttpGet("brands")]
+        public async Task<IActionResult> GetBrands([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<Brand> source = _dbContext.Brands.IgnoreQueryFilters().AsNoTracking();
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            if (!string.IsNullOrWhiteSpace(query.Marca)) source = source.Where(b => b.Name.Contains(query.Marca));
+
+            var projected = source.OrderBy(b => b.Id).Select(b => new MchBrandDto
+            {
+                Id = b.Id,
+                CompanyId = b.TenantId,
+                Code = b.Code,
+                Name = b.Name,
+                Status = ToStatus(b.IsActive),
+                CreatedAt = b.CreatedAt,
+                ModifiedAt = b.UpdatedAt ?? b.CreatedAt
+            });
+            return Ok(await ToPagedResponseAsync(projected, query));
+        }
+
+        [HttpGet("models")]
+        public async Task<IActionResult> GetModels([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<VehicleModel> source = _dbContext.VehicleModels.IgnoreQueryFilters().AsNoTracking();
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            if (!string.IsNullOrWhiteSpace(query.Marca)) source = source.Where(m => m.Brand.Name.Contains(query.Marca));
+
+            var projected = source.OrderBy(m => m.Id).Select(m => new MchVehicleModelDto
+            {
+                Id = m.Id,
+                CompanyId = m.TenantId,
+                BrandId = m.BrandId,
+                Brand = m.Brand.Name,
+                Code = m.Code,
+                Name = m.Name,
+                Status = ToStatus(m.IsActive),
+                CreatedAt = m.CreatedAt,
+                ModifiedAt = m.UpdatedAt ?? m.CreatedAt
+            });
             return Ok(await ToPagedResponseAsync(projected, query));
         }
 
@@ -262,6 +316,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                         ? p.Category.Parent.Name + " / " + p.Category.Name
                         : p.Category != null ? p.Category.Name : null,
                     ArticleType = p.Type,
+                    BrandId = p.BrandId,
+                    Brand = p.Brand != null ? p.Brand.Name : null,
                     BaseUnit = p.UnitOfMeasure,
                     SalePrice = p.Price,
                     IvaType = p.IvaType,
@@ -301,6 +357,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Reference = s.Product.SKU,
                     ProductId = s.ProductId,
                     Description = s.Product.Name,
+                    BrandId = s.Product.BrandId,
+                    Brand = s.Product.Brand != null ? s.Product.Brand.Name : null,
                     Quantity = s.Quantity,
                     Unit = s.Product.UnitOfMeasure,
                     CurrentCost = s.Cost,
@@ -328,6 +386,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .Include(s => s.Branch)
                 .Include(s => s.SaleDetails)
                     .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.Brand)
                 .AsNoTracking();
 
             source = ApplyTenantScope(source);
@@ -359,6 +418,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ProductId = d.ProductId,
                     Reference = d.Product?.SKU,
                     Description = d.Product?.Name,
+                    BrandId = d.Product?.BrandId,
+                    Brand = d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
                     Unit = d.Product?.UnitOfMeasure,
                     UnitPrice = d.UnitPrice,
@@ -384,6 +445,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .Include(p => p.Branch)
                 .Include(p => p.PurchaseDetails)
                     .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.Brand)
                 .AsNoTracking();
 
             source = ApplyTenantScope(source);
@@ -422,6 +484,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ProductId = d.ProductId,
                     Reference = d.Product?.SKU,
                     Description = d.Product?.Name,
+                    BrandId = d.Product?.BrandId,
+                    Brand = d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
                     Unit = d.Product?.UnitOfMeasure,
                     UnitCost = d.UnitCost,
@@ -491,6 +555,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ChassisNumber = o.ChassisNumber,
                     EngineNumber = o.EngineNumber,
                     Plate = o.Plate,
+                    BrandId = o.BrandId,
+                    VehicleModelId = o.VehicleModelId,
                     Brand = o.Brand,
                     Model = o.Model,
                     Year = o.Year,
@@ -598,6 +664,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ChassisNumber = v.ChassisNumber,
                     EngineNumber = v.EngineNumber,
                     Plate = v.Plate,
+                    BrandId = v.BrandId,
+                    VehicleModelId = v.VehicleModelId,
                     Brand = v.Brand,
                     Model = v.Model,
                     Year = v.Year,
@@ -687,6 +755,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                 ChassisNumber = o.ChassisNumber,
                 EngineNumber = o.EngineNumber,
                 Plate = o.Plate,
+                BrandId = o.BrandId,
+                VehicleModelId = o.VehicleModelId,
                 Brand = o.Brand,
                 Model = o.Model,
                 Year = o.Year,
@@ -789,6 +859,11 @@ namespace TPV.Web.Controllers.Api.Integrations
                 source = source.Where(s => s.BranchId == query.SucursalId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+            {
+                source = source.Where(s => s.Product.Brand != null && s.Product.Brand.Name.Contains(query.Marca));
+            }
+
             return source;
         }
 
@@ -799,6 +874,11 @@ namespace TPV.Web.Controllers.Api.Integrations
             if (query.SucursalId.HasValue)
             {
                 source = source.Where(s => s.BranchId == query.SucursalId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+            {
+                source = source.Where(s => s.SaleDetails.Any(d => d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca)));
             }
 
             return source;
@@ -813,6 +893,28 @@ namespace TPV.Web.Controllers.Api.Integrations
                 source = source.Where(p => p.BranchId == query.SucursalId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+            {
+                source = source.Where(p => p.PurchaseDetails.Any(d => d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca)));
+            }
+
+            return source;
+        }
+
+        private IQueryable<Branch> ApplyEntityFilters(IQueryable<Branch> source, MchQuery query)
+        {
+            source = ApplyEntityFilters<Branch>(source, query);
+            if (query.SucursalId.HasValue) source = source.Where(b => b.Id == query.SucursalId.Value);
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+                source = source.Where(b => b.MainBrand != null && b.MainBrand.Name.Contains(query.Marca));
+            return source;
+        }
+
+        private IQueryable<Product> ApplyEntityFilters(IQueryable<Product> source, MchQuery query)
+        {
+            source = ApplyEntityFilters<Product>(source, query);
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+                source = source.Where(p => p.Brand != null && p.Brand.Name.Contains(query.Marca));
             return source;
         }
 
@@ -1017,10 +1119,28 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? WorkshopManager { get; set; }
+        public int? MainBrandId { get; set; }
         public string? MainBrand { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchBrandDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchVehicleModelDto : MchBrandDto
+    {
+        public int BrandId { get; set; }
+        public string Brand { get; set; } = string.Empty;
     }
 
     public class MchThirdPartyDto
@@ -1053,6 +1173,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Category { get; set; }
         public string? CategoryHierarchy { get; set; }
         public string ArticleType { get; set; } = string.Empty;
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
         public string BaseUnit { get; set; } = string.Empty;
         public decimal SalePrice { get; set; }
         public string IvaType { get; set; } = string.Empty;
@@ -1073,6 +1195,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int ProductId { get; set; }
         public string Reference { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
         public decimal Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal CurrentCost { get; set; }
@@ -1112,6 +1236,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int ProductId { get; set; }
         public string? Reference { get; set; }
         public string? Description { get; set; }
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
         public decimal Quantity { get; set; }
         public string? Unit { get; set; }
         public decimal UnitPrice { get; set; }
@@ -1155,6 +1281,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int ProductId { get; set; }
         public string? Reference { get; set; }
         public string? Description { get; set; }
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
         public decimal Quantity { get; set; }
         public string? Unit { get; set; }
         public decimal UnitCost { get; set; }
@@ -1175,6 +1303,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string ChassisNumber { get; set; } = string.Empty;
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int? Year { get; set; }
@@ -1199,6 +1329,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? ProductId { get; set; }
         public string? Reference { get; set; }
         public string? Description { get; set; }
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
         public decimal Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal UnitValue { get; set; }
@@ -1217,6 +1349,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? ChassisNumber { get; set; }
         public string? EngineNumber { get; set; }
         public string Plate { get; set; } = string.Empty;
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int Year { get; set; }
@@ -1279,6 +1413,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string ChassisNumber { get; set; } = string.Empty;
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int? Year { get; set; }

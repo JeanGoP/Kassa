@@ -38,6 +38,7 @@ import Users from './pages/Users';
 import Tenants from './pages/Tenants';
 import WorkshopDashboard from './pages/WorkshopDashboard';
 import Warranties from './pages/Warranties';
+import VehicleCatalogs from './pages/VehicleCatalogs';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
@@ -74,6 +75,7 @@ const AppRoutes = () => {
                 <Route path="inventory/transfers" element={<StockTransfers />} />
                 <Route path="products" element={<Products />} />
                 <Route path="categories" element={<Categories />} />
+                <Route path="vehicle-catalogs" element={<VehicleCatalogs />} />
                 <Route path="customers" element={<Customers />} />
                 <Route path="suppliers" element={<Suppliers />} />
                 <Route path="technicians" element={<Technicians />} />

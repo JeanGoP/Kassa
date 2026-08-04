@@ -11,15 +11,22 @@ namespace TPV.Application.Services
     public class ProductService : IProductService
     {
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<Brand> _brandRepository;
+        private readonly ICurrentTenantService _currentTenantService;
 
-        public ProductService(IRepository<Product> productRepository)
+        public ProductService(
+            IRepository<Product> productRepository,
+            IRepository<Brand> brandRepository,
+            ICurrentTenantService currentTenantService)
         {
             _productRepository = productRepository;
+            _brandRepository = brandRepository;
+            _currentTenantService = currentTenantService;
         }
 
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? branchId = null)
         {
-            var products = await _productRepository.GetAsync(null, null, "Category,Stocks");
+            var products = await _productRepository.GetAsync(null, null, "Category,Stocks,Brand");
             // Manual mapping for now (AutoMapper is better but adding dependency adds complexity)
             return products.Select(p => 
             {
@@ -58,6 +65,8 @@ namespace TPV.Application.Services
                     IvaRate = p.IvaRate,
                     ImpoconsumoRate = p.ImpoconsumoRate,
                     PriceIncludesIva = p.PriceIncludesIva,
+                    BrandId = p.BrandId,
+                    BrandName = p.Brand?.Name,
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category?.Name,
                     StockQuantity = p.Stocks?.Where(s => !branchId.HasValue || s.BranchId == branchId.Value).Sum(s => s.Quantity) ?? 0
@@ -67,7 +76,7 @@ namespace TPV.Application.Services
 
         public async Task<ProductDto> GetProductByIdAsync(int id)
         {
-            var products = await _productRepository.GetAsync(p => p.Id == id, null, "Category,Stocks");
+            var products = await _productRepository.GetAsync(p => p.Id == id, null, "Category,Stocks,Brand");
             var p = products.FirstOrDefault();
             if (p == null) return null;
 
@@ -87,6 +96,8 @@ namespace TPV.Application.Services
                 IvaRate = p.IvaRate,
                 ImpoconsumoRate = p.ImpoconsumoRate,
                 PriceIncludesIva = p.PriceIncludesIva,
+                BrandId = p.BrandId,
+                BrandName = p.Brand?.Name,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name,
                 StockQuantity = p.Stocks?.Sum(s => s.Quantity) ?? 0
@@ -95,6 +106,7 @@ namespace TPV.Application.Services
 
         public async Task<ProductDto> CreateProductAsync(ProductDto productDto)
         {
+            await ValidateBrandAsync(productDto.BrandId);
             if (!string.IsNullOrEmpty(productDto.SKU))
             {
                 productDto.SKU = productDto.SKU.Trim();
@@ -120,7 +132,8 @@ namespace TPV.Application.Services
                 IvaType = productDto.IvaType,
                 IvaRate = productDto.IvaRate,
                 ImpoconsumoRate = productDto.ImpoconsumoRate,
-                PriceIncludesIva = productDto.PriceIncludesIva
+                PriceIncludesIva = productDto.PriceIncludesIva,
+                BrandId = productDto.BrandId
             };
 
             var newProduct = await _productRepository.AddAsync(product);
@@ -130,6 +143,7 @@ namespace TPV.Application.Services
 
         public async Task UpdateProductAsync(ProductDto productDto)
         {
+            await ValidateBrandAsync(productDto.BrandId);
             var product = await _productRepository.GetByIdAsync(productDto.Id);
             if (product != null)
             {
@@ -160,6 +174,7 @@ namespace TPV.Application.Services
                 product.ImpoconsumoRate = productDto.ImpoconsumoRate;
                 product.PriceIncludesIva = productDto.PriceIncludesIva;
                 product.CategoryId = productDto.CategoryId;
+                product.BrandId = productDto.BrandId;
                 
                 await _productRepository.UpdateAsync(product);
             }
@@ -172,6 +187,16 @@ namespace TPV.Application.Services
             {
                 await _productRepository.DeleteAsync(product);
             }
+        }
+
+        private async Task ValidateBrandAsync(int? brandId)
+        {
+            if (!brandId.HasValue) return;
+            var tenantId = _currentTenantService.TenantId
+                ?? throw new System.InvalidOperationException("No se pudo determinar la empresa actual.");
+            var brand = await _brandRepository.GetByIdAsync(brandId.Value);
+            if (brand == null || brand.TenantId != tenantId || !brand.IsActive)
+                throw new System.InvalidOperationException("Seleccione una marca activa de la empresa actual.");
         }
     }
 }

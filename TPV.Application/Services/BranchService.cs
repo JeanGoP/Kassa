@@ -13,15 +13,18 @@ namespace TPV.Application.Services
     {
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<WorkshopManager> _workshopManagerRepository;
+        private readonly IRepository<Brand> _brandRepository;
         private readonly IUserService _userService;
 
         public BranchService(
             IRepository<Branch> branchRepository,
             IRepository<WorkshopManager> workshopManagerRepository,
+            IRepository<Brand> brandRepository,
             IUserService userService)
         {
             _branchRepository = branchRepository;
             _workshopManagerRepository = workshopManagerRepository;
+            _brandRepository = brandRepository;
             _userService = userService;
         }
 
@@ -29,7 +32,7 @@ namespace TPV.Application.Services
         {
             var branches = await _branchRepository.GetAsync(
                 orderBy: q => q.OrderBy(b => b.Name),
-                includeString: "WorkshopManager"
+                includeString: "WorkshopManager,MainBrand"
             );
             return branches.Select(MapToDto);
         }
@@ -38,7 +41,7 @@ namespace TPV.Application.Services
         {
             var branch = (await _branchRepository.GetAsync(
                 predicate: b => b.Id == id,
-                includeString: "WorkshopManager"
+                includeString: "WorkshopManager,MainBrand"
             )).FirstOrDefault();
             return branch == null ? null : MapToDto(branch);
         }
@@ -50,7 +53,7 @@ namespace TPV.Application.Services
 
             var branch = (await _branchRepository.GetAsync(
                 predicate: b => b.Id == branchId.Value,
-                includeString: "WorkshopManager"
+                includeString: "WorkshopManager,MainBrand"
             )).FirstOrDefault();
 
             return branch == null ? null : MapToDto(branch);
@@ -59,6 +62,7 @@ namespace TPV.Application.Services
         public async Task<BranchDto> CreateAsync(CreateBranchDto dto)
         {
             var manager = await ResolveWorkshopManagerAsync(dto.WorkshopManagerId);
+            var mainBrand = await ResolveBrandAsync(dto.MainBrandId);
             var branch = new Branch
             {
                 Name = dto.Name,
@@ -68,7 +72,9 @@ namespace TPV.Application.Services
                 ManagerName = manager?.Name ?? dto.ManagerName,
                 WorkshopManagerId = manager?.Id,
                 Department = dto.Department,
-                City = dto.City
+                City = dto.City,
+                MainBrandId = mainBrand?.Id,
+                MainBrand = mainBrand
             };
 
             await _branchRepository.AddAsync(branch);
@@ -80,6 +86,7 @@ namespace TPV.Application.Services
             var branch = await _branchRepository.GetByIdAsync(id);
             if (branch == null) throw new Exception("Branch not found");
             var manager = await ResolveWorkshopManagerAsync(dto.WorkshopManagerId);
+            var mainBrand = await ResolveBrandAsync(dto.MainBrandId);
 
             branch.Name = dto.Name;
             branch.Address = dto.Address;
@@ -89,6 +96,8 @@ namespace TPV.Application.Services
             branch.WorkshopManagerId = manager?.Id;
             branch.Department = dto.Department;
             branch.City = dto.City;
+            branch.MainBrandId = mainBrand?.Id;
+            branch.MainBrand = mainBrand;
 
             await _branchRepository.UpdateAsync(branch);
         }
@@ -115,7 +124,9 @@ namespace TPV.Application.Services
                 WorkshopManagerId = branch.WorkshopManagerId,
                 WorkshopManagerName = workshopManagerName,
                 Department = branch.Department,
-                City = branch.City
+                City = branch.City,
+                MainBrandId = branch.MainBrandId,
+                MainBrandName = branch.MainBrand?.Name
             };
         }
 
@@ -132,6 +143,15 @@ namespace TPV.Application.Services
             }
 
             return manager;
+        }
+
+        private async Task<Brand> ResolveBrandAsync(int? brandId)
+        {
+            if (!brandId.HasValue) return null;
+            var brand = await _brandRepository.GetByIdAsync(brandId.Value);
+            if (brand == null || !brand.IsActive)
+                throw new InvalidOperationException("Seleccione una marca principal activa.");
+            return brand;
         }
     }
 }

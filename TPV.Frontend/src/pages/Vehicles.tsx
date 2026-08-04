@@ -5,6 +5,8 @@ import api from '../api/axios';
 
 interface Branch { id: number; name: string; }
 interface Customer { id: number; firstName?: string; lastName?: string; taxId?: string; }
+interface Brand { id: number; name: string; isActive: boolean; }
+interface VehicleModel { id: number; brandId: number; name: string; isActive: boolean; }
 interface VehicleHistory {
     source: string; recordId: number; number: string; date: string; mileage?: number;
     branchName?: string; status: string; maintenanceReviewMileage?: number;
@@ -15,13 +17,13 @@ interface OwnerHistory {
 }
 interface Vehicle {
     id: number; branchId: number; branchName?: string; chassisNumber: string; engineNumber?: string;
-    plate?: string; brand: string; model: string; year?: number; saleDate?: string;
+    plate?: string; brandId: number; vehicleModelId: number; brand: string; model: string; year?: number; saleDate?: string;
     currentOwnerId?: number; currentOwnerName?: string; ownerSince?: string; lastKnownMileage?: number;
     isActive: boolean; ownerHistory: OwnerHistory[]; serviceHistory: VehicleHistory[];
 }
 
 const emptyForm = () => ({
-    branchId: '', chassisNumber: '', engineNumber: '', plate: '', brand: 'Honda', model: '', year: '',
+    branchId: '', chassisNumber: '', engineNumber: '', plate: '', brandId: '', vehicleModelId: '', year: '',
     saleDate: '', currentOwnerId: '', ownerSince: '', lastKnownMileage: ''
 });
 
@@ -29,13 +31,15 @@ const Vehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [models, setModels] = useState<VehicleModel[]>([]);
     const [selected, setSelected] = useState<Vehicle | null>(null);
     const [search, setSearch] = useState('');
     const [form, setForm] = useState(emptyForm());
     const [saving, setSaving] = useState(false);
     const activeCount = useMemo(() => vehicles.filter(v => v.isActive).length, [vehicles]);
 
-    useEffect(() => { Promise.all([loadVehicles(), loadBranches(), loadCustomers()]); }, []);
+    useEffect(() => { Promise.all([loadVehicles(), loadBranches(), loadCustomers(), loadCatalogs()]); }, []);
 
     const errorMessage = (error: unknown, fallback: string) => {
         if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -47,6 +51,10 @@ const Vehicles = () => {
     const loadVehicles = async () => setVehicles((await api.get<Vehicle[]>('/vehicles', { params: { search } })).data);
     const loadBranches = async () => setBranches((await api.get<Branch[]>('/branches')).data);
     const loadCustomers = async () => setCustomers((await api.get<Customer[]>('/customers')).data);
+    const loadCatalogs = async () => {
+        const [brandResponse, modelResponse] = await Promise.all([api.get<Brand[]>('/vehiclecatalogs/brands'), api.get<VehicleModel[]>('/vehiclecatalogs/models')]);
+        setBrands(brandResponse.data); setModels(modelResponse.data);
+    };
     const updateForm = (field: keyof ReturnType<typeof emptyForm>, value: string) => setForm(previous => ({ ...previous, [field]: value }));
     const clearSelection = () => { setSelected(null); setForm(emptyForm()); };
 
@@ -55,7 +63,7 @@ const Vehicles = () => {
         setSelected(detail);
         setForm({
             branchId: String(detail.branchId), chassisNumber: detail.chassisNumber, engineNumber: detail.engineNumber ?? '',
-            plate: detail.plate ?? '', brand: detail.brand, model: detail.model, year: detail.year?.toString() ?? '',
+            plate: detail.plate ?? '', brandId: detail.brandId?.toString() ?? '', vehicleModelId: detail.vehicleModelId?.toString() ?? '', year: detail.year?.toString() ?? '',
             saleDate: detail.saleDate?.slice(0, 10) ?? '', currentOwnerId: detail.currentOwnerId?.toString() ?? '',
             ownerSince: detail.ownerSince?.slice(0, 10) ?? '', lastKnownMileage: detail.lastKnownMileage?.toString() ?? ''
         });
@@ -66,7 +74,7 @@ const Vehicles = () => {
         setSaving(true);
         const payload = {
             branchId: form.branchId ? Number(form.branchId) : null, chassisNumber: form.chassisNumber.toUpperCase(),
-            engineNumber: form.engineNumber || null, plate: form.plate || null, brand: form.brand, model: form.model,
+            engineNumber: form.engineNumber || null, plate: form.plate || null, brandId: Number(form.brandId), vehicleModelId: Number(form.vehicleModelId),
             year: form.year ? Number(form.year) : null, saleDate: form.saleDate || null,
             currentOwnerId: form.currentOwnerId ? Number(form.currentOwnerId) : null, ownerSince: form.ownerSince || null,
             lastKnownMileage: form.lastKnownMileage ? Number(form.lastKnownMileage) : null
@@ -112,7 +120,7 @@ const Vehicles = () => {
                 <form onSubmit={saveVehicle} className="h-fit space-y-4 border-l border-slate-200 pl-0 xl:pl-6">
                     <div className="flex items-center justify-between"><h2 className="text-base font-bold text-slate-900">{selected ? 'Editar vehículo' : 'Nuevo vehículo'}</h2>{selected && <button type="button" onClick={clearSelection} title="Nuevo vehículo" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><Plus size={18} /></button>}</div>
                     <label className="block text-sm font-medium">VIN / Chasis<input required minLength={17} maxLength={17} value={form.chassisNumber} onChange={e => updateForm('chassisNumber', e.target.value.toUpperCase())} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono" /></label>
-                    <div className="grid grid-cols-2 gap-3"><label className="text-sm font-medium">Motor<input value={form.engineNumber} onChange={e => updateForm('engineNumber', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Placa<input value={form.plate} onChange={e => updateForm('plate', e.target.value.toUpperCase())} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Marca<input required value={form.brand} onChange={e => updateForm('brand', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Modelo<input required value={form.model} onChange={e => updateForm('model', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Año<input type="number" min="1900" max="2100" value={form.year} onChange={e => updateForm('year', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Kilometraje<input type="number" min="0" step="0.01" value={form.lastKnownMileage} onChange={e => updateForm('lastKnownMileage', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label></div>
+                    <div className="grid grid-cols-2 gap-3"><label className="text-sm font-medium">MOTOR<input value={form.engineNumber} onChange={e => updateForm('engineNumber', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">PLACA<input value={form.plate} onChange={e => updateForm('plate', e.target.value.toUpperCase())} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">MARCA<select required value={form.brandId} onChange={e => setForm(previous => ({ ...previous, brandId: e.target.value, vehicleModelId: '' }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"><option value="">SELECCIONE</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></label><label className="text-sm font-medium">MODELO<select required value={form.vehicleModelId} onChange={e => updateForm('vehicleModelId', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"><option value="">SELECCIONE</option>{models.filter(model => model.brandId === Number(form.brandId)).map(model => <option key={model.id} value={model.id}>{model.name}</option>)}</select></label><label className="text-sm font-medium">AÑO<input type="number" min="1900" max="2100" value={form.year} onChange={e => updateForm('year', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">KILOMETRAJE<input type="number" min="0" step="0.01" value={form.lastKnownMileage} onChange={e => updateForm('lastKnownMileage', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label></div>
                     <label className="block text-sm font-medium">Sucursal<select value={form.branchId} onChange={e => updateForm('branchId', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"><option value="">Sucursal actual</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
                     <label className="block text-sm font-medium">Propietario<select value={form.currentOwnerId} onChange={e => updateForm('currentOwnerId', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"><option value="">Sin propietario</option>{customers.map(customer => <option key={customer.id} value={customer.id}>{customer.firstName} {customer.lastName} {customer.taxId ? `· ${customer.taxId}` : ''}</option>)}</select></label>
                     <div className="grid grid-cols-2 gap-3"><label className="text-sm font-medium">Propietario desde<input type="date" value={form.ownerSince} onChange={e => updateForm('ownerSince', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label><label className="text-sm font-medium">Fecha de venta<input type="date" value={form.saleDate} onChange={e => updateForm('saleDate', e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label></div>

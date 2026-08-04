@@ -14,12 +14,15 @@ interface Branch {
     workshopManagerName?: string;
     department?: string;
     city?: string;
+    mainBrandId?: number | null;
+    mainBrandName?: string;
 }
 
 interface WorkshopManager {
     id: number;
     name: string;
 }
+interface Brand { id: number; name: string; }
 
 const emptyForm = {
     name: '',
@@ -27,6 +30,7 @@ const emptyForm = {
     phone: '',
     email: '',
     workshopManagerId: '',
+    mainBrandId: '',
     department: '',
     city: ''
 };
@@ -34,6 +38,7 @@ const emptyForm = {
 const Branches = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [workshopManagers, setWorkshopManagers] = useState<WorkshopManager[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,12 +51,14 @@ const Branches = () => {
 
     const fetchInitialData = async () => {
         try {
-            const [branchesResponse, managersResponse] = await Promise.all([
+            const [branchesResponse, managersResponse, brandsResponse] = await Promise.all([
                 api.get('/branches'),
-                api.get('/workshopmanagers')
+                api.get('/workshopmanagers'),
+                api.get('/vehiclecatalogs/brands')
             ]);
             setBranches(branchesResponse.data);
             setWorkshopManagers(managersResponse.data);
+            setBrands(brandsResponse.data);
         } catch (error) {
             console.error(error);
             alert('Error al cargar sucursales.');
@@ -75,6 +82,7 @@ const Branches = () => {
             email: formData.email,
             managerName: selectedManager?.name || '',
             workshopManagerId: formData.workshopManagerId ? Number(formData.workshopManagerId) : null,
+            mainBrandId: formData.mainBrandId ? Number(formData.mainBrandId) : null,
             department: formData.department,
             city: formData.city
         };
@@ -102,6 +110,7 @@ const Branches = () => {
                 phone: branch.phone || '',
                 email: branch.email || '',
                 workshopManagerId: branch.workshopManagerId ? branch.workshopManagerId.toString() : '',
+                mainBrandId: branch.mainBrandId ? branch.mainBrandId.toString() : '',
                 department: branch.department || '',
                 city: branch.city || ''
             });
@@ -209,6 +218,10 @@ const Branches = () => {
                                 </div>
                             </div>
                             <div className="space-y-2 text-sm text-slate-600">
+                                <div className="flex items-center">
+                                    <span className="w-24 font-medium">MARCA:</span>
+                                    <span className="min-w-0 truncate">{branch.mainBrandName || 'SIN ASIGNAR'}</span>
+                                </div>
                                 {branch.phone && (
                                     <div className="flex items-center">
                                         <span className="w-24 font-medium">Telefono:</span>
@@ -267,6 +280,13 @@ const Branches = () => {
                                             {manager.name}
                                         </option>
                                     ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">MARCA PRINCIPAL</label>
+                                <select className="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formData.mainBrandId} onChange={(e) => setFormData({ ...formData, mainBrandId: e.target.value })}>
+                                    <option value="">SIN ASIGNAR</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
                                 </select>
                             </div>
 

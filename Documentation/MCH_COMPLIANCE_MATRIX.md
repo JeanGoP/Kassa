@@ -20,7 +20,7 @@ La integracion MCH existente es una primera capa readonly util, pero aun no cump
 Brechas principales:
 
 - Marca no esta modelada como dimension independiente en todos los hechos.
-- Vehiculo maestro por VIN/chasis ya existe; falta normalizar marca y modelo mediante los catalogos formales del punto 2.
+- Vehiculo maestro por VIN/chasis y catalogos formales de marca/modelo implementados y relacionados.
 - Garantias no tienen ciclo completo contra fabricante.
 - Unidades de medida son texto libre y no hay conversiones compra/base/venta.
 - Cantidades de algunas entidades siguen siendo enteras donde MCH exige decimales.
@@ -37,13 +37,13 @@ Brechas principales:
 | MCH-T04 | Alcance ampliable a nuevas razones sociales | Cumple | `Integrations:MCH:AllowedTenantIds` permite varios tenants sin cambiar respuestas. |
 | MCH-T05 | Revocacion y rotacion documentada | Parcial | Se puede rotar `Integrations:MCH:ApiKey`, pero falta runbook operativo. |
 | MCH-T06 | Disponibilidad y ventana de mantenimiento | No cumple | No hay documento/SLA operativo. |
-| MCH-T07 | Filtros empresa, marca, sucursal, fechas, modificado_desde | Parcial | `MchQuery` tiene todos los parametros; `Marca` aplica en ordenes de servicio y alistamientos, falta extenderla al resto de recursos donde MCH la exige. |
+| MCH-T07 | Filtros empresa, marca, sucursal, fechas, modificado_desde | Cumple | `MchQuery` aplica los filtros transversales en los recursos correspondientes, incluida marca formal en sucursales, articulos, inventario, ventas, compras, vehiculos y ordenes. |
 | MCH-T08 | Paginacion obligatoria | Cumple | `PageSize`, `ContinuationToken`, `NextContinuationToken`. |
 | MCH-T09 | Identificadores estables | Parcial | Usa IDs internos estables; falta documentar politica de estabilidad. |
 | MCH-T10 | creado_en y modificado_en con zona horaria | Parcial | Expone `CreatedAt`/`ModifiedAt`, pero sin zona horaria explicita. |
 | MCH-T11 | Anulaciones/eliminados siguen consultables | Parcial | `IsActive` se mapea a estado, pero no todos los flujos preservan anulaciones con fecha/motivo. |
 | MCH-T12 | Valores monetarios indican IVA | Parcial | Ventas/compras exponen impuestos en lineas; no todos los recursos indican si incluyen IVA. |
-| MCH-T13 | Todo recurso trae empresa, marca y sucursal | Parcial | Empresa/sucursal existen en varios recursos. Marca falta en ventas/compras/inventario/catalogo como dimension formal. |
+| MCH-T13 | Todo recurso trae empresa, marca y sucursal | Cumple | Empresa y sucursal se exponen por hecho; la marca se toma del vehiculo o de cada articulo/linea y nunca se infiere desde la sucursal. |
 | MCH-T14 | Cantidades numericas decimales | Parcial | Entidades como compras/ventas/partes usan cantidades que parecen enteras en varios puntos. |
 | MCH-T15 | Unidades cerradas y por registro | Parcial | Se expone `UnitOfMeasure` desde producto, pero no hay lista cerrada ni unidad propia por cada movimiento/linea. |
 
@@ -52,20 +52,20 @@ Brechas principales:
 | Recurso | Estado | Endpoint / Ubicacion | Brechas principales |
 | --- | --- | --- | --- |
 | Empresas | Parcial | `GET /api/integrations/mch/companies` | Falta confirmar NIT obligatorio y zona horaria en fechas. |
-| Sucursales | Parcial | `GET /api/integrations/mch/branches` | `MainBrand` sale `null`; falta marca principal real. |
+| Sucursales | Cumple | `GET /api/integrations/mch/branches` | Expone `MainBrandId` y marca principal seleccionable desde el maestro. |
 | Clientes | Parcial | `GET /api/integrations/mch/customers` | Basico disponible; falta historizacion de propietario de vehiculo. |
 | Proveedores | Parcial | `GET /api/integrations/mch/suppliers` | Basico disponible; falta clasificar proveedor oficial vs tercero. |
-| Catalogo de articulos | Parcial | `GET /api/integrations/mch/article-catalog` | Faltan marca, aplicabilidad, equivalencias, sustitutos, kits, unidades compra/venta/base y conversiones. |
-| Inventario | Parcial | `GET /api/integrations/mch/inventory` | Existencia/costo/precio disponible; faltan bodegas reales, ubicaciones, movimientos y unidad del registro. |
-| Ventas | Parcial | `GET /api/integrations/mch/sales` | Encabezado y lineas basicas; faltan marca, clasificacion contable, anulaciones/notas credito, costo por linea. |
-| Compras | Parcial | `GET /api/integrations/mch/purchases` | Encabezado y lineas basicas; falta recepcion real, pedido asociado, marca y unidad estricta de compra. |
+| Catalogo de articulos | Parcial | `GET /api/integrations/mch/article-catalog` | Ya incluye marca formal; faltan aplicabilidad, equivalencias, sustitutos, kits, unidades compra/venta/base y conversiones. |
+| Inventario | Parcial | `GET /api/integrations/mch/inventory` | Ya expone marca del articulo, existencia, costo y precio; faltan bodegas reales, ubicaciones, movimientos y unidad del registro. |
+| Ventas | Parcial | `GET /api/integrations/mch/sales` | Cada linea expone marca formal; faltan clasificacion contable, anulaciones/notas credito y costo por linea. |
+| Compras | Parcial | `GET /api/integrations/mch/purchases` | Cada linea expone marca formal; falta recepcion real, pedido asociado y unidad estricta de compra. |
 | Ordenes de taller | Parcial | `GET /api/integrations/mch/service-orders` | Ya conserva VIN/chasis, motor, vehiculo, sucursal y revision programada. Faltan tipo de orden, historia de estados, quien paga, suma al total y tiempos reales. |
-| Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, motor, placa, marca/modelo, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. Marca/modelo se normalizaran en el punto 2. |
+| Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, marca/modelo formal, motor, placa, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. |
 | Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Pendiente definir si los consumos descuentan inventario automaticamente. |
 | Garantias fabricante | No cumple | Entidad `Warranty` basica | Falta ciclo completo: deteccion, causa, pieza causante, autorizacion, radicacion, respuesta, facturacion y pago fabricante. |
-| Marcas | No cumple | Sin endpoint dedicado | Falta catalogo formal de marcas y relacion por hechos/articulos/vehiculos. |
+| Marcas | Cumple | `GET /api/integrations/mch/brands`; modulo interno `VehicleCatalogs` | Catalogo cerrado por empresa, con codigo, nombre, estado y relaciones explicitas. |
 | Personal | Parcial | No expuesto por MCH actualmente | Existen usuarios/tecnicos/encargados, pero falta endpoint consolidado para personal. |
-| Modelos | No cumple | Sin endpoint dedicado | Falta catalogo formal marca/modelo. |
+| Modelos | Cumple | `GET /api/integrations/mch/models`; modulo interno `VehicleCatalogs` | Catalogo cerrado dependiente de marca y empresa. |
 
 ## Checklist Para Cada Cambio
 

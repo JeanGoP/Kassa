@@ -17,6 +17,8 @@ namespace TPV.Application.Services
         private readonly IRepository<PreparationOrder> _preparationOrderRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Customer> _customerRepository;
+        private readonly IRepository<Brand> _brandRepository;
+        private readonly IRepository<VehicleModel> _modelRepository;
         private readonly IUserService _userService;
 
         public VehicleService(
@@ -26,6 +28,8 @@ namespace TPV.Application.Services
             IRepository<PreparationOrder> preparationOrderRepository,
             IRepository<Branch> branchRepository,
             IRepository<Customer> customerRepository,
+            IRepository<Brand> brandRepository,
+            IRepository<VehicleModel> modelRepository,
             IUserService userService)
         {
             _vehicleRepository = vehicleRepository;
@@ -34,6 +38,8 @@ namespace TPV.Application.Services
             _preparationOrderRepository = preparationOrderRepository;
             _branchRepository = branchRepository;
             _customerRepository = customerRepository;
+            _brandRepository = brandRepository;
+            _modelRepository = modelRepository;
             _userService = userService;
         }
 
@@ -48,7 +54,7 @@ namespace TPV.Application.Services
                     v.Brand.Contains(cleanSearch) ||
                     v.Model.Contains(cleanSearch),
                 orderBy: q => q.OrderBy(v => v.Brand).ThenBy(v => v.Model).ThenBy(v => v.ChassisNumber),
-                includeString: "Branch,CurrentOwner");
+                includeString: "Branch,CurrentOwner,BrandCatalog,VehicleModel");
 
             return vehicles.Select(MapSummary);
         }
@@ -57,7 +63,7 @@ namespace TPV.Application.Services
         {
             var vehicles = await _vehicleRepository.GetAsync(
                 predicate: v => v.Id == id,
-                includeString: "Branch,CurrentOwner");
+                includeString: "Branch,CurrentOwner,BrandCatalog,VehicleModel");
             var vehicle = vehicles.FirstOrDefault();
             if (vehicle == null) return null;
 
@@ -115,6 +121,7 @@ namespace TPV.Application.Services
             var chassis = NormalizeChassis(dto.ChassisNumber);
             await EnsureUniqueChassisAsync(chassis, branch.TenantId);
             await ValidateCustomerAsync(dto.CurrentOwnerId, branch.TenantId);
+            var catalog = await ResolveCatalogAsync(branch.TenantId, dto.BrandId, dto.VehicleModelId, dto.Brand, dto.Model);
 
             var vehicle = new Vehicle
             {
@@ -123,8 +130,12 @@ namespace TPV.Application.Services
                 ChassisNumber = chassis,
                 EngineNumber = CleanUpper(dto.EngineNumber),
                 Plate = CleanUpper(dto.Plate),
-                Brand = Required(dto.Brand, "La marca es obligatoria."),
-                Model = Required(dto.Model, "El modelo es obligatorio."),
+                BrandId = catalog.Brand.Id,
+                BrandCatalog = catalog.Brand,
+                VehicleModelId = catalog.Model.Id,
+                VehicleModel = catalog.Model,
+                Brand = catalog.Brand.Name,
+                Model = catalog.Model.Name,
                 Year = ValidateYear(dto.Year),
                 SaleDate = dto.SaleDate,
                 CurrentOwnerId = dto.CurrentOwnerId,
@@ -146,6 +157,7 @@ namespace TPV.Application.Services
             var chassis = NormalizeChassis(dto.ChassisNumber);
             await EnsureUniqueChassisAsync(chassis, branch.TenantId, id);
             await ValidateCustomerAsync(dto.CurrentOwnerId, branch.TenantId);
+            var catalog = await ResolveCatalogAsync(branch.TenantId, dto.BrandId, dto.VehicleModelId, dto.Brand, dto.Model);
             var ownerChanged = vehicle.CurrentOwnerId != dto.CurrentOwnerId;
 
             vehicle.TenantId = branch.TenantId;
@@ -153,8 +165,12 @@ namespace TPV.Application.Services
             vehicle.ChassisNumber = chassis;
             vehicle.EngineNumber = CleanUpper(dto.EngineNumber);
             vehicle.Plate = CleanUpper(dto.Plate);
-            vehicle.Brand = Required(dto.Brand, "La marca es obligatoria.");
-            vehicle.Model = Required(dto.Model, "El modelo es obligatorio.");
+            vehicle.BrandId = catalog.Brand.Id;
+            vehicle.BrandCatalog = catalog.Brand;
+            vehicle.VehicleModelId = catalog.Model.Id;
+            vehicle.VehicleModel = catalog.Model;
+            vehicle.Brand = catalog.Brand.Name;
+            vehicle.Model = catalog.Model.Name;
             vehicle.Year = ValidateYear(dto.Year);
             vehicle.SaleDate = dto.SaleDate;
             vehicle.CurrentOwnerId = dto.CurrentOwnerId;
@@ -187,12 +203,13 @@ namespace TPV.Application.Services
             return true;
         }
 
-        public async Task<int> RegisterOperationAsync(RegisterVehicleOperationDto dto)
+        public async Task<RegisteredVehicleDto> RegisterOperationAsync(RegisterVehicleOperationDto dto)
         {
             var chassis = NormalizeChassis(dto.ChassisNumber);
             var matches = await _vehicleRepository.GetAsync(v => v.TenantId == dto.TenantId && v.ChassisNumber == chassis);
             var vehicle = matches.FirstOrDefault();
             await ValidateCustomerAsync(dto.CustomerId, dto.TenantId);
+            var catalog = await ResolveCatalogAsync(dto.TenantId, dto.BrandId, dto.VehicleModelId, dto.Brand, dto.Model);
 
             if (vehicle == null)
             {
@@ -203,8 +220,12 @@ namespace TPV.Application.Services
                     ChassisNumber = chassis,
                     EngineNumber = CleanUpper(dto.EngineNumber),
                     Plate = CleanUpper(dto.Plate),
-                    Brand = Required(dto.Brand, "La marca es obligatoria."),
-                    Model = Required(dto.Model, "El modelo es obligatorio."),
+                    BrandId = catalog.Brand.Id,
+                    BrandCatalog = catalog.Brand,
+                    VehicleModelId = catalog.Model.Id,
+                    VehicleModel = catalog.Model,
+                    Brand = catalog.Brand.Name,
+                    Model = catalog.Model.Name,
                     Year = ValidateYear(dto.Year),
                     CurrentOwnerId = dto.CustomerId,
                     OwnerSince = dto.CustomerId.HasValue ? dto.OperationDate : null,
@@ -212,7 +233,7 @@ namespace TPV.Application.Services
                 };
                 await _vehicleRepository.AddAsync(vehicle);
                 await AddOwnerHistoryAsync(vehicle);
-                return vehicle.Id;
+                return ToRegistered(vehicle);
             }
 
             var ownerChanged = dto.CustomerId.HasValue && vehicle.CurrentOwnerId != dto.CustomerId;
@@ -226,8 +247,12 @@ namespace TPV.Application.Services
             vehicle.BranchId = dto.BranchId;
             vehicle.EngineNumber = CleanUpper(dto.EngineNumber) ?? vehicle.EngineNumber;
             vehicle.Plate = CleanUpper(dto.Plate) ?? vehicle.Plate;
-            vehicle.Brand = string.IsNullOrWhiteSpace(dto.Brand) ? vehicle.Brand : dto.Brand.Trim();
-            vehicle.Model = string.IsNullOrWhiteSpace(dto.Model) ? vehicle.Model : dto.Model.Trim();
+            vehicle.BrandId = catalog.Brand.Id;
+            vehicle.BrandCatalog = catalog.Brand;
+            vehicle.VehicleModelId = catalog.Model.Id;
+            vehicle.VehicleModel = catalog.Model;
+            vehicle.Brand = catalog.Brand.Name;
+            vehicle.Model = catalog.Model.Name;
             vehicle.Year = dto.Year ?? vehicle.Year;
             vehicle.LastKnownMileage = dto.Mileage.HasValue
                 ? Math.Max(vehicle.LastKnownMileage ?? 0, dto.Mileage.Value)
@@ -236,7 +261,40 @@ namespace TPV.Application.Services
             vehicle.UpdatedAt = DateTime.UtcNow;
             await _vehicleRepository.UpdateAsync(vehicle);
             if (ownerChanged) await AddOwnerHistoryAsync(vehicle);
-            return vehicle.Id;
+            return ToRegistered(vehicle);
+        }
+
+        private async Task<(Brand Brand, VehicleModel Model)> ResolveCatalogAsync(
+            int tenantId, int? brandId, int? modelId, string? brandName, string? modelName)
+        {
+            Brand? brand = null;
+            if (brandId.HasValue)
+            {
+                brand = await _brandRepository.GetByIdAsync(brandId.Value);
+            }
+            else if (!string.IsNullOrWhiteSpace(brandName))
+            {
+                brand = (await _brandRepository.GetAsync(b => b.TenantId == tenantId && b.Name == brandName.Trim())).FirstOrDefault();
+            }
+
+            if (brand == null || brand.TenantId != tenantId || !brand.IsActive)
+                throw new InvalidOperationException("Seleccione una marca activa del catalogo.");
+
+            VehicleModel? model = null;
+            if (modelId.HasValue)
+            {
+                model = await _modelRepository.GetByIdAsync(modelId.Value);
+            }
+            else if (!string.IsNullOrWhiteSpace(modelName))
+            {
+                model = (await _modelRepository.GetAsync(m =>
+                    m.TenantId == tenantId && m.BrandId == brand.Id && m.Name == modelName.Trim())).FirstOrDefault();
+            }
+
+            if (model == null || model.TenantId != tenantId || model.BrandId != brand.Id || !model.IsActive)
+                throw new InvalidOperationException("Seleccione un modelo activo que pertenezca a la marca indicada.");
+
+            return (brand, model);
         }
 
         private async Task<Branch> ResolveBranchAsync(int? branchId, string userId)
@@ -299,6 +357,8 @@ namespace TPV.Application.Services
             ChassisNumber = vehicle.ChassisNumber,
             EngineNumber = vehicle.EngineNumber,
             Plate = vehicle.Plate,
+            BrandId = vehicle.BrandId ?? 0,
+            VehicleModelId = vehicle.VehicleModelId ?? 0,
             Brand = vehicle.Brand,
             Model = vehicle.Model,
             Year = vehicle.Year,
@@ -310,6 +370,15 @@ namespace TPV.Application.Services
             IsActive = vehicle.IsActive,
             CreatedAt = vehicle.CreatedAt,
             UpdatedAt = vehicle.UpdatedAt
+        };
+
+        private static RegisteredVehicleDto ToRegistered(Vehicle vehicle) => new()
+        {
+            VehicleId = vehicle.Id,
+            BrandId = vehicle.BrandId ?? 0,
+            VehicleModelId = vehicle.VehicleModelId ?? 0,
+            Brand = vehicle.Brand,
+            Model = vehicle.Model
         };
 
         public static string NormalizeChassis(string? value)

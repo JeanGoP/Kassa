@@ -22,6 +22,8 @@ interface Product {
     unitOfMeasure?: string;
     price?: number;
 }
+interface Brand { id: number; name: string; }
+interface VehicleModel { id: number; brandId: number; name: string; }
 
 interface PreparationOrderItem {
     id: number;
@@ -51,6 +53,8 @@ interface PreparationOrder {
     plate?: string;
     brand: string;
     model: string;
+    brandId: number;
+    vehicleModelId: number;
     year?: number;
     mileage?: number;
     executedBy?: string;
@@ -85,6 +89,8 @@ const PreparationOrders = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [models, setModels] = useState<VehicleModel[]>([]);
     const [search, setSearch] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState({
@@ -94,8 +100,8 @@ const PreparationOrders = () => {
         chassisNumber: '',
         engineNumber: '',
         plate: '',
-        brand: 'Honda',
-        model: '',
+        brandId: '',
+        vehicleModelId: '',
         year: '',
         mileage: '',
         executedBy: '',
@@ -122,7 +128,7 @@ const PreparationOrders = () => {
     };
 
     const loadInitialData = async () => {
-        await Promise.all([fetchOrders(), fetchBranches(), fetchCustomers(), fetchProducts()]);
+        await Promise.all([fetchOrders(), fetchBranches(), fetchCustomers(), fetchProducts(), fetchCatalogs()]);
     };
 
     const fetchOrders = async () => {
@@ -143,6 +149,11 @@ const PreparationOrders = () => {
     const fetchProducts = async () => {
         const response = await api.get<Product[]>('/products');
         setProducts(response.data);
+    };
+
+    const fetchCatalogs = async () => {
+        const [brandResponse, modelResponse] = await Promise.all([api.get<Brand[]>('/vehiclecatalogs/brands'), api.get<VehicleModel[]>('/vehiclecatalogs/models')]);
+        setBrands(brandResponse.data); setModels(modelResponse.data);
     };
 
     const updateForm = (field: keyof typeof form, value: string | boolean) => {
@@ -180,8 +191,8 @@ const PreparationOrders = () => {
             chassisNumber: '',
             engineNumber: '',
             plate: '',
-            brand: 'Honda',
-            model: '',
+            brandId: '',
+            vehicleModelId: '',
             year: '',
             mileage: '',
             executedBy: '',
@@ -204,8 +215,8 @@ const PreparationOrders = () => {
                 chassisNumber: form.chassisNumber,
                 engineNumber: form.engineNumber || null,
                 plate: form.plate || null,
-                brand: form.brand,
-                model: form.model,
+                brandId: Number(form.brandId),
+                vehicleModelId: Number(form.vehicleModelId),
                 year: form.year ? Number(form.year) : null,
                 mileage: form.mileage ? Number(form.mileage) : null,
                 executedBy: form.executedBy || null,
@@ -335,11 +346,11 @@ const PreparationOrders = () => {
                     </label>
                     <label className="space-y-1">
                         <span className="text-xs font-bold uppercase text-slate-500">Marca</span>
-                        <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.brand} onChange={e => updateForm('brand', e.target.value)} />
+                        <select required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.brandId} onChange={e => setForm(prev => ({ ...prev, brandId: e.target.value, vehicleModelId: '' }))}><option value="">SELECCIONE</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select>
                     </label>
                     <label className="space-y-1">
                         <span className="text-xs font-bold uppercase text-slate-500">Modelo</span>
-                        <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.model} onChange={e => updateForm('model', e.target.value)} />
+                        <select required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.vehicleModelId} onChange={e => updateForm('vehicleModelId', e.target.value)}><option value="">SELECCIONE</option>{models.filter(model => model.brandId === Number(form.brandId)).map(model => <option key={model.id} value={model.id}>{model.name}</option>)}</select>
                     </label>
                     <label className="space-y-1">
                         <span className="text-xs font-bold uppercase text-slate-500">Ano modelo</span>

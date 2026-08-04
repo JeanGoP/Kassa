@@ -393,6 +393,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("MainBrandId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ManagerName")
                         .HasColumnType("nvarchar(max)");
 
@@ -415,9 +418,52 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MainBrandId");
+
                     b.HasIndex("WorkshopManagerId");
 
                     b.ToTable("Branches");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Brand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.CashSession", b =>
@@ -636,6 +682,9 @@ namespace TPV.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ChassisNumber")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -709,6 +758,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("VehicleModelId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("WarrantyId")
                         .HasColumnType("int");
 
@@ -722,12 +774,16 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("BrandId");
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
                     b.HasIndex("VehicleId");
+
+                    b.HasIndex("VehicleModelId");
 
                     b.HasIndex("WarrantyId");
 
@@ -811,6 +867,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<string>("Barcode")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -866,6 +925,8 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BrandId");
 
                     b.HasIndex("CategoryId");
 
@@ -1307,6 +1368,9 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ChassisNumber")
                         .HasMaxLength(17)
                         .HasColumnType("nvarchar(17)");
@@ -1390,6 +1454,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("VehicleModelId")
+                        .HasColumnType("int");
+
                     b.Property<string>("VisualCondition")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1407,9 +1474,13 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("BrandId");
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("VehicleId");
+
+                    b.HasIndex("VehicleModelId");
 
                     b.ToTable("ServiceOrders");
                 });
@@ -1709,6 +1780,9 @@ namespace TPV.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ChassisNumber")
                         .IsRequired()
                         .HasMaxLength(17)
@@ -1751,6 +1825,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("VehicleModelId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("Year")
                         .HasColumnType("int");
 
@@ -1758,7 +1835,11 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
+                    b.HasIndex("BrandId");
+
                     b.HasIndex("CurrentOwnerId");
+
+                    b.HasIndex("VehicleModelId");
 
                     b.HasIndex("TenantId", "ChassisNumber")
                         .IsUnique();
@@ -1766,6 +1847,52 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("TenantId", "Plate");
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.VehicleModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("TenantId", "BrandId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "BrandId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("VehicleModels");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.VehicleOwnerHistory", b =>
@@ -2096,10 +2223,17 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Branch", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.Brand", "MainBrand")
+                        .WithMany()
+                        .HasForeignKey("MainBrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.WorkshopManager", "WorkshopManager")
                         .WithMany()
                         .HasForeignKey("WorkshopManagerId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("MainBrand");
 
                     b.Navigation("WorkshopManager");
                 });
@@ -2132,6 +2266,11 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.Brand", "BrandCatalog")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -2142,15 +2281,24 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.VehicleModel", "VehicleModel")
+                        .WithMany()
+                        .HasForeignKey("VehicleModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
                         .WithMany()
                         .HasForeignKey("WarrantyId");
 
                     b.Navigation("Branch");
 
+                    b.Navigation("BrandCatalog");
+
                     b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
+
+                    b.Navigation("VehicleModel");
 
                     b.Navigation("Warranty");
                 });
@@ -2175,11 +2323,18 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.Brand", "Brand")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Brand");
 
                     b.Navigation("Category");
                 });
@@ -2292,6 +2447,11 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("TPV.Domain.Entities.Brand", "BrandCatalog")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -2303,11 +2463,20 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.VehicleModel", "VehicleModel")
+                        .WithMany()
+                        .HasForeignKey("VehicleModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Branch");
+
+                    b.Navigation("BrandCatalog");
 
                     b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
+
+                    b.Navigation("VehicleModel");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderPart", b =>
@@ -2373,14 +2542,39 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.Brand", "BrandCatalog")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Customer", "CurrentOwner")
                         .WithMany()
                         .HasForeignKey("CurrentOwnerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.VehicleModel", "VehicleModel")
+                        .WithMany()
+                        .HasForeignKey("VehicleModelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Branch");
 
+                    b.Navigation("BrandCatalog");
+
                     b.Navigation("CurrentOwner");
+
+                    b.Navigation("VehicleModel");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.VehicleModel", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Brand", "Brand")
+                        .WithMany("VehicleModels")
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Brand");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.VehicleOwnerHistory", b =>
@@ -2423,6 +2617,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Sales");
 
                     b.Navigation("Stocks");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Brand", b =>
+                {
+                    b.Navigation("VehicleModels");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Category", b =>

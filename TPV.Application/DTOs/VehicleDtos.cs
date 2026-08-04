@@ -11,6 +11,8 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; } = string.Empty;
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int BrandId { get; set; }
+        public int VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int? Year { get; set; }
@@ -32,6 +34,8 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; } = string.Empty;
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int BrandId { get; set; }
+        public int VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int? Year { get; set; }
@@ -49,11 +53,22 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; } = string.Empty;
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int? Year { get; set; }
         public decimal? Mileage { get; set; }
         public DateTime OperationDate { get; set; }
+    }
+
+    public class RegisteredVehicleDto
+    {
+        public int VehicleId { get; set; }
+        public int BrandId { get; set; }
+        public int VehicleModelId { get; set; }
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
     }
 
     public class VehicleOwnerHistoryDto

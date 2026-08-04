@@ -11,6 +11,6 @@ namespace TPV.Application.Interfaces
         Task<VehicleDto> CreateAsync(CreateVehicleDto dto, string userId);
         Task<VehicleDto?> UpdateAsync(int id, CreateVehicleDto dto, string userId);
         Task<bool> DeactivateAsync(int id, string userId);
-        Task<int> RegisterOperationAsync(RegisterVehicleOperationDto dto);
+        Task<RegisteredVehicleDto> RegisterOperationAsync(RegisterVehicleOperationDto dto);
     }
 }

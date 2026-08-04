@@ -95,7 +95,7 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("La firma del cliente es obligatoria para registrar el ingreso del vehiculo.");
             }
 
-            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
+            var registeredVehicle = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
             {
                 TenantId = branch.TenantId,
                 BranchId = branch.Id,
@@ -103,6 +103,8 @@ namespace TPV.Application.Services
                 ChassisNumber = dto.ChassisNumber,
                 EngineNumber = dto.EngineNumber,
                 Plate = dto.Plate,
+                BrandId = dto.BrandId,
+                VehicleModelId = dto.VehicleModelId,
                 Brand = dto.Brand,
                 Model = dto.Model,
                 Year = dto.Year,
@@ -115,12 +117,16 @@ namespace TPV.Application.Services
                 TenantId = branch.TenantId,
                 BranchId = branch.Id,
                 CustomerId = dto.CustomerId,
-                VehicleId = vehicleId,
+                VehicleId = registeredVehicle.VehicleId,
                 ChassisNumber = VehicleService.NormalizeChassis(dto.ChassisNumber),
                 EngineNumber = string.IsNullOrWhiteSpace(dto.EngineNumber) ? null : dto.EngineNumber.Trim().ToUpperInvariant(),
                 Plate = dto.Plate,
-                Brand = dto.Brand,
-                Model = dto.Model,
+                BrandId = registeredVehicle.BrandId,
+                BrandCatalog = null,
+                VehicleModelId = registeredVehicle.VehicleModelId,
+                VehicleModel = null,
+                Brand = registeredVehicle.Brand,
+                Model = registeredVehicle.Model,
                 Year = dto.Year,
                 Mileage = dto.Mileage,
                 MaintenanceReviewMileage = dto.MaintenanceReviewMileage,
@@ -600,6 +606,8 @@ namespace TPV.Application.Services
                 CustomerId = entity.CustomerId,
                 CustomerName = customerName,
                 VehicleId = entity.VehicleId,
+                BrandId = entity.BrandId,
+                VehicleModelId = entity.VehicleModelId,
                 ChassisNumber = entity.ChassisNumber ?? string.Empty,
                 EngineNumber = entity.EngineNumber,
                 Plate = entity.Plate,

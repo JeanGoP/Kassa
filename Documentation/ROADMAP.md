@@ -5,7 +5,7 @@
 Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluye modelo de datos, operacion interna, API MCH, migracion aplicada, builds y publicacion cuando corresponda.
 
 1. **Terminado - Vehiculos UIO e historial por chasis.** Maestro unico por VIN de 17 caracteres, motor, placa, marca/modelo, propietario vigente e historial, fecha de venta, kilometraje, sucursal, atenciones de taller/alistamiento y revisiones programadas. Endpoint: `GET /api/integrations/mch/vehicles`.
-2. **Pendiente - Catalogos formales de marcas y modelos.** Crear maestros cerrados y relacionarlos con vehiculos, sucursales, articulos y hechos operativos.
+2. **Terminado - Catalogos formales de marcas y modelos.** Maestros cerrados por empresa, modelos dependientes de marca y relaciones explicitas con vehiculos, sucursales, articulos, ordenes, ventas, compras e inventario. Endpoints MCH: `GET /api/integrations/mch/brands` y `GET /api/integrations/mch/models`.
 3. **Pendiente - Ordenes de taller completas.** Tipo y origen de orden, estados con historia, anulacion, pagador por linea, impacto en total, revision asociada y tiempos reales.
 4. **Pendiente - Garantias de fabricante.** Ciclo desde deteccion hasta autorizacion, radicacion, respuesta, factura y pago del fabricante.
 5. **Pendiente - Unidades e inventario.** Cantidades decimales, unidades cerradas por registro, conversiones, bodegas, ubicaciones y movimientos trazables.
@@ -14,7 +14,7 @@ Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluy
 8. **Pendiente - Personal y datos empresariales.** Exponer el endpoint MCH de personal y completar NIT de empresas, marca principal de sucursales e identificacion de proveedores oficiales de cada marca.
 9. **Pendiente - Requisitos operativos de la API.** Documentar endpoints, campos y tipos, rotacion y revocacion de credenciales, versionamiento, limites de uso, disponibilidad, ventana de mantenimiento, notificacion de cambios y ambiente de pruebas con datos representativos.
 
-Siguiente punto activo: **2. Catalogos formales de marcas y modelos**.
+Siguiente punto activo: **3. Ordenes de taller completas**.
 
 ## Prioridad Alta
 

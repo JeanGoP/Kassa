@@ -20,7 +20,7 @@ Kassa es un sistema TPV/POS orientado a negocios con venta de productos, manejo 
 - Caja: apertura, estado y cierre.
 - Inventario: stock por sucursal, alertas, ajustes y traslados.
 - Compras: entrada de mercancia, costos promedio ponderados y fletes.
-- Productos, categorias, clientes, proveedores y sucursales.
+- Productos, categorias, marcas/modelos de vehiculo, clientes, proveedores y sucursales.
 - Taller: maestro de vehiculos UIO por VIN e historial, ordenes de servicio, alistamientos, ingreso de vehiculo, diagnostico, trabajos, repuestos, cierre y tablero.
 - Citas: agenda interna y reserva publica por slug.
 - Catalogo de servicios de moto.
@@ -33,6 +33,7 @@ Kassa es un sistema TPV/POS orientado a negocios con venta de productos, manejo 
 - Ventas y compras validan que el usuario pertenezca a la sucursal objetivo.
 - El stock vive en `Stock`, no en `Product`.
 - El precio puede calcularse desde costo de stock mas rentabilidad del producto.
+- La marca pertenece al vehiculo o al articulo/hecho operativo; nunca se infiere desde la sucursal. Los modelos pertenecen a una marca formal.
 - Las entidades multiempresa deben implementar `IMustHaveTenant` para quedar bajo filtro global.
 - Las reservas publicas se exponen por `AppointmentsController` y servicios publicos de moto; el resto de APIs internas debe requerir autenticacion.
 

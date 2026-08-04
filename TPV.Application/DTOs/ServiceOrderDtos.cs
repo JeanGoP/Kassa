@@ -13,6 +13,8 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; }
         public string? EngineNumber { get; set; }
         public string Plate { get; set; }
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; }
         public string Model { get; set; }
         public int Year { get; set; }
@@ -40,6 +42,8 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; }
         public string? EngineNumber { get; set; }
         public string Plate { get; set; }
+        public int? BrandId { get; set; }
+        public int? VehicleModelId { get; set; }
         public string Brand { get; set; }
         public string Model { get; set; }
         public int Year { get; set; }

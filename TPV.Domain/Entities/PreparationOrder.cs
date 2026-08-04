@@ -22,6 +22,10 @@ namespace TPV.Domain.Entities
         public string ChassisNumber { get; set; }
         public string? EngineNumber { get; set; }
         public string? Plate { get; set; }
+        public int? BrandId { get; set; }
+        public Brand? BrandCatalog { get; set; }
+        public int? VehicleModelId { get; set; }
+        public VehicleModel? VehicleModel { get; set; }
         public string Brand { get; set; }
         public string Model { get; set; }
         public int? Year { get; set; }

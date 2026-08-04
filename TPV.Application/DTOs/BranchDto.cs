@@ -12,6 +12,8 @@ namespace TPV.Application.DTOs
         public string? WorkshopManagerName { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
+        public int? MainBrandId { get; set; }
+        public string? MainBrandName { get; set; }
     }
 
     public class CreateBranchDto
@@ -24,5 +26,6 @@ namespace TPV.Application.DTOs
         public int? WorkshopManagerId { get; set; }
         public string? Department { get; set; }
         public string? City { get; set; }
+        public int? MainBrandId { get; set; }
     }
 }

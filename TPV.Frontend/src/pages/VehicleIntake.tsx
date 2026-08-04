@@ -26,6 +26,8 @@ interface NewCustomer {
     taxId: string;
     identificationType: string;
 }
+interface Brand { id: number; name: string; }
+interface VehicleModel { id: number; brandId: number; name: string; }
 
 const IDENTIFICATION_TYPES = [
     "RCN Registro Civil de Nacimiento",
@@ -86,6 +88,8 @@ const VehicleIntake = () => {
         chassisNumber: '',
         engineNumber: '',
         plate: '',
+        brandId: '',
+        vehicleModelId: '',
         brand: '',
         model: '',
         year: '',
@@ -100,6 +104,8 @@ const VehicleIntake = () => {
 
     // Customers State
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [vehicleModels, setVehicleModels] = useState<VehicleModel[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
@@ -153,6 +159,9 @@ const VehicleIntake = () => {
         };
 
         fetchCurrentBranchManager();
+        Promise.all([api.get<Brand[]>('/vehiclecatalogs/brands'), api.get<VehicleModel[]>('/vehiclecatalogs/models')])
+            .then(([brandResponse, modelResponse]) => { setBrands(brandResponse.data); setVehicleModels(modelResponse.data); })
+            .catch(error => console.error('Error fetching vehicle catalogs', error));
     }, []);
 
     useEffect(() => {
@@ -442,6 +451,8 @@ const VehicleIntake = () => {
                 chassisNumber: '',
                 engineNumber: '',
                 plate: '',
+                brandId: '',
+                vehicleModelId: '',
                 brand: '',
                 model: '',
                 year: '',
@@ -1207,26 +1218,22 @@ const VehicleIntake = () => {
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-                        <input
-                            type="text"
-                            name="brand"
-                            value={formData.brand}
-                            onChange={handleChange}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">MARCA</label>
+                        <select
+                            value={formData.brandId}
+                            onChange={event => { const brand = brands.find(item => item.id === Number(event.target.value)); setFormData(prev => ({ ...prev, brandId: event.target.value, vehicleModelId: '', brand: brand?.name || '', model: '' })); }}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             required
-                        />
+                        ><option value="">SELECCIONE</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
-                        <input
-                            type="text"
-                            name="model"
-                            value={formData.model}
-                            onChange={handleChange}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">MODELO</label>
+                        <select
+                            value={formData.vehicleModelId}
+                            onChange={event => { const model = vehicleModels.find(item => item.id === Number(event.target.value)); setFormData(prev => ({ ...prev, vehicleModelId: event.target.value, model: model?.name || '' })); }}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             required
-                        />
+                        ><option value="">SELECCIONE</option>{vehicleModels.filter(model => model.brandId === Number(formData.brandId)).map(model => <option key={model.id} value={model.id}>{model.name}</option>)}</select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>

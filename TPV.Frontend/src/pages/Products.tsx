@@ -16,6 +16,8 @@ interface Product {
     ivaRate: number;
     impoconsumoRate: number;
     priceIncludesIva: boolean;
+    brandId?: number;
+    brandName?: string;
     categoryId: number;
     categoryName?: string;
 }
@@ -26,6 +28,7 @@ interface Category {
     parentId?: number;
     isPrimary?: boolean;
 }
+interface Brand { id: number; name: string; }
 
 interface CategoryNode extends Category {
     children: CategoryNode[];
@@ -35,6 +38,7 @@ interface CategoryNode extends Category {
 const Products = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -52,6 +56,7 @@ const Products = () => {
         ivaRate: 0,
         impoconsumoRate: 0,
         priceIncludesIva: false,
+        brandId: 0,
         categoryId: 0
     });
 
@@ -68,6 +73,7 @@ const Products = () => {
     useEffect(() => {
         fetchProducts();
         fetchCategories();
+        api.get<Brand[]>('/vehiclecatalogs/brands').then(response => setBrands(response.data)).catch(console.error);
     }, []);
 
     // Build tree when categories change
@@ -257,6 +263,7 @@ const Products = () => {
                 ivaRate: product.ivaRate || 0,
                 impoconsumoRate: product.impoconsumoRate || 0,
                 priceIncludesIva: product.priceIncludesIva,
+                brandId: product.brandId || 0,
                 categoryId: product.categoryId
             });
         } else {
@@ -274,6 +281,7 @@ const Products = () => {
                 ivaRate: 0,
                 impoconsumoRate: 0,
                 priceIncludesIva: false,
+                brandId: 0,
                 categoryId: categories.length > 0 ? categories[0].id : 0
             });
         }
@@ -347,6 +355,7 @@ const Products = () => {
                             <tr>
                                 <th className="p-4 border-b">SKU</th>
                                 <th className="p-4 border-b">Nombre</th>
+                                <th className="p-4 border-b">Marca</th>
                                 <th className="p-4 border-b">Categoría</th>
                                 <th className="p-4 border-b text-right">Precio</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
@@ -360,6 +369,7 @@ const Products = () => {
                                         <div>{product.name}</div>
                                         <div className="text-xs text-gray-400">{product.description}</div>
                                     </td>
+                                    <td className="p-4 text-sm">{product.brandName || 'SIN MARCA'}</td>
                                     <td className="p-4 text-sm">
                                         {categories.find(c => c.id === product.categoryId)?.name || '-'}
                                     </td>
@@ -493,7 +503,7 @@ const Products = () => {
                                         </div>
 
                                         {/* Category & Unit of Measure */}
-                                        <div className="md:col-span-8">
+                                        <div className="md:col-span-4">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
                                             <button
                                                 type="button"
@@ -505,6 +515,12 @@ const Products = () => {
                                                 </span>
                                                 <ChevronDown size={16} className="text-gray-500" />
                                             </button>
+                                        </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">MARCA</label>
+                                            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={formData.brandId} onChange={(e) => setFormData({...formData, brandId: Number(e.target.value)})}>
+                                                <option value={0}>SIN MARCA</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                                            </select>
                                         </div>
                                         <div className="md:col-span-4">
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida</label>
