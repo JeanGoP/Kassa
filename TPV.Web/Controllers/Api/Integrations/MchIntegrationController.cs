@@ -556,6 +556,15 @@ namespace TPV.Web.Controllers.Api.Integrations
                 });
             }
 
+            if (GetAllowedTenantIds().Length == 0)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    message = "Integracion MCH sin alcance de empresas autorizado.",
+                    requiredConfiguration = "Integrations:MCH:AllowedTenantIds con al menos un tenant autorizado"
+                });
+            }
+
             var providedApiKey = Request.Headers[ApiKeyHeaderName].FirstOrDefault();
             if (string.IsNullOrWhiteSpace(providedApiKey) || !SecureEquals(providedApiKey, expectedApiKey))
             {
@@ -575,17 +584,13 @@ namespace TPV.Web.Controllers.Api.Integrations
         private IQueryable<Tenant> ApplyTenantScope(IQueryable<Tenant> source)
         {
             var allowedTenantIds = GetAllowedTenantIds();
-            return allowedTenantIds.Length == 0
-                ? source
-                : source.Where(t => allowedTenantIds.Contains(t.Id));
+            return source.Where(t => allowedTenantIds.Contains(t.Id));
         }
 
         private IQueryable<T> ApplyTenantScope<T>(IQueryable<T> source) where T : class, IMustHaveTenant
         {
             var allowedTenantIds = GetAllowedTenantIds();
-            return allowedTenantIds.Length == 0
-                ? source
-                : source.Where(e => allowedTenantIds.Contains(e.TenantId));
+            return source.Where(e => allowedTenantIds.Contains(e.TenantId));
         }
 
         private IQueryable<T> ApplyEntityFilters<T>(IQueryable<T> source, MchQuery query) where T : class, IMustHaveTenant

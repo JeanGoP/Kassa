@@ -38,6 +38,7 @@ Kassa es un sistema TPV/POS orientado a negocios con venta de productos, manejo 
 
 ## Riesgos Abiertos
 
+- La especificacion MCH Posventa v6 es una referencia obligatoria para cambios funcionales. Revisar `Documentation/MCH_COMPLIANCE_MATRIX.md` y `Documentation/specs/Especificacion_API_Posventa_MCH_v6.docx` antes de tocar modulos relacionados.
 - Agregar transacciones alrededor de ventas, compras, traslados y cierres de orden para evitar stock o caja inconsistente ante errores parciales.
 - Afinar autorizacion por politica en controladores internos, no solo `[Authorize]`.
 - Reducir advertencias de nulabilidad del backend.

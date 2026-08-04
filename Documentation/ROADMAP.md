@@ -2,6 +2,7 @@
 
 ## Prioridad Alta
 
+- Cerrar brechas de cumplimiento frente a `Documentation/MCH_COMPLIANCE_MATRIX.md`.
 - Cerrar todas las APIs internas con autenticacion.
 - Rotar la clave de SQL Server que estuvo versionada.
 - Mover secretos a variables de entorno o Secret Manager.

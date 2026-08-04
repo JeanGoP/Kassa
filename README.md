@@ -18,3 +18,7 @@ Consulta [Documentation/LOCAL_SETUP.md](Documentation/LOCAL_SETUP.md) para corre
 ## Contexto Del Producto
 
 Consulta [Documentation/PROJECT_CONTEXT.md](Documentation/PROJECT_CONTEXT.md) para entender los modulos construidos, reglas importantes y riesgos abiertos.
+
+## Especificacion MCH
+
+La especificacion MCH Posventa v6 es referencia obligatoria para cambios de API, datos y modulos operativos. Consulta [Documentation/MCH_COMPLIANCE_MATRIX.md](Documentation/MCH_COMPLIANCE_MATRIX.md) antes de modificar ventas, compras, inventario, productos, taller, garantias o reportes.
