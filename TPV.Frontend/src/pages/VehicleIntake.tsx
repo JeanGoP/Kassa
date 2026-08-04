@@ -83,11 +83,14 @@ const compressImageFile = (file: File): Promise<string> => {
 
 const VehicleIntake = () => {
     const [formData, setFormData] = useState({
+        chassisNumber: '',
+        engineNumber: '',
         plate: '',
         brand: '',
         model: '',
         year: '',
         mileage: '',
+        maintenanceReviewMileage: '',
         intakeDateTime: formatDateTimeLocal(),
         fuelLevel: '',
         initialObservations: '',
@@ -417,6 +420,11 @@ const VehicleIntake = () => {
         
         const intakeData = {
             ...formData,
+            chassisNumber: formData.chassisNumber.toUpperCase(),
+            engineNumber: formData.engineNumber || null,
+            year: Number(formData.year),
+            mileage: Number(formData.mileage),
+            maintenanceReviewMileage: formData.maintenanceReviewMileage ? Number(formData.maintenanceReviewMileage) : null,
             intakeDateTime: formData.intakeDateTime || formatDateTimeLocal(),
             visualEvidenceImages,
             intakeCustomerSignatureDataUrl: signatureDataUrl,
@@ -431,11 +439,14 @@ const VehicleIntake = () => {
             alert('Ingreso de vehículo registrado exitosamente.');
             // Reset form
             setFormData(prev => ({
+                chassisNumber: '',
+                engineNumber: '',
                 plate: '',
                 brand: '',
                 model: '',
                 year: '',
                 mileage: '',
+                maintenanceReviewMileage: '',
                 intakeDateTime: formatDateTimeLocal(),
                 fuelLevel: '',
                 initialObservations: '',
@@ -1107,7 +1118,30 @@ const VehicleIntake = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">VIN / Chasis</label>
+                        <input
+                            type="text"
+                            name="chassisNumber"
+                            minLength={17}
+                            maxLength={17}
+                            value={formData.chassisNumber}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Número de motor</label>
+                        <input
+                            type="text"
+                            name="engineNumber"
+                            value={formData.engineNumber}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Placa</label>
                         <input
@@ -1207,7 +1241,7 @@ const VehicleIntake = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Kilometraje</label>
                         <input
@@ -1217,6 +1251,18 @@ const VehicleIntake = () => {
                             onChange={handleChange}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Revisión programada (km)</label>
+                        <input
+                            type="number"
+                            min="0"
+                            name="maintenanceReviewMileage"
+                            value={formData.maintenanceReviewMileage || ''}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Ej. 5000"
                         />
                     </div>
                     <div>

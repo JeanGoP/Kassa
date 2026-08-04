@@ -706,6 +706,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("VehicleId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("WarrantyId")
                         .HasColumnType("int");
 
@@ -723,6 +726,8 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
+
+                    b.HasIndex("VehicleId");
 
                     b.HasIndex("WarrantyId");
 
@@ -1295,9 +1300,16 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Brand")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChassisNumber")
+                        .HasMaxLength(17)
+                        .HasColumnType("nvarchar(17)");
 
                     b.Property<string>("CloseReason")
                         .HasColumnType("nvarchar(max)");
@@ -1316,6 +1328,10 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<string>("DeliveryNotes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EngineNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<DateTime?>("ExitDateTime")
                         .HasColumnType("datetime2");
@@ -1339,6 +1355,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<decimal>("LaborCost")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("MaintenanceReviewMileage")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Mileage")
                         .HasColumnType("decimal(18,2)");
@@ -1368,6 +1387,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("VehicleId")
+                        .HasColumnType("int");
+
                     b.Property<string>("VisualCondition")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1383,7 +1405,11 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("VehicleId");
 
                     b.ToTable("ServiceOrders");
                 });
@@ -1665,6 +1691,122 @@ namespace TPV.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tenants");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ChassisNumber")
+                        .IsRequired()
+                        .HasMaxLength(17)
+                        .HasColumnType("nvarchar(17)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentOwnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EngineNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("LastKnownMileage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("OwnerSince")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Plate")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime?>("SaleDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CurrentOwnerId");
+
+                    b.HasIndex("TenantId", "ChassisNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Plate");
+
+                    b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.VehicleOwnerHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("OwnedFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("OwnedUntil")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("VehicleId", "OwnedFrom");
+
+                    b.ToTable("VehicleOwnerHistories");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Warranty", b =>
@@ -1995,6 +2137,11 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("PreparationOrders")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
                         .WithMany()
                         .HasForeignKey("WarrantyId");
@@ -2002,6 +2149,8 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Vehicle");
 
                     b.Navigation("Warranty");
                 });
@@ -2138,13 +2287,27 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrder", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("ServiceOrders")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Branch");
+
                     b.Navigation("Customer");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderPart", b =>
@@ -2200,6 +2363,43 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Customer", "CurrentOwner")
+                        .WithMany()
+                        .HasForeignKey("CurrentOwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CurrentOwner");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.VehicleOwnerHistory", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("OwnerHistory")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Warranty", b =>
@@ -2268,6 +2468,15 @@ namespace TPV.Infrastructure.Migrations
                 {
                     b.Navigation("Sale")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
+                {
+                    b.Navigation("OwnerHistory");
+
+                    b.Navigation("PreparationOrders");
+
+                    b.Navigation("ServiceOrders");
                 });
 #pragma warning restore 612, 618
         }

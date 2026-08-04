@@ -17,6 +17,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IUserService _userService;
+        private readonly IVehicleService _vehicleService;
 
         public PreparationOrderService(
             IRepository<PreparationOrder> repository,
@@ -24,7 +25,8 @@ namespace TPV.Application.Services
             IRepository<Branch> branchRepository,
             IRepository<Customer> customerRepository,
             IRepository<Product> productRepository,
-            IUserService userService)
+            IUserService userService,
+            IVehicleService vehicleService)
         {
             _repository = repository;
             _itemRepository = itemRepository;
@@ -32,6 +34,7 @@ namespace TPV.Application.Services
             _customerRepository = customerRepository;
             _productRepository = productRepository;
             _userService = userService;
+            _vehicleService = vehicleService;
         }
 
         public async Task<IEnumerable<PreparationOrderDto>> GetAllAsync(string? search)
@@ -68,6 +71,20 @@ namespace TPV.Application.Services
             var branch = await ResolveBranchAsync(dto.BranchId, userId);
             await ValidateCustomerAsync(dto.CustomerId, branch.TenantId);
             var requestedAt = dto.RequestedAt ?? DateTime.Now;
+            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
+            {
+                TenantId = branch.TenantId,
+                BranchId = branch.Id,
+                CustomerId = dto.CustomerId,
+                ChassisNumber = dto.ChassisNumber,
+                EngineNumber = dto.EngineNumber,
+                Plate = dto.Plate,
+                Brand = dto.Brand,
+                Model = dto.Model,
+                Year = dto.Year,
+                Mileage = dto.Mileage,
+                OperationDate = requestedAt
+            });
 
             var order = new PreparationOrder
             {
@@ -76,6 +93,7 @@ namespace TPV.Application.Services
                 CommercialDocumentReference = Clean(dto.CommercialDocumentReference),
                 BranchId = branch.Id,
                 CustomerId = dto.CustomerId,
+                VehicleId = vehicleId,
                 RequestedByUserId = userId,
                 RequestedAt = requestedAt,
                 Status = "Solicitada",
@@ -108,10 +126,25 @@ namespace TPV.Application.Services
 
             var branch = await ResolveBranchAsync(dto.BranchId ?? order.BranchId, userId);
             await ValidateCustomerAsync(dto.CustomerId, branch.TenantId);
+            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
+            {
+                TenantId = branch.TenantId,
+                BranchId = branch.Id,
+                CustomerId = dto.CustomerId,
+                ChassisNumber = dto.ChassisNumber,
+                EngineNumber = dto.EngineNumber,
+                Plate = dto.Plate,
+                Brand = dto.Brand,
+                Model = dto.Model,
+                Year = dto.Year,
+                Mileage = dto.Mileage,
+                OperationDate = dto.RequestedAt ?? order.RequestedAt
+            });
             order.TenantId = branch.TenantId;
             order.CommercialDocumentReference = Clean(dto.CommercialDocumentReference);
             order.BranchId = branch.Id;
             order.CustomerId = dto.CustomerId;
+            order.VehicleId = vehicleId;
             order.RequestedAt = dto.RequestedAt ?? order.RequestedAt;
             order.CompletedAt = dto.CompletedAt;
             order.Status = string.IsNullOrWhiteSpace(dto.Status) ? order.Status : dto.Status.Trim();

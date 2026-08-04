@@ -22,6 +22,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IUserService _userService;
+        private readonly IVehicleService _vehicleService;
 
         public ServiceOrderService(
             IRepository<ServiceOrder> repository,
@@ -34,7 +35,8 @@ namespace TPV.Application.Services
             IRepository<Product> productRepository,
             IRepository<Category> categoryRepository,
             IRepository<Branch> branchRepository,
-            IUserService userService)
+            IUserService userService,
+            IVehicleService vehicleService)
         {
             _repository = repository;
             _customerRepository = customerRepository;
@@ -47,6 +49,7 @@ namespace TPV.Application.Services
             _categoryRepository = categoryRepository;
             _branchRepository = branchRepository;
             _userService = userService;
+            _vehicleService = vehicleService;
         }
 
         public async Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search)
@@ -55,6 +58,7 @@ namespace TPV.Application.Services
                 predicate: o =>
                     string.IsNullOrEmpty(search) ||
                     o.Plate.Contains(search) ||
+                    (o.ChassisNumber != null && o.ChassisNumber.Contains(search)) ||
                     (o.Technician != null && o.Technician.Contains(search)) ||
                     o.Customer.FirstName.Contains(search) ||
                     o.Customer.LastName.Contains(search),
@@ -91,14 +95,35 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("La firma del cliente es obligatoria para registrar el ingreso del vehiculo.");
             }
 
-            var entity = new ServiceOrder
+            var vehicleId = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
             {
+                TenantId = branch.TenantId,
+                BranchId = branch.Id,
                 CustomerId = dto.CustomerId,
+                ChassisNumber = dto.ChassisNumber,
+                EngineNumber = dto.EngineNumber,
                 Plate = dto.Plate,
                 Brand = dto.Brand,
                 Model = dto.Model,
                 Year = dto.Year,
                 Mileage = dto.Mileage,
+                OperationDate = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime
+            });
+
+            var entity = new ServiceOrder
+            {
+                TenantId = branch.TenantId,
+                BranchId = branch.Id,
+                CustomerId = dto.CustomerId,
+                VehicleId = vehicleId,
+                ChassisNumber = VehicleService.NormalizeChassis(dto.ChassisNumber),
+                EngineNumber = string.IsNullOrWhiteSpace(dto.EngineNumber) ? null : dto.EngineNumber.Trim().ToUpperInvariant(),
+                Plate = dto.Plate,
+                Brand = dto.Brand,
+                Model = dto.Model,
+                Year = dto.Year,
+                Mileage = dto.Mileage,
+                MaintenanceReviewMileage = dto.MaintenanceReviewMileage,
                 IntakeDateTime = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime,
                 FuelLevel = dto.FuelLevel,
                 InitialObservations = dto.InitialObservations,
@@ -571,13 +596,18 @@ namespace TPV.Application.Services
             return new ServiceOrderDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
                 CustomerId = entity.CustomerId,
                 CustomerName = customerName,
+                VehicleId = entity.VehicleId,
+                ChassisNumber = entity.ChassisNumber ?? string.Empty,
+                EngineNumber = entity.EngineNumber,
                 Plate = entity.Plate,
                 Brand = entity.Brand,
                 Model = entity.Model,
                 Year = entity.Year,
                 Mileage = entity.Mileage,
+                MaintenanceReviewMileage = entity.MaintenanceReviewMileage,
                 IntakeDateTime = entity.IntakeDateTime,
                 FuelLevel = entity.FuelLevel,
                 InitialObservations = entity.InitialObservations,

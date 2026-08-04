@@ -13,6 +13,8 @@ namespace TPV.Domain.Entities
         public Branch Branch { get; set; }
         public int? CustomerId { get; set; }
         public Customer? Customer { get; set; }
+        public int? VehicleId { get; set; }
+        public Vehicle? Vehicle { get; set; }
         public string? RequestedByUserId { get; set; }
         public DateTime RequestedAt { get; set; }
         public DateTime? CompletedAt { get; set; }

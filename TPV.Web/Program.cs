@@ -9,10 +9,23 @@ using TPV.Domain.Interfaces;
 using TPV.Infrastructure.Persistence;
 using TPV.Infrastructure.Repositories;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+
 builder.Services.AddControllersWithViews();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, ".data-protection")));
+}
 builder.Services.AddAuthorization(options =>
 {
     foreach (var permission in Permissions.All)

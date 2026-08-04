@@ -323,7 +323,7 @@ const PreparationOrders = () => {
                     </label>
                     <label className="space-y-1">
                         <span className="text-xs font-bold uppercase text-slate-500">Chasis / VIN</span>
-                        <input required className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={form.chassisNumber} onChange={e => updateForm('chassisNumber', e.target.value)} />
+                        <input required minLength={17} maxLength={17} className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" value={form.chassisNumber} onChange={e => updateForm('chassisNumber', e.target.value.toUpperCase())} />
                     </label>
                     <label className="space-y-1">
                         <span className="text-xs font-bold uppercase text-slate-500">Motor</span>

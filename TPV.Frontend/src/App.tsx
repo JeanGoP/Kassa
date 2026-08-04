@@ -25,6 +25,7 @@ import Layout from './components/Layout';
 import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
 import PreparationOrders from './pages/PreparationOrders';
+import Vehicles from './pages/Vehicles';
 import VehicleIntake from './pages/VehicleIntake';
 import ServiceOrderDiagnosis from './pages/ServiceOrderDiagnosis';
 import ServiceOrderWorks from './pages/ServiceOrderWorks';
@@ -81,6 +82,7 @@ const AppRoutes = () => {
                 <Route path="purchases/create" element={<CreatePurchase />} />
                 <Route path="service-orders" element={<ServiceOrders />} />
                 <Route path="preparation-orders" element={<PreparationOrders />} />
+                <Route path="vehicles" element={<Vehicles />} />
                 <Route path="service-orders/dashboard" element={<WorkshopDashboard />} />
                 <Route path="service-orders/ingreso-vehiculo" element={<VehicleIntake />} />
                 <Route path="service-orders/diagnostico" element={<ServiceOrderDiagnosis />} />

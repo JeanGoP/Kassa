@@ -49,6 +49,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "purchases",
                     "service-orders",
                     "preparation-orders",
+                    "vehicles",
                     "coverage"
                 }
             });
@@ -72,13 +73,13 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "Inventario por sucursal con costo y niveles minimo/maximo",
                     "Ventas, compras y ordenes de taller basicas",
                     "Ordenes de alistamiento con solicitud, vehiculo, ejecutante, consumos y hallazgos",
+                    "Maestro de vehiculos por VIN con propietario e historial de atenciones",
                     "Filtros por empresa, sucursal, marca, fechas y modificado_desde donde aplica",
                     "Paginacion por continuationToken"
                 },
                 pendingModelWork = new[]
                 {
-                    "Vehiculo maestro por VIN/chasis y motor",
-                    "Historial de propietarios y servicios por chasis",
+                    "Normalizacion formal de marcas y modelos del vehiculo",
                     "Marca formal en todos los recursos",
                     "Bodegas/ubicaciones reales y movimientos de inventario",
                     "Cantidades decimales y conversiones de unidades",
@@ -442,6 +443,7 @@ namespace TPV.Web.Controllers.Api.Integrations
             IQueryable<ServiceOrder> source = _dbContext.ServiceOrders
                 .IgnoreQueryFilters()
                 .Include(o => o.Customer)
+                .Include(o => o.Branch)
                 .Include(o => o.Sale)
                     .ThenInclude(s => s.Branch)
                 .AsNoTracking();
@@ -458,7 +460,8 @@ namespace TPV.Web.Controllers.Api.Integrations
 
             if (query.SucursalId.HasValue)
             {
-                source = source.Where(o => o.Sale != null && o.Sale.BranchId == query.SucursalId.Value);
+                source = source.Where(o => o.BranchId == query.SucursalId.Value ||
+                    (o.BranchId == null && o.Sale != null && o.Sale.BranchId == query.SucursalId.Value));
             }
 
             var paged = await PageEntitiesAsync(source.OrderBy(o => o.Id), query, async orders =>
@@ -481,14 +484,18 @@ namespace TPV.Web.Controllers.Api.Integrations
                 {
                     Id = o.Id,
                     CompanyId = o.TenantId,
-                    BranchId = o.Sale?.BranchId,
-                    BranchName = o.Sale?.Branch?.Name,
+                    BranchId = o.BranchId ?? o.Sale?.BranchId,
+                    BranchName = o.Branch?.Name ?? o.Sale?.Branch?.Name,
                     Number = o.Id.ToString(),
+                    VehicleId = o.VehicleId,
+                    ChassisNumber = o.ChassisNumber,
+                    EngineNumber = o.EngineNumber,
                     Plate = o.Plate,
                     Brand = o.Brand,
                     Model = o.Model,
                     Year = o.Year,
                     Mileage = o.Mileage,
+                    MaintenanceReviewMileage = o.MaintenanceReviewMileage,
                     IntakeDateTime = o.IntakeDateTime,
                     ExitDateTime = o.ExitDateTime,
                     CustomerId = o.CustomerId,
@@ -537,6 +544,112 @@ namespace TPV.Web.Controllers.Api.Integrations
                             SubTotal = p.SubTotal
                         })
                         .ToList()
+                }).ToList();
+            });
+
+            return Ok(paged);
+        }
+
+        [HttpGet("vehicles")]
+        public async Task<IActionResult> GetVehicles([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<Vehicle> source = _dbContext.Vehicles
+                .IgnoreQueryFilters()
+                .Include(v => v.Branch)
+                .Include(v => v.CurrentOwner)
+                .AsNoTracking();
+
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            source = ApplyDateRange(source, query, v => v.CreatedAt);
+
+            var paged = await PageEntitiesAsync(source.OrderBy(v => v.Id), query, async vehicles =>
+            {
+                var vehicleIds = vehicles.Select(v => v.Id).ToArray();
+                var owners = await _dbContext.VehicleOwnerHistories
+                    .IgnoreQueryFilters()
+                    .Include(h => h.Customer)
+                    .AsNoTracking()
+                    .Where(h => vehicleIds.Contains(h.VehicleId))
+                    .ToListAsync();
+                var serviceOrders = await _dbContext.ServiceOrders
+                    .IgnoreQueryFilters()
+                    .Include(o => o.Branch)
+                    .AsNoTracking()
+                    .Where(o => o.VehicleId.HasValue && vehicleIds.Contains(o.VehicleId.Value))
+                    .ToListAsync();
+                var preparationOrders = await _dbContext.PreparationOrders
+                    .IgnoreQueryFilters()
+                    .Include(o => o.Branch)
+                    .AsNoTracking()
+                    .Where(o => o.VehicleId.HasValue && vehicleIds.Contains(o.VehicleId.Value))
+                    .ToListAsync();
+
+                return vehicles.Select(v => new MchVehicleDto
+                {
+                    Id = v.Id,
+                    CompanyId = v.TenantId,
+                    BranchId = v.BranchId,
+                    BranchName = v.Branch?.Name,
+                    ChassisNumber = v.ChassisNumber,
+                    EngineNumber = v.EngineNumber,
+                    Plate = v.Plate,
+                    Brand = v.Brand,
+                    Model = v.Model,
+                    Year = v.Year,
+                    SaleDate = v.SaleDate,
+                    CurrentOwnerId = v.CurrentOwnerId,
+                    CurrentOwnerIdentification = v.CurrentOwner?.TaxId,
+                    CurrentOwnerName = v.CurrentOwner == null ? null : $"{v.CurrentOwner.FirstName} {v.CurrentOwner.LastName}".Trim(),
+                    OwnerSince = v.OwnerSince,
+                    LastKnownMileage = v.LastKnownMileage,
+                    Status = ToStatus(v.IsActive),
+                    CreatedAt = v.CreatedAt,
+                    ModifiedAt = v.UpdatedAt ?? v.CreatedAt,
+                    OwnerHistory = owners.Where(h => h.VehicleId == v.Id).OrderBy(h => h.OwnedFrom).Select(h => new MchVehicleOwnerDto
+                    {
+                        CustomerId = h.CustomerId,
+                        CustomerIdentification = h.Customer?.TaxId,
+                        CustomerName = h.Customer == null ? string.Empty : $"{h.Customer.FirstName} {h.Customer.LastName}".Trim(),
+                        OwnedFrom = h.OwnedFrom,
+                        OwnedUntil = h.OwnedUntil
+                    }).ToList(),
+                    ServiceHistory = serviceOrders.Where(o => o.VehicleId == v.Id).Select(o => new MchVehicleServiceHistoryDto
+                    {
+                        Source = "OrdenTaller",
+                        RecordId = o.Id,
+                        Number = o.Id.ToString(),
+                        Date = o.IntakeDateTime,
+                        Mileage = o.Mileage,
+                        BranchId = o.BranchId ?? v.BranchId,
+                        BranchName = o.Branch?.Name ?? v.Branch?.Name,
+                        Status = o.Status,
+                        MaintenanceReviewMileage = o.MaintenanceReviewMileage
+                    }).Concat(preparationOrders.Where(o => o.VehicleId == v.Id).Select(o => new MchVehicleServiceHistoryDto
+                    {
+                        Source = "Alistamiento",
+                        RecordId = o.Id,
+                        Number = o.OrderNumber,
+                        Date = o.RequestedAt,
+                        Mileage = o.Mileage,
+                        BranchId = o.BranchId,
+                        BranchName = o.Branch?.Name,
+                        Status = o.Status
+                    })).OrderBy(h => h.Date).ToList(),
+                    MaintenanceReviews = serviceOrders
+                        .Where(o => o.VehicleId == v.Id && o.MaintenanceReviewMileage.HasValue)
+                        .OrderBy(o => o.IntakeDateTime)
+                        .Select(o => new MchVehicleMaintenanceReviewDto
+                        {
+                            ServiceOrderId = o.Id,
+                            ReviewMileage = o.MaintenanceReviewMileage!.Value,
+                            AttendedAt = o.IntakeDateTime,
+                            BranchId = o.BranchId ?? v.BranchId
+                        }).ToList()
                 }).ToList();
             });
 
@@ -717,6 +830,14 @@ namespace TPV.Web.Controllers.Api.Integrations
                 source = source.Where(o => o.Brand.Contains(query.Marca));
             }
 
+            return source;
+        }
+
+        private IQueryable<Vehicle> ApplyEntityFilters(IQueryable<Vehicle> source, MchQuery query)
+        {
+            source = ApplyEntityFilters<Vehicle>(source, query);
+            if (query.SucursalId.HasValue) source = source.Where(v => v.BranchId == query.SucursalId.Value);
+            if (!string.IsNullOrWhiteSpace(query.Marca)) source = source.Where(v => v.Brand.Contains(query.Marca));
             return source;
         }
 
@@ -1092,11 +1213,15 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BranchId { get; set; }
         public string? BranchName { get; set; }
         public string Number { get; set; } = string.Empty;
+        public int? VehicleId { get; set; }
+        public string? ChassisNumber { get; set; }
+        public string? EngineNumber { get; set; }
         public string Plate { get; set; } = string.Empty;
         public string Brand { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int Year { get; set; }
         public decimal Mileage { get; set; }
+        public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
         public DateTime? ExitDateTime { get; set; }
         public int CustomerId { get; set; }
@@ -1143,5 +1268,61 @@ namespace TPV.Web.Controllers.Api.Integrations
         public decimal DiscountValue { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal SubTotal { get; set; }
+    }
+
+    public class MchVehicleDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public int BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string ChassisNumber { get; set; } = string.Empty;
+        public string? EngineNumber { get; set; }
+        public string? Plate { get; set; }
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int? Year { get; set; }
+        public DateTime? SaleDate { get; set; }
+        public int? CurrentOwnerId { get; set; }
+        public string? CurrentOwnerIdentification { get; set; }
+        public string? CurrentOwnerName { get; set; }
+        public DateTime? OwnerSince { get; set; }
+        public decimal? LastKnownMileage { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+        public List<MchVehicleOwnerDto> OwnerHistory { get; set; } = new();
+        public List<MchVehicleServiceHistoryDto> ServiceHistory { get; set; } = new();
+        public List<MchVehicleMaintenanceReviewDto> MaintenanceReviews { get; set; } = new();
+    }
+
+    public class MchVehicleOwnerDto
+    {
+        public int CustomerId { get; set; }
+        public string? CustomerIdentification { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public DateTime OwnedFrom { get; set; }
+        public DateTime? OwnedUntil { get; set; }
+    }
+
+    public class MchVehicleServiceHistoryDto
+    {
+        public string Source { get; set; } = string.Empty;
+        public int RecordId { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public decimal? Mileage { get; set; }
+        public int BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int? MaintenanceReviewMileage { get; set; }
+    }
+
+    public class MchVehicleMaintenanceReviewDto
+    {
+        public int ServiceOrderId { get; set; }
+        public int ReviewMileage { get; set; }
+        public DateTime AttendedAt { get; set; }
+        public int BranchId { get; set; }
     }
 }

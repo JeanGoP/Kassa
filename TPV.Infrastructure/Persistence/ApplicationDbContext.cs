@@ -51,6 +51,8 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<MotorcycleService> MotorcycleServices { get; set; }
         public DbSet<PreparationOrder> PreparationOrders { get; set; }
         public DbSet<PreparationOrderItem> PreparationOrderItems { get; set; }
+        public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<VehicleOwnerHistory> VehicleOwnerHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -346,6 +348,64 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(s => new { s.TenantId, s.Name })
                 .IsUnique();
 
+            builder.Entity<Vehicle>()
+                .Property(v => v.ChassisNumber)
+                .HasMaxLength(17);
+
+            builder.Entity<Vehicle>()
+                .Property(v => v.EngineNumber)
+                .HasMaxLength(80);
+
+            builder.Entity<Vehicle>()
+                .Property(v => v.Plate)
+                .HasMaxLength(40);
+
+            builder.Entity<Vehicle>()
+                .Property(v => v.Brand)
+                .HasMaxLength(80);
+
+            builder.Entity<Vehicle>()
+                .Property(v => v.Model)
+                .HasMaxLength(120);
+
+            builder.Entity<Vehicle>()
+                .Property(v => v.LastKnownMileage)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Vehicle>()
+                .HasIndex(v => new { v.TenantId, v.ChassisNumber })
+                .IsUnique();
+
+            builder.Entity<Vehicle>()
+                .HasIndex(v => new { v.TenantId, v.Plate });
+
+            builder.Entity<Vehicle>()
+                .HasOne(v => v.Branch)
+                .WithMany()
+                .HasForeignKey(v => v.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Vehicle>()
+                .HasOne(v => v.CurrentOwner)
+                .WithMany()
+                .HasForeignKey(v => v.CurrentOwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<VehicleOwnerHistory>()
+                .HasIndex(h => new { h.VehicleId, h.OwnedFrom });
+
+            builder.Entity<VehicleOwnerHistory>()
+                .HasOne(h => h.Vehicle)
+                .WithMany(v => v.OwnerHistory)
+                .HasForeignKey(h => h.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<VehicleOwnerHistory>()
+                .HasOne(h => h.Customer)
+                .WithMany()
+                .HasForeignKey(h => h.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<PreparationOrder>()
                 .Property(o => o.OrderNumber)
                 .HasMaxLength(40);
@@ -410,6 +470,12 @@ namespace TPV.Infrastructure.Persistence
                 .HasOne(o => o.Customer)
                 .WithMany()
                 .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<PreparationOrder>()
+                .HasOne(o => o.Vehicle)
+                .WithMany(v => v.PreparationOrders)
+                .HasForeignKey(o => o.VehicleId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             builder.Entity<PreparationOrder>()
@@ -515,6 +581,26 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<ServiceOrder>()
                 .Property(so => so.Mileage)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.ChassisNumber)
+                .HasMaxLength(17);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.EngineNumber)
+                .HasMaxLength(80);
+
+            builder.Entity<ServiceOrder>()
+                .HasOne(so => so.Branch)
+                .WithMany()
+                .HasForeignKey(so => so.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ServiceOrder>()
+                .HasOne(so => so.Vehicle)
+                .WithMany(v => v.ServiceOrders)
+                .HasForeignKey(so => so.VehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Entity<ServiceOrder>()
                 .Property(so => so.VisualEvidenceImagesJson)

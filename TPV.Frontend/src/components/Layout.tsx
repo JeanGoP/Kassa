@@ -42,6 +42,7 @@ const Layout = () => {
             submenu: [
                 { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity, permission: 'Menus.Workshop.View' },
                 { path: '/preparation-orders', label: 'Alistamientos', icon: ClipboardList, permission: 'Menus.Workshop.View' },
+                { path: '/vehicles', label: 'Vehículos UIO', icon: Car, permission: 'Menus.Workshop.View' },
                 { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car, permission: 'Menus.Workshop.View' },
                 { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Stethoscope, permission: 'Menus.Workshop.View' },
                 { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList, permission: 'Menus.Workshop.View' },

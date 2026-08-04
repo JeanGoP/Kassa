@@ -6,13 +6,20 @@ namespace TPV.Domain.Entities
     public class ServiceOrder : BaseEntity, IMustHaveTenant
     {
         public int TenantId { get; set; }
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
         public int CustomerId { get; set; }
         public Customer Customer { get; set; }
+        public int? VehicleId { get; set; }
+        public Vehicle? Vehicle { get; set; }
+        public string? ChassisNumber { get; set; }
+        public string? EngineNumber { get; set; }
         public string Plate { get; set; }
         public string Brand { get; set; }
         public string Model { get; set; }
         public int Year { get; set; }
         public decimal Mileage { get; set; }
+        public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }

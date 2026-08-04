@@ -31,6 +31,7 @@ namespace TPV.Application
             services.AddScoped<IAppointmentService, AppointmentService>();
             services.AddScoped<IMotorcycleServiceCatalogService, MotorcycleServiceCatalogService>();
             services.AddScoped<IPreparationOrderService, PreparationOrderService>();
+            services.AddScoped<IVehicleService, VehicleService>();
             services.AddHttpClient<IElectronicInvoicingService, ElectronicInvoicingService>();
               
             return services;
