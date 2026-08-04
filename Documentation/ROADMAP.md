@@ -2,7 +2,7 @@
 
 ## Roadmap MCH Posventa v6
 
-Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluye modelo de datos, operacion interna, API MCH, migracion aplicada, builds y publicacion cuando corresponda.
+Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluye modelo de datos, operacion interna, API MCH, migracion real aplicada y builds. Por acuerdo operativo, durante los puntos 3 al 8 no se regenera `publish/backend`; la publicacion copiable del backend se realiza una sola vez al completar el punto 9. Cada punto si se confirma mediante commit y push.
 
 1. **Terminado - Vehiculos UIO e historial por chasis.** Maestro unico por VIN de 17 caracteres, motor, placa, marca/modelo, propietario vigente e historial, fecha de venta, kilometraje, sucursal, atenciones de taller/alistamiento y revisiones programadas. Endpoint: `GET /api/integrations/mch/vehicles`.
 2. **Terminado - Catalogos formales de marcas y modelos.** Maestros cerrados por empresa, modelos dependientes de marca y relaciones explicitas con vehiculos, sucursales, articulos, ordenes, ventas, compras e inventario. Endpoints MCH: `GET /api/integrations/mch/brands` y `GET /api/integrations/mch/models`.
