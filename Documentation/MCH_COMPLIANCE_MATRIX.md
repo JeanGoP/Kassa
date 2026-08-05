@@ -21,7 +21,7 @@ Brechas principales:
 
 - Marca no esta modelada como dimension independiente en todos los hechos.
 - Vehiculo maestro por VIN/chasis y catalogos formales de marca/modelo implementados y relacionados.
-- Garantias no tienen ciclo completo contra fabricante.
+- Garantias de fabricante ya cubren el ciclo desde deteccion hasta factura y pago; los registros anteriores a la migracion se exponen como historicos incompletos sin suponer datos.
 - Unidades de medida son texto libre y no hay conversiones compra/base/venta.
 - Cantidades de algunas entidades siguen siendo enteras donde MCH exige decimales.
 - Las ordenes de taller ya preservan anulacion e historia de estados; falta extender esta politica a los demas documentos operativos.
@@ -62,7 +62,7 @@ Brechas principales:
 | Ordenes de taller | Cumple | `GET /api/integrations/mch/service-orders` | Expone numero visible, empresa/NIT historicos, sucursal, marca/vehiculo, cliente, recepcion, promesa y salida, tipo/origen, historial, anulacion, factura, totales y lineas con pagador, impacto, servicio, revision, tecnico y tiempos. La normalizacion decimal/unidades se atiende transversalmente en el punto 5. |
 | Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, marca/modelo formal, motor, placa, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. |
 | Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Pendiente definir si los consumos descuentan inventario automaticamente. |
-| Garantias fabricante | No cumple | Entidad `Warranty` basica | Falta ciclo completo: deteccion, causa, pieza causante, autorizacion, radicacion, respuesta, facturacion y pago fabricante. |
+| Garantias fabricante | Cumple | `GET /api/integrations/mch/warranties`; modulo interno `Warranties` | Reclamacion por vehiculo y orden origen, tipo, deteccion, causa, falla, pieza causante, reemplazos, mano de obra, estado de marca con historia, autorizacion, radicacion, resultado, valoracion, factura que agrupa garantias y pago. Los registros previos quedan marcados `IsLegacyRecord`. |
 | Marcas | Cumple | `GET /api/integrations/mch/brands`; modulo interno `VehicleCatalogs` | Catalogo cerrado por empresa, con codigo, nombre, estado y relaciones explicitas. |
 | Personal | Parcial | No expuesto por MCH actualmente | Existen usuarios/tecnicos/encargados, pero falta endpoint consolidado para personal. |
 | Modelos | Cumple | `GET /api/integrations/mch/models`; modulo interno `VehicleCatalogs` | Catalogo cerrado dependiente de marca y empresa. |

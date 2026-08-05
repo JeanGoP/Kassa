@@ -35,6 +35,7 @@ Kassa es un sistema TPV/POS orientado a negocios con venta de productos, manejo 
 - El precio puede calcularse desde costo de stock mas rentabilidad del producto.
 - La marca pertenece al vehiculo o al articulo/hecho operativo; nunca se infiere desde la sucursal. Los modelos pertenecen a una marca formal.
 - Las ordenes de taller conservan numero visible, datos empresariales del momento, historial de estados y anulacion trazable; cada linea declara pagador, impacto en factura, tipo de servicio y tiempos.
+- Las garantias de fabricante se administran como reclamaciones trazables desde la deteccion hasta el pago; una factura del fabricante puede cubrir varias garantias y cada cambio de estado conserva fecha y responsable.
 - Las entidades multiempresa deben implementar `IMustHaveTenant` para quedar bajo filtro global.
 - Las reservas publicas se exponen por `AppointmentsController` y servicios publicos de moto; el resto de APIs internas debe requerir autenticacion.
 

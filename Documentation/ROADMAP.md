@@ -7,14 +7,14 @@ Este roadmap se ejecuta en orden. Un punto se marca como terminado cuando incluy
 1. **Terminado - Vehiculos UIO e historial por chasis.** Maestro unico por VIN de 17 caracteres, motor, placa, marca/modelo, propietario vigente e historial, fecha de venta, kilometraje, sucursal, atenciones de taller/alistamiento y revisiones programadas. Endpoint: `GET /api/integrations/mch/vehicles`.
 2. **Terminado - Catalogos formales de marcas y modelos.** Maestros cerrados por empresa, modelos dependientes de marca y relaciones explicitas con vehiculos, sucursales, articulos, ordenes, ventas, compras e inventario. Endpoints MCH: `GET /api/integrations/mch/brands` y `GET /api/integrations/mch/models`.
 3. **Terminado - Ordenes de taller completas.** Numero visible, empresa/NIT historicos, recepcion y entrega prometida, tipo y origen, estados con historia, anulacion con motivo y responsable, pagador por linea, impacto en factura, revision asociada, tecnicos y tiempos estimados/reales. Endpoint: `GET /api/integrations/mch/service-orders`.
-4. **Pendiente - Garantias de fabricante.** Ciclo desde deteccion hasta autorizacion, radicacion, respuesta, factura y pago del fabricante.
+4. **Terminado - Garantias de fabricante.** Reclamacion asociada a vehiculo y orden de taller/alistamiento, tipo y deteccion, causa y pieza causante, piezas reemplazadas, estado propio de la marca con historia, autorizacion, radicacion, aprobacion/rechazo, valoracion, factura agrupable y pago. Endpoint: `GET /api/integrations/mch/warranties`.
 5. **Pendiente - Unidades e inventario.** Cantidades decimales, unidades cerradas por registro, conversiones, bodegas, ubicaciones y movimientos trazables.
 6. **Pendiente - Catalogo avanzado de articulos.** Clasificacion cerrada, original/homologo/generico, fabricante, aplicabilidad, equivalencias, sustitutos, kits y reposicion.
 7. **Pendiente - Ventas y compras completas.** En ventas: costo y marca por linea, clasificacion contable, devoluciones y notas credito relacionadas con el documento original. En compras: recepcion efectiva, pedido asociado, proveedor oficial o tercero y unidad exacta de compra por linea.
 8. **Pendiente - Personal y datos empresariales.** Exponer el endpoint MCH de personal y completar NIT de empresas, marca principal de sucursales e identificacion de proveedores oficiales de cada marca.
 9. **Pendiente - Requisitos operativos de la API.** Documentar endpoints, campos y tipos, rotacion y revocacion de credenciales, versionamiento, limites de uso, disponibilidad, ventana de mantenimiento, notificacion de cambios y ambiente de pruebas con datos representativos.
 
-Siguiente punto activo: **4. Garantias de fabricante**.
+Siguiente punto activo: **5. Unidades e inventario**.
 
 ## Prioridad Alta
 

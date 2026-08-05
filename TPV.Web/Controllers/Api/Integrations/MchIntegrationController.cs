@@ -50,6 +50,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "sales",
                     "purchases",
                     "service-orders",
+                    "warranties",
                     "preparation-orders",
                     "vehicles",
                     "coverage"
@@ -74,7 +75,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "Catalogos formales de marcas y modelos por empresa",
                     "Catalogo basico de articulos y servicios con marca",
                     "Inventario por sucursal con costo y niveles minimo/maximo",
-                    "Ventas, compras y ordenes de taller basicas",
+                    "Ventas, compras y ordenes de taller",
+                    "Garantias de fabricante desde deteccion hasta factura y pago",
                     "Ordenes de alistamiento con solicitud, vehiculo, ejecutante, consumos y hallazgos",
                     "Maestro de vehiculos por VIN con propietario e historial de atenciones",
                     "Filtros por empresa, sucursal, marca, fechas y modificado_desde donde aplica",
@@ -84,8 +86,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 {
                     "Bodegas/ubicaciones reales y movimientos de inventario",
                     "Cantidades decimales y conversiones de unidades",
-                    "Historial de estados y anulaciones completas",
-                    "Garantias de fabricante con trazabilidad completa",
+                    "Historial de estados y anulaciones en documentos distintos de taller y garantias",
                     "Equivalencias, sustitutos, aplicabilidad por modelo y kits"
                 }
             });
@@ -769,6 +770,143 @@ namespace TPV.Web.Controllers.Api.Integrations
                             AttendedAt = o.IntakeDateTime,
                             BranchId = o.BranchId ?? v.BranchId
                         }).ToList()
+                }).ToList();
+            });
+
+            return Ok(paged);
+        }
+
+        [HttpGet("warranties")]
+        public async Task<IActionResult> GetWarranties([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<Warranty> source = _dbContext.Warranties
+                .IgnoreQueryFilters()
+                .Include(w => w.Customer)
+                .Include(w => w.Branch)
+                .Include(w => w.BrandCatalog)
+                .Include(w => w.Vehicle)
+                .Include(w => w.ServiceOrder)
+                .Include(w => w.ManufacturerInvoice)
+                .AsNoTracking();
+
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            source = ApplyDateRange(source, query, w => w.FailureDate);
+            if (query.SucursalId.HasValue) source = source.Where(w => w.BranchId == query.SucursalId.Value);
+            if (!string.IsNullOrWhiteSpace(query.Marca))
+                source = source.Where(w => (w.BrandName != null && w.BrandName.Contains(query.Marca)) ||
+                    (w.BrandCatalog != null && w.BrandCatalog.Name.Contains(query.Marca)));
+
+            var paged = await PageEntitiesAsync(source.OrderBy(w => w.Id), query, async warranties =>
+            {
+                var warrantyIds = warranties.Select(w => w.Id).ToArray();
+                var invoiceIds = warranties.Where(w => w.ManufacturerInvoiceId.HasValue).Select(w => w.ManufacturerInvoiceId!.Value).Distinct().ToArray();
+
+                var replacementParts = await _dbContext.WarrantyReplacementParts
+                    .IgnoreQueryFilters()
+                    .Include(p => p.Product)
+                    .AsNoTracking()
+                    .Where(p => warrantyIds.Contains(p.WarrantyId) && p.IsActive)
+                    .ToListAsync();
+                var statusHistory = await _dbContext.WarrantyStatusHistories
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(h => warrantyIds.Contains(h.WarrantyId))
+                    .OrderBy(h => h.ChangedAt)
+                    .ToListAsync();
+                var preparationOrders = await _dbContext.PreparationOrders
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(o => o.WarrantyId.HasValue && warrantyIds.Contains(o.WarrantyId.Value))
+                    .ToListAsync();
+                var invoiceCoverage = invoiceIds.Length == 0
+                    ? new List<Warranty>()
+                    : await _dbContext.Warranties.IgnoreQueryFilters().AsNoTracking()
+                        .Where(w => w.ManufacturerInvoiceId.HasValue && invoiceIds.Contains(w.ManufacturerInvoiceId.Value))
+                        .ToListAsync();
+
+                return warranties.Select(w => new MchWarrantyDto
+                {
+                    Id = w.Id,
+                    CompanyId = w.TenantId,
+                    CompanyName = w.CompanyName,
+                    CompanyNit = w.CompanyNit,
+                    BranchId = w.BranchId,
+                    BranchName = w.BranchName ?? w.Branch?.Name,
+                    BrandId = w.BrandId,
+                    Brand = w.BrandName ?? w.BrandCatalog?.Name,
+                    Number = w.WarrantyNumber,
+                    IsLegacyRecord = w.IsLegacyRecord,
+                    VehicleId = w.VehicleId,
+                    ChassisNumber = w.ChassisNumber,
+                    Plate = w.Plate,
+                    VehicleModel = w.Vehicle?.Model,
+                    ServiceOrderId = w.ServiceOrderId,
+                    ServiceOrderNumber = w.ServiceOrder?.OrderNumber,
+                    PreparationOrderId = preparationOrders.FirstOrDefault(o => o.WarrantyId == w.Id)?.Id,
+                    PreparationOrderNumber = preparationOrders.FirstOrDefault(o => o.WarrantyId == w.Id)?.OrderNumber,
+                    CustomerId = w.CustomerId,
+                    CustomerIdentification = w.Customer?.TaxId,
+                    CustomerName = w.Customer == null ? null : $"{w.Customer.FirstName} {w.Customer.LastName}".Trim(),
+                    ClaimType = w.ClaimType,
+                    DetectionMoment = w.DetectionMoment,
+                    AttributedCause = w.AttributedCause,
+                    FailureDate = w.FailureDate,
+                    FailureMileage = w.FailureMileage,
+                    FailureDescription = w.FailureDescription,
+                    FailureMode = w.FailureMode,
+                    CausingPartProductId = w.CausingPartProductId,
+                    CausingPartReference = w.CausingPartReference,
+                    CausingPartDescription = w.CausingPartDescription,
+                    RecognizedLaborHours = w.RecognizedLaborHours,
+                    RecognizedLaborValue = w.RecognizedLaborValue,
+                    CustomerEquivalentValue = w.CustomerEquivalentValue,
+                    ManufacturerStatus = w.ManufacturerStatus,
+                    AuthorizationNumber = w.AuthorizationNumber,
+                    AuthorizationDate = w.AuthorizationDate,
+                    FiledAt = w.FiledAt,
+                    ApprovedValue = w.ApprovedValue,
+                    RejectedValue = w.RejectedValue,
+                    RejectionReason = w.RejectionReason,
+                    RecognizedValue = w.RecognizedValue,
+                    VehicleOrPartLot = w.VehicleOrPartLot,
+                    ManufacturingDate = w.ManufacturingDate,
+                    ManufacturerInvoiceNumber = w.ManufacturerInvoice?.InvoiceNumber,
+                    ManufacturerInvoiceDate = w.ManufacturerInvoice?.InvoiceDate,
+                    ManufacturerInvoiceTotal = w.ManufacturerInvoice?.TotalAmount,
+                    PaidByManufacturer = w.ManufacturerInvoice?.PaidAt.HasValue == true,
+                    ManufacturerPaidAt = w.ManufacturerInvoice?.PaidAt,
+                    ManufacturerPaymentReference = w.ManufacturerInvoice?.PaymentReference,
+                    CoveredWarrantyIds = w.ManufacturerInvoiceId.HasValue
+                        ? invoiceCoverage.Where(covered => covered.ManufacturerInvoiceId == w.ManufacturerInvoiceId).Select(covered => covered.Id).ToList()
+                        : new List<int>(),
+                    Status = ToStatus(w.IsActive),
+                    CreatedAt = w.CreatedAt,
+                    ModifiedAt = w.UpdatedAt ?? w.CreatedAt,
+                    ReplacementParts = replacementParts.Where(p => p.WarrantyId == w.Id).Select(p => new MchWarrantyReplacementPartDto
+                    {
+                        Id = p.Id,
+                        ProductId = p.ProductId,
+                        Reference = p.Reference,
+                        Description = p.Description,
+                        Quantity = p.Quantity,
+                        Unit = p.Unit,
+                        UnitValue = p.UnitValue,
+                        TotalValue = p.TotalValue
+                    }).ToList(),
+                    StatusHistory = statusHistory.Where(h => h.WarrantyId == w.Id).Select(h => new MchWarrantyStatusHistoryDto
+                    {
+                        Id = h.Id,
+                        ManufacturerStatus = h.ManufacturerStatus,
+                        ChangedAt = h.ChangedAt,
+                        ChangedByUserId = h.ChangedByUserId,
+                        ChangedByName = h.ChangedByName,
+                        Notes = h.Notes
+                    }).ToList()
                 }).ToList();
             });
 
@@ -1491,6 +1629,88 @@ namespace TPV.Web.Controllers.Api.Integrations
     {
         public int Id { get; set; }
         public string Status { get; set; } = string.Empty;
+        public DateTime ChangedAt { get; set; }
+        public string? ChangedByUserId { get; set; }
+        public string? ChangedByName { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class MchWarrantyDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string? CompanyNit { get; set; }
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public int? BrandId { get; set; }
+        public string? Brand { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public bool IsLegacyRecord { get; set; }
+        public int? VehicleId { get; set; }
+        public string ChassisNumber { get; set; } = string.Empty;
+        public string? Plate { get; set; }
+        public string? VehicleModel { get; set; }
+        public int? ServiceOrderId { get; set; }
+        public string? ServiceOrderNumber { get; set; }
+        public int? PreparationOrderId { get; set; }
+        public string? PreparationOrderNumber { get; set; }
+        public int? CustomerId { get; set; }
+        public string? CustomerIdentification { get; set; }
+        public string? CustomerName { get; set; }
+        public string ClaimType { get; set; } = string.Empty;
+        public string DetectionMoment { get; set; } = string.Empty;
+        public string? AttributedCause { get; set; }
+        public DateTime FailureDate { get; set; }
+        public decimal FailureMileage { get; set; }
+        public string FailureDescription { get; set; } = string.Empty;
+        public string? FailureMode { get; set; }
+        public int? CausingPartProductId { get; set; }
+        public string CausingPartReference { get; set; } = string.Empty;
+        public string CausingPartDescription { get; set; } = string.Empty;
+        public decimal RecognizedLaborHours { get; set; }
+        public decimal RecognizedLaborValue { get; set; }
+        public decimal CustomerEquivalentValue { get; set; }
+        public string ManufacturerStatus { get; set; } = string.Empty;
+        public string? AuthorizationNumber { get; set; }
+        public DateTime? AuthorizationDate { get; set; }
+        public DateTime? FiledAt { get; set; }
+        public decimal ApprovedValue { get; set; }
+        public decimal RejectedValue { get; set; }
+        public string? RejectionReason { get; set; }
+        public decimal RecognizedValue { get; set; }
+        public string? VehicleOrPartLot { get; set; }
+        public DateTime? ManufacturingDate { get; set; }
+        public string? ManufacturerInvoiceNumber { get; set; }
+        public DateTime? ManufacturerInvoiceDate { get; set; }
+        public decimal? ManufacturerInvoiceTotal { get; set; }
+        public bool PaidByManufacturer { get; set; }
+        public DateTime? ManufacturerPaidAt { get; set; }
+        public string? ManufacturerPaymentReference { get; set; }
+        public List<int> CoveredWarrantyIds { get; set; } = new();
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+        public List<MchWarrantyReplacementPartDto> ReplacementParts { get; set; } = new();
+        public List<MchWarrantyStatusHistoryDto> StatusHistory { get; set; } = new();
+    }
+
+    public class MchWarrantyReplacementPartDto
+    {
+        public int Id { get; set; }
+        public int? ProductId { get; set; }
+        public string Reference { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal UnitValue { get; set; }
+        public decimal TotalValue { get; set; }
+    }
+
+    public class MchWarrantyStatusHistoryDto
+    {
+        public int Id { get; set; }
+        public string ManufacturerStatus { get; set; } = string.Empty;
         public DateTime ChangedAt { get; set; }
         public string? ChangedByUserId { get; set; }
         public string? ChangedByName { get; set; }

@@ -8,8 +8,8 @@ namespace TPV.Application.Interfaces
     {
         Task<IEnumerable<WarrantyDto>> GetAllAsync(string? plate = null);
         Task<WarrantyDto> GetByIdAsync(int id);
-        Task<WarrantyDto> CreateAsync(CreateWarrantyDto dto);
-        Task UpdateAsync(int id, CreateWarrantyDto dto);
+        Task<WarrantyDto> CreateAsync(CreateWarrantyDto dto, string userId);
+        Task<WarrantyDto?> UpdateAsync(int id, CreateWarrantyDto dto, string userId);
         Task DeleteAsync(int id);
         Task<IEnumerable<WarrantyDto>> GetActiveWarrantiesByPlateAsync(string plate);
     }

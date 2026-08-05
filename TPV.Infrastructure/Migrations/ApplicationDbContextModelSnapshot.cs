@@ -2084,8 +2084,68 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("ApprovedValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("AttributedCause")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("AuthorizationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AuthorizationNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BranchName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("CausingPartDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("CausingPartProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CausingPartReference")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("ChassisNumber")
+                        .IsRequired()
+                        .HasMaxLength(17)
+                        .HasColumnType("nvarchar(17)");
+
+                    b.Property<string>("ClaimType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("CompanyNit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CustomerEquivalentValue")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
@@ -2094,10 +2154,34 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DetectionMoment")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime>("FailureDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("FailureMileage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("FailureMode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FiledAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLegacyRecord")
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("LimitMileage1")
@@ -2109,9 +2193,38 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal?>("LimitMileage3")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("ManufacturerInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ManufacturerStatus")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("ManufacturingDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Plate")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("RecognizedLaborHours")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal>("RecognizedLaborValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RecognizedValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RejectedValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ServiceOrderId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -2137,11 +2250,191 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VehicleOrPartLot")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WarrantyNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("CausingPartProductId");
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("ManufacturerInvoiceId");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("TenantId", "WarrantyNumber")
+                        .IsUnique();
+
                     b.ToTable("Warranties");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyManufacturerInvoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentReference")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "InvoiceNumber")
+                        .IsUnique();
+
+                    b.ToTable("WarrantyManufacturerInvoices");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyReplacementPart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("UnitValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WarrantyId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.HasIndex("TenantId", "WarrantyId");
+
+                    b.ToTable("WarrantyReplacementParts");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedByName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChangedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ManufacturerStatus")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WarrantyId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.HasIndex("TenantId", "WarrantyId", "ChangedAt");
+
+                    b.ToTable("WarrantyStatusHistories");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.WorkshopManager", b =>
@@ -2749,11 +3042,82 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Warranty", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.Brand", "BrandCatalog")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.Product", "CausingPartProduct")
+                        .WithMany()
+                        .HasForeignKey("CausingPartProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId");
 
+                    b.HasOne("TPV.Domain.Entities.WarrantyManufacturerInvoice", "ManufacturerInvoice")
+                        .WithMany("Warranties")
+                        .HasForeignKey("ManufacturerInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
+                        .WithMany()
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("BrandCatalog");
+
+                    b.Navigation("CausingPartProduct");
+
                     b.Navigation("Customer");
+
+                    b.Navigation("ManufacturerInvoice");
+
+                    b.Navigation("ServiceOrder");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyReplacementPart", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("ReplacementParts")
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyStatusHistory", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.AppointmentSchedule", b =>
@@ -2829,6 +3193,18 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("PreparationOrders");
 
                     b.Navigation("ServiceOrders");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Warranty", b =>
+                {
+                    b.Navigation("ReplacementParts");
+
+                    b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.WarrantyManufacturerInvoice", b =>
+                {
+                    b.Navigation("Warranties");
                 });
 #pragma warning restore 612, 618
         }

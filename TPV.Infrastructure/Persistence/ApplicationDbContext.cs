@@ -43,6 +43,9 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<Technician> Technicians { get; set; }
         public DbSet<WorkshopManager> WorkshopManagers { get; set; }
         public DbSet<Warranty> Warranties { get; set; }
+        public DbSet<WarrantyReplacementPart> WarrantyReplacementParts { get; set; }
+        public DbSet<WarrantyStatusHistory> WarrantyStatusHistories { get; set; }
+        public DbSet<WarrantyManufacturerInvoice> WarrantyManufacturerInvoices { get; set; }
         public DbSet<QuotationSearchHistory> QuotationSearchHistories { get; set; }
         public DbSet<Quotation> Quotations { get; set; }
         public DbSet<QuotationDetail> QuotationDetails { get; set; }
@@ -806,6 +809,51 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Warranty>()
                 .Property(w => w.LimitMileage3)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<Warranty>()
+                .HasIndex(w => new { w.TenantId, w.WarrantyNumber })
+                .IsUnique();
+            builder.Entity<Warranty>().Property(w => w.WarrantyNumber).HasMaxLength(40);
+            builder.Entity<Warranty>().Property(w => w.CompanyName).HasMaxLength(200);
+            builder.Entity<Warranty>().Property(w => w.CompanyNit).HasMaxLength(50);
+            builder.Entity<Warranty>().Property(w => w.BranchName).HasMaxLength(200);
+            builder.Entity<Warranty>().Property(w => w.BrandName).HasMaxLength(120);
+            builder.Entity<Warranty>().Property(w => w.ClaimType).HasMaxLength(30);
+            builder.Entity<Warranty>().Property(w => w.DetectionMoment).HasMaxLength(30);
+            builder.Entity<Warranty>().Property(w => w.ChassisNumber).HasMaxLength(17);
+            builder.Entity<Warranty>().Property(w => w.CausingPartReference).HasMaxLength(120);
+            builder.Entity<Warranty>().Property(w => w.ManufacturerStatus).HasMaxLength(120);
+            builder.Entity<Warranty>().Property(w => w.FailureMileage).HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>().Property(w => w.RecognizedLaborHours).HasColumnType("decimal(9,2)");
+            builder.Entity<Warranty>().Property(w => w.RecognizedLaborValue).HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>().Property(w => w.CustomerEquivalentValue).HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>().Property(w => w.ApprovedValue).HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>().Property(w => w.RejectedValue).HasColumnType("decimal(18,2)");
+            builder.Entity<Warranty>().Property(w => w.RecognizedValue).HasColumnType("decimal(18,2)");
+
+            builder.Entity<Warranty>().HasOne(w => w.Branch).WithMany().HasForeignKey(w => w.BranchId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Warranty>().HasOne(w => w.BrandCatalog).WithMany().HasForeignKey(w => w.BrandId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Warranty>().HasOne(w => w.Vehicle).WithMany().HasForeignKey(w => w.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Warranty>().HasOne(w => w.ServiceOrder).WithMany().HasForeignKey(w => w.ServiceOrderId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Warranty>().HasOne(w => w.CausingPartProduct).WithMany().HasForeignKey(w => w.CausingPartProductId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Warranty>().HasOne(w => w.ManufacturerInvoice).WithMany(i => i.Warranties).HasForeignKey(w => w.ManufacturerInvoiceId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.UnitValue).HasColumnType("decimal(18,2)");
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.TotalValue).HasColumnType("decimal(18,2)");
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.Reference).HasMaxLength(120);
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.Unit).HasMaxLength(30);
+            builder.Entity<WarrantyReplacementPart>().HasOne(p => p.Warranty).WithMany(w => w.ReplacementParts).HasForeignKey(p => p.WarrantyId).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<WarrantyReplacementPart>().HasOne(p => p.Product).WithMany().HasForeignKey(p => p.ProductId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<WarrantyReplacementPart>().HasIndex(p => new { p.TenantId, p.WarrantyId });
+
+            builder.Entity<WarrantyStatusHistory>().Property(h => h.ManufacturerStatus).HasMaxLength(120);
+            builder.Entity<WarrantyStatusHistory>().HasOne(h => h.Warranty).WithMany(w => w.StatusHistory).HasForeignKey(h => h.WarrantyId).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<WarrantyStatusHistory>().HasIndex(h => new { h.TenantId, h.WarrantyId, h.ChangedAt });
+
+            builder.Entity<WarrantyManufacturerInvoice>().Property(i => i.InvoiceNumber).HasMaxLength(80);
+            builder.Entity<WarrantyManufacturerInvoice>().Property(i => i.TotalAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<WarrantyManufacturerInvoice>().HasIndex(i => new { i.TenantId, i.InvoiceNumber }).IsUnique();
         }
         private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
         {
