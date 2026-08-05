@@ -1,6 +1,32 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
-import { Package, Plus, Edit, Trash, X, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { Package, Plus, Edit, Trash, X, Search, ChevronDown, ChevronRight, Link2, Boxes } from 'lucide-react';
+
+interface ProductApplicability {
+    vehicleModelId: number;
+    brandName?: string;
+    modelCode?: string;
+    modelName?: string;
+    sourceType: string;
+}
+
+interface ProductReferenceRelation {
+    relatedProductId: number;
+    relatedReference?: string;
+    relatedDescription?: string;
+    relationType: string;
+    sourceType: string;
+    effectiveFrom?: string | null;
+}
+
+interface ProductKitComponent {
+    componentProductId: number;
+    componentReference?: string;
+    componentDescription?: string;
+    quantity: number;
+    unitOfMeasureId: number;
+    unitCode?: string;
+}
 
 interface Product {
     id: number;
@@ -24,8 +50,26 @@ interface Product {
     priceIncludesIva: boolean;
     brandId?: number;
     brandName?: string;
+    catalogStatus?: string;
+    originType?: string;
+    isOfficialCatalog?: boolean;
+    manufacturer?: string;
+    referenceType?: string;
+    minimumOrderQuantity?: number;
+    orderMultiple?: number;
+    weightKg?: number | null;
+    lengthCm?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    leadTimeDays?: number | null;
+    reorderPoint?: number;
+    minimumStock?: number;
+    maximumStock?: number;
     categoryId: number;
     categoryName?: string;
+    applicabilities?: ProductApplicability[];
+    referenceRelations?: ProductReferenceRelation[];
+    kitComponents?: ProductKitComponent[];
 }
 
 interface Category {
@@ -36,6 +80,31 @@ interface Category {
 }
 interface Brand { id: number; name: string; }
 interface UnitOfMeasure { id: number; code: string; name: string; symbol: string; allowsDecimals: boolean; }
+interface VehicleModel { id: number; brandId: number; brandName: string; code: string; name: string; }
+
+interface ProductForm {
+    sku: string; barcode: string; name: string; description: string; type: string; unitOfMeasure: string;
+    baseUnitId: number; purchaseUnitId: number; purchaseFactorToBase: number; saleUnitId: number;
+    saleFactorToBase: number; allowsFractionalQuantity: boolean; price: number; profitabilityPercentage: number;
+    ivaType: string; ivaRate: number; impoconsumoRate: number; priceIncludesIva: boolean; brandId: number;
+    categoryId: number; catalogStatus: string; originType: string; isOfficialCatalog: boolean;
+    manufacturer: string; referenceType: string; minimumOrderQuantity: number; orderMultiple: number;
+    weightKg: number; lengthCm: number; widthCm: number; heightCm: number; leadTimeDays: number;
+    reorderPoint: number; minimumStock: number; maximumStock: number;
+    applicabilities: ProductApplicability[]; referenceRelations: ProductReferenceRelation[]; kitComponents: ProductKitComponent[];
+}
+
+const createEmptyForm = (unitId = 0, categoryId = 0): ProductForm => ({
+    sku: '', barcode: '', name: '', description: '', type: 'Producto', unitOfMeasure: 'UND',
+    baseUnitId: unitId, purchaseUnitId: unitId, purchaseFactorToBase: 1, saleUnitId: unitId,
+    saleFactorToBase: 1, allowsFractionalQuantity: false, price: 0, profitabilityPercentage: 0,
+    ivaType: 'Excluido', ivaRate: 0, impoconsumoRate: 0, priceIncludesIva: false, brandId: 0,
+    categoryId, catalogStatus: 'ACTIVO', originType: 'GENERICO', isOfficialCatalog: false,
+    manufacturer: '', referenceType: 'SIMPLE', minimumOrderQuantity: 0, orderMultiple: 0,
+    weightKg: 0, lengthCm: 0, widthCm: 0, heightCm: 0, leadTimeDays: 0,
+    reorderPoint: 0, minimumStock: 0, maximumStock: 0,
+    applicabilities: [], referenceRelations: [], kitComponents: []
+});
 
 interface CategoryNode extends Category {
     children: CategoryNode[];
@@ -47,32 +116,21 @@ const Products = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [units, setUnits] = useState<UnitOfMeasure[]>([]);
+    const [vehicleModels, setVehicleModels] = useState<VehicleModel[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [formData, setFormData] = useState({
-        sku: '',
-        barcode: '',
-        name: '',
-        description: '',
-        type: 'Producto',
-        unitOfMeasure: 'UND',
-        baseUnitId: 0,
-        purchaseUnitId: 0,
-        purchaseFactorToBase: 1,
-        saleUnitId: 0,
-        saleFactorToBase: 1,
-        allowsFractionalQuantity: false,
-        price: 0,
-        profitabilityPercentage: 0,
-        ivaType: 'Excluido',
-        ivaRate: 0,
-        impoconsumoRate: 0,
-        priceIncludesIva: false,
-        brandId: 0,
-        categoryId: 0
-    });
+    const [formData, setFormData] = useState<ProductForm>(() => createEmptyForm());
+    const [applicabilityModelId, setApplicabilityModelId] = useState(0);
+    const [applicabilitySource, setApplicabilitySource] = useState('CATALOGO_OFICIAL');
+    const [relatedProductId, setRelatedProductId] = useState(0);
+    const [relationType, setRelationType] = useState('INTERCAMBIABLE');
+    const [relationSource, setRelationSource] = useState('CATALOGO_OFICIAL');
+    const [relationEffectiveFrom, setRelationEffectiveFrom] = useState('');
+    const [componentProductId, setComponentProductId] = useState(0);
+    const [componentQuantity, setComponentQuantity] = useState(1);
+    const [componentUnitId, setComponentUnitId] = useState(0);
 
     const [activeTab, setActiveTab] = useState('features');
 
@@ -88,10 +146,12 @@ const Products = () => {
         fetchProducts();
         fetchCategories();
         api.get<Brand[]>('/vehiclecatalogs/brands').then(response => setBrands(response.data)).catch(console.error);
+        api.get<VehicleModel[]>('/vehiclecatalogs/models').then(response => setVehicleModels(response.data)).catch(console.error);
         api.get<UnitOfMeasure[]>('/inventory/units').then(response => {
             setUnits(response.data);
             const defaultUnit = response.data.find(unit => unit.code === 'UND') || response.data[0];
             if (defaultUnit) {
+                setComponentUnitId(defaultUnit.id);
                 setFormData(prev => ({
                     ...prev,
                     baseUnitId: prev.baseUnitId || defaultUnit.id,
@@ -296,34 +356,37 @@ const Products = () => {
                 impoconsumoRate: product.impoconsumoRate || 0,
                 priceIncludesIva: product.priceIncludesIva,
                 brandId: product.brandId || 0,
-                categoryId: product.categoryId
+                categoryId: product.categoryId,
+                catalogStatus: product.catalogStatus || 'NO_CLASIFICADO',
+                originType: product.originType || 'NO_CLASIFICADO',
+                isOfficialCatalog: product.isOfficialCatalog || false,
+                manufacturer: product.manufacturer || '',
+                referenceType: product.referenceType || 'SIMPLE',
+                minimumOrderQuantity: product.minimumOrderQuantity || 0,
+                orderMultiple: product.orderMultiple || 0,
+                weightKg: product.weightKg || 0,
+                lengthCm: product.lengthCm || 0,
+                widthCm: product.widthCm || 0,
+                heightCm: product.heightCm || 0,
+                leadTimeDays: product.leadTimeDays || 0,
+                reorderPoint: product.reorderPoint || 0,
+                minimumStock: product.minimumStock || 0,
+                maximumStock: product.maximumStock || 0,
+                applicabilities: product.applicabilities || [],
+                referenceRelations: product.referenceRelations || [],
+                kitComponents: product.kitComponents || []
             });
         } else {
             setCurrentProduct(null);
             const defaultUnitId = units.find(unit => unit.code === 'UND')?.id || units[0]?.id || 0;
-            setFormData({
-                sku: '',
-                barcode: '',
-                name: '',
-                description: '',
-                type: 'Producto',
-                unitOfMeasure: 'UND',
-                baseUnitId: defaultUnitId,
-                purchaseUnitId: defaultUnitId,
-                purchaseFactorToBase: 1,
-                saleUnitId: defaultUnitId,
-                saleFactorToBase: 1,
-                allowsFractionalQuantity: false,
-                price: 0,
-                profitabilityPercentage: 0,
-                ivaType: 'Excluido',
-                ivaRate: 0,
-                impoconsumoRate: 0,
-                priceIncludesIva: false,
-                brandId: 0,
-                categoryId: categories.length > 0 ? categories[0].id : 0
-            });
+            setFormData(createEmptyForm(defaultUnitId, categories.length > 0 ? categories[0].id : 0));
         }
+        setApplicabilityModelId(0);
+        setRelatedProductId(0);
+        setRelationEffectiveFrom('');
+        setComponentProductId(0);
+        setComponentQuantity(1);
+        setComponentUnitId(units.find(unit => unit.code === 'UND')?.id || units[0]?.id || 0);
         setIsModalOpen(true);
     };
 
@@ -338,6 +401,65 @@ const Products = () => {
     };
     const handlePriceChange = (val: number) => {
          setFormData({ ...formData, price: val });
+    };
+
+    const addApplicability = () => {
+        const model = vehicleModels.find(item => item.id === applicabilityModelId);
+        if (!model || formData.applicabilities.some(item => item.vehicleModelId === model.id)) return;
+        setFormData({
+            ...formData,
+            applicabilities: [...formData.applicabilities, {
+                vehicleModelId: model.id,
+                brandName: model.brandName,
+                modelCode: model.code,
+                modelName: model.name,
+                sourceType: applicabilitySource
+            }]
+        });
+        setApplicabilityModelId(0);
+    };
+
+    const addReferenceRelation = () => {
+        const related = products.find(item => item.id === relatedProductId);
+        if (!related || related.id === currentProduct?.id || formData.referenceRelations.some(item =>
+            item.relatedProductId === related.id && item.relationType === relationType)) return;
+        if (relationType === 'SUSTITUYE_A' && !relationEffectiveFrom) {
+            alert('INDIQUE LA FECHA DE VIGENCIA DE LA SUSTITUCIÓN');
+            return;
+        }
+        setFormData({
+            ...formData,
+            referenceRelations: [...formData.referenceRelations, {
+                relatedProductId: related.id,
+                relatedReference: related.sku,
+                relatedDescription: related.name,
+                relationType,
+                sourceType: relationSource,
+                effectiveFrom: relationType === 'SUSTITUYE_A' ? relationEffectiveFrom : null
+            }]
+        });
+        setRelatedProductId(0);
+        setRelationEffectiveFrom('');
+    };
+
+    const addKitComponent = () => {
+        const component = products.find(item => item.id === componentProductId);
+        const unit = units.find(item => item.id === componentUnitId);
+        if (!component || !unit || component.id === currentProduct?.id || componentQuantity <= 0 ||
+            formData.kitComponents.some(item => item.componentProductId === component.id)) return;
+        setFormData({
+            ...formData,
+            kitComponents: [...formData.kitComponents, {
+                componentProductId: component.id,
+                componentReference: component.sku,
+                componentDescription: component.name,
+                quantity: componentQuantity,
+                unitOfMeasureId: unit.id,
+                unitCode: unit.code
+            }]
+        });
+        setComponentProductId(0);
+        setComponentQuantity(1);
     };
 
     const handleDelete = async (id: number) => {
@@ -448,7 +570,7 @@ const Products = () => {
             {/* Modal producto */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto bg-white">
+                    <div className="k-document max-h-[calc(100vh-2rem)] w-full max-w-6xl overflow-y-auto bg-white">
                         <div className="k-panel-header sticky top-0 z-10 flex items-center justify-between px-6 py-4">
                             <h3 className="font-bold text-lg text-slate-800">
                                 {currentProduct ? 'Editar Producto' : 'Nuevo Producto'}
@@ -480,6 +602,34 @@ const Products = () => {
                                     onClick={() => setActiveTab('taxes')}
                                 >
                                     Impuestos
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'catalog' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('catalog')}
+                                >
+                                    Catálogo
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'applicability' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('applicability')}
+                                >
+                                    Aplicabilidad
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'relations' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('relations')}
+                                >
+                                    Referencias
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'logistics' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => setActiveTab('logistics')}
+                                >
+                                    Kit y reposición
                                 </button>
                             </div>
 
@@ -699,6 +849,106 @@ const Products = () => {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'catalog' && (
+                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 animate-fadeIn">
+                                        <label className="space-y-1">
+                                            <span className="text-sm font-bold text-slate-700">ESTADO DEL ARTÍCULO</span>
+                                            <select className="w-full rounded border border-slate-300 px-3 py-2" value={formData.catalogStatus} onChange={e => setFormData({...formData, catalogStatus: e.target.value})}>
+                                                <option value="ACTIVO">ACTIVO</option>
+                                                <option value="DESCONTINUADO">DESCONTINUADO</option>
+                                                <option value="BLOQUEADO">BLOQUEADO</option>
+                                            </select>
+                                        </label>
+                                        <label className="space-y-1">
+                                            <span className="text-sm font-bold text-slate-700">TIPO DE ARTÍCULO</span>
+                                            <select className="w-full rounded border border-slate-300 px-3 py-2" value={formData.originType} onChange={e => setFormData({...formData, originType: e.target.value})}>
+                                                <option value="ORIGINAL">ORIGINAL</option>
+                                                <option value="HOMOLOGO">HOMÓLOGO</option>
+                                                <option value="GENERICO">GENÉRICO</option>
+                                                <option value="NO_CLASIFICADO">PENDIENTE DE CLASIFICAR</option>
+                                                <option value="NO_APLICA">NO APLICA</option>
+                                            </select>
+                                        </label>
+                                        <label className="space-y-1">
+                                            <span className="text-sm font-bold text-slate-700">TIPO DE REFERENCIA</span>
+                                            <select className="w-full rounded border border-slate-300 px-3 py-2" value={formData.referenceType} onChange={e => setFormData({...formData, referenceType: e.target.value, kitComponents: e.target.value === 'SIMPLE' ? [] : formData.kitComponents})}>
+                                                <option value="SIMPLE">SIMPLE</option>
+                                                <option value="KIT">KIT</option>
+                                            </select>
+                                        </label>
+                                        <label className="space-y-1 md:col-span-2">
+                                            <span className="text-sm font-bold text-slate-700">FABRICANTE</span>
+                                            <input className="w-full rounded border border-slate-300 px-3 py-2 uppercase" value={formData.manufacturer} onChange={e => setFormData({...formData, manufacturer: e.target.value.toUpperCase()})} />
+                                        </label>
+                                        <label className="flex items-center gap-3 border-y border-slate-200 px-3 py-2 text-sm font-bold text-slate-700">
+                                            <input type="checkbox" checked={formData.isOfficialCatalog} onChange={e => setFormData({...formData, isOfficialCatalog: e.target.checked})} />
+                                            EN LISTA OFICIAL VIGENTE
+                                        </label>
+                                    </div>
+                                )}
+
+                                {activeTab === 'applicability' && (
+                                    <div className="space-y-5 animate-fadeIn">
+                                        <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_220px_44px]">
+                                            <label className="space-y-1">
+                                                <span className="text-sm font-bold text-slate-700">MODELO APLICABLE</span>
+                                                <select className="w-full rounded border border-slate-300 px-3 py-2" value={applicabilityModelId} onChange={e => setApplicabilityModelId(Number(e.target.value))}>
+                                                    <option value={0}>SELECCIONE MODELO</option>
+                                                    {vehicleModels.filter(model => !formData.applicabilities.some(item => item.vehicleModelId === model.id)).map(model => <option key={model.id} value={model.id}>{model.brandName} | {model.code} - {model.name}</option>)}
+                                                </select>
+                                            </label>
+                                            <label className="space-y-1">
+                                                <span className="text-sm font-bold text-slate-700">ORIGEN</span>
+                                                <select className="w-full rounded border border-slate-300 px-3 py-2" value={applicabilitySource} onChange={e => setApplicabilitySource(e.target.value)}>
+                                                    <option value="CATALOGO_OFICIAL">CATÁLOGO OFICIAL</option>
+                                                    <option value="OTRA_FUENTE">OTRA FUENTE</option>
+                                                </select>
+                                            </label>
+                                            <button type="button" onClick={addApplicability} className="k-button-primary flex h-10 items-center justify-center" title="AGREGAR MODELO"><Plus size={18} /></button>
+                                        </div>
+                                        <div className="overflow-x-auto border-y border-slate-200">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-slate-50 text-xs uppercase text-slate-600"><tr><th className="p-3">MARCA</th><th className="p-3">MODELO</th><th className="p-3">ORIGEN</th><th className="w-12 p-3"></th></tr></thead>
+                                                <tbody>{formData.applicabilities.map(item => <tr key={item.vehicleModelId} className="border-t border-slate-100"><td className="p-3">{item.brandName}</td><td className="p-3">{item.modelCode} - {item.modelName}</td><td className="p-3">{item.sourceType.replaceAll('_', ' ')}</td><td className="p-3"><button type="button" onClick={() => setFormData({...formData, applicabilities: formData.applicabilities.filter(row => row.vehicleModelId !== item.vehicleModelId)})} className="text-red-600" title="QUITAR"><X size={17} /></button></td></tr>)}</tbody>
+                                            </table>
+                                            {formData.applicabilities.length === 0 && <div className="p-6 text-center text-sm text-slate-400">SIN MODELOS ASOCIADOS</div>}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'relations' && (
+                                    <div className="space-y-5 animate-fadeIn">
+                                        <div className="grid grid-cols-1 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_170px_190px_160px_44px]">
+                                            <label className="space-y-1"><span className="text-sm font-bold text-slate-700">ARTÍCULO RELACIONADO</span><select className="w-full rounded border border-slate-300 px-3 py-2" value={relatedProductId} onChange={e => setRelatedProductId(Number(e.target.value))}><option value={0}>SELECCIONE REFERENCIA</option>{products.filter(product => product.id !== currentProduct?.id).map(product => <option key={product.id} value={product.id}>{product.sku} - {product.name}</option>)}</select></label>
+                                            <label className="space-y-1"><span className="text-sm font-bold text-slate-700">RELACIÓN</span><select className="w-full rounded border border-slate-300 px-3 py-2" value={relationType} onChange={e => setRelationType(e.target.value)}><option value="INTERCAMBIABLE">INTERCAMBIABLE</option><option value="SUSTITUYE_A">SUSTITUYE A</option></select></label>
+                                            <label className="space-y-1"><span className="text-sm font-bold text-slate-700">ORIGEN</span><select className="w-full rounded border border-slate-300 px-3 py-2" value={relationSource} onChange={e => setRelationSource(e.target.value)}><option value="CATALOGO_OFICIAL">CATÁLOGO OFICIAL</option><option value="OTRA_FUENTE">OTRA FUENTE</option></select></label>
+                                            <label className="space-y-1"><span className="text-sm font-bold text-slate-700">VIGENTE DESDE</span><input type="date" disabled={relationType !== 'SUSTITUYE_A'} className="w-full rounded border border-slate-300 px-3 py-2 disabled:bg-slate-100" value={relationEffectiveFrom} onChange={e => setRelationEffectiveFrom(e.target.value)} /></label>
+                                            <button type="button" onClick={addReferenceRelation} className="k-button-primary flex h-10 items-center justify-center" title="AGREGAR RELACIÓN"><Link2 size={18} /></button>
+                                        </div>
+                                        <div className="overflow-x-auto border-y border-slate-200"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-600"><tr><th className="p-3">REFERENCIA</th><th className="p-3">RELACIÓN</th><th className="p-3">ORIGEN</th><th className="p-3">VIGENCIA</th><th className="w-12 p-3"></th></tr></thead><tbody>{formData.referenceRelations.map((item, index) => <tr key={`${item.relatedProductId}-${item.relationType}`} className="border-t border-slate-100"><td className="p-3">{item.relatedReference} - {item.relatedDescription}</td><td className="p-3">{item.relationType.replaceAll('_', ' ')}</td><td className="p-3">{item.sourceType.replaceAll('_', ' ')}</td><td className="p-3">{item.effectiveFrom ? new Date(item.effectiveFrom).toLocaleDateString('es-CO') : '-'}</td><td className="p-3"><button type="button" onClick={() => setFormData({...formData, referenceRelations: formData.referenceRelations.filter((_, rowIndex) => rowIndex !== index)})} className="text-red-600" title="QUITAR"><X size={17} /></button></td></tr>)}</tbody></table>{formData.referenceRelations.length === 0 && <div className="p-6 text-center text-sm text-slate-400">SIN EQUIVALENCIAS NI SUSTITUCIONES</div>}</div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'logistics' && (
+                                    <div className="space-y-6 animate-fadeIn">
+                                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">PEDIDO MÍNIMO</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.minimumOrderQuantity} onChange={e => setFormData({...formData, minimumOrderQuantity: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">MÚLTIPLO DE PEDIDO</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.orderMultiple} onChange={e => setFormData({...formData, orderMultiple: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">REPOSICIÓN (DÍAS)</span><input type="number" min="0" step="1" className="w-full rounded border p-2" value={formData.leadTimeDays} onChange={e => setFormData({...formData, leadTimeDays: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">PUNTO DE REORDEN</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.reorderPoint} onChange={e => setFormData({...formData, reorderPoint: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">INVENTARIO MÍNIMO</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.minimumStock} onChange={e => setFormData({...formData, minimumStock: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">INVENTARIO MÁXIMO</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.maximumStock} onChange={e => setFormData({...formData, maximumStock: Number(e.target.value)})} /></label>
+                                            <label className="space-y-1"><span className="text-xs font-bold text-slate-600">PESO (KG)</span><input type="number" min="0" step="0.0001" className="w-full rounded border p-2" value={formData.weightKg} onChange={e => setFormData({...formData, weightKg: Number(e.target.value)})} /></label>
+                                            <div className="grid grid-cols-3 gap-2"><label className="space-y-1"><span className="text-xs font-bold text-slate-600">LARGO</span><input type="number" min="0" step="0.01" className="w-full rounded border p-2" value={formData.lengthCm} onChange={e => setFormData({...formData, lengthCm: Number(e.target.value)})} /></label><label className="space-y-1"><span className="text-xs font-bold text-slate-600">ANCHO</span><input type="number" min="0" step="0.01" className="w-full rounded border p-2" value={formData.widthCm} onChange={e => setFormData({...formData, widthCm: Number(e.target.value)})} /></label><label className="space-y-1"><span className="text-xs font-bold text-slate-600">ALTO</span><input type="number" min="0" step="0.01" className="w-full rounded border p-2" value={formData.heightCm} onChange={e => setFormData({...formData, heightCm: Number(e.target.value)})} /></label></div>
+                                        </div>
+                                        {formData.referenceType === 'KIT' && <div className="space-y-4 border-t border-slate-200 pt-5">
+                                            <div className="flex items-center gap-2 font-bold text-slate-800"><Boxes size={19} /> COMPOSICIÓN DEL KIT</div>
+                                            <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_130px_180px_44px]"><label className="space-y-1"><span className="text-xs font-bold text-slate-600">COMPONENTE</span><select className="w-full rounded border p-2" value={componentProductId} onChange={e => setComponentProductId(Number(e.target.value))}><option value={0}>SELECCIONE ARTÍCULO</option>{products.filter(product => product.id !== currentProduct?.id).map(product => <option key={product.id} value={product.id}>{product.sku} - {product.name}</option>)}</select></label><label className="space-y-1"><span className="text-xs font-bold text-slate-600">CANTIDAD</span><input type="number" min="0.0001" step="0.0001" className="w-full rounded border p-2" value={componentQuantity} onChange={e => setComponentQuantity(Number(e.target.value))} /></label><label className="space-y-1"><span className="text-xs font-bold text-slate-600">UNIDAD</span><select className="w-full rounded border p-2" value={componentUnitId} onChange={e => setComponentUnitId(Number(e.target.value))}>{units.map(unit => <option key={unit.id} value={unit.id}>{unit.code} - {unit.name}</option>)}</select></label><button type="button" onClick={addKitComponent} className="k-button-primary flex h-10 items-center justify-center" title="AGREGAR COMPONENTE"><Plus size={18} /></button></div>
+                                            <div className="overflow-x-auto border-y border-slate-200"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-600"><tr><th className="p-3">COMPONENTE</th><th className="p-3">CANTIDAD</th><th className="w-12 p-3"></th></tr></thead><tbody>{formData.kitComponents.map(item => <tr key={item.componentProductId} className="border-t"><td className="p-3">{item.componentReference} - {item.componentDescription}</td><td className="p-3">{item.quantity} {item.unitCode}</td><td className="p-3"><button type="button" onClick={() => setFormData({...formData, kitComponents: formData.kitComponents.filter(row => row.componentProductId !== item.componentProductId)})} className="text-red-600" title="QUITAR"><X size={17} /></button></td></tr>)}</tbody></table></div>
+                                        </div>}
                                     </div>
                                 )}
                             </div>

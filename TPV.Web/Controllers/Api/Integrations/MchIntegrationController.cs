@@ -296,15 +296,34 @@ namespace TPV.Web.Controllers.Api.Integrations
 
             IQueryable<Product> source = _dbContext.Products
                 .IgnoreQueryFilters()
+                .Include(p => p.Category)
+                    .ThenInclude(c => c.Parent)
+                        .ThenInclude(c => c.Parent)
+                            .ThenInclude(c => c.Parent)
+                                .ThenInclude(c => c.Parent)
+                .Include(p => p.Brand)
+                .Include(p => p.BaseUnit)
+                .Include(p => p.PurchaseUnit)
+                .Include(p => p.SaleUnit)
+                .Include(p => p.UnitConversions)
+                .Include(p => p.Applicabilities)
+                    .ThenInclude(a => a.VehicleModel)
+                        .ThenInclude(m => m.Brand)
+                .Include(p => p.OutgoingReferenceRelations)
+                    .ThenInclude(r => r.RelatedProduct)
+                .Include(p => p.IncomingReferenceRelations)
+                    .ThenInclude(r => r.Product)
+                .Include(p => p.KitComponents)
+                    .ThenInclude(c => c.ComponentProduct)
+                .Include(p => p.KitComponents)
+                    .ThenInclude(c => c.UnitOfMeasure)
                 .AsNoTracking();
 
             source = ApplyTenantScope(source);
             source = ApplyEntityFilters(source, query);
             source = ApplyModifiedFilter(source, query);
 
-            var projected = source
-                .OrderBy(p => p.Id)
-                .Select(p => new MchArticleDto
+            var paged = await PageEntitiesAsync(source.OrderBy(p => p.Id), query, products => products.Select(p => new MchArticleDto
                 {
                     Id = p.Id,
                     CompanyId = p.TenantId,
@@ -312,11 +331,15 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Barcode = p.Barcode,
                     Description = p.Name,
                     ExtendedDescription = p.Description,
-                    Category = p.Category != null ? p.Category.Name : null,
-                    CategoryHierarchy = p.Category != null && p.Category.Parent != null
-                        ? p.Category.Parent.Name + " / " + p.Category.Name
-                        : p.Category != null ? p.Category.Name : null,
+                    CategoryId = p.CategoryId,
+                    Category = p.Category?.Name,
+                    CategoryLevel = p.Category?.Level,
+                    CategoryHierarchy = BuildCategoryPath(p.Category),
                     ArticleType = p.Type,
+                    OriginType = p.OriginType,
+                    IsOfficialCatalog = p.IsOfficialCatalog,
+                    Manufacturer = p.Manufacturer,
+                    ReferenceType = p.ReferenceType,
                     BrandId = p.BrandId,
                     Brand = p.Brand != null ? p.Brand.Name : null,
                     BaseUnitId = p.BaseUnitId,
@@ -328,16 +351,54 @@ namespace TPV.Web.Controllers.Api.Integrations
                     SaleUnitId = p.SaleUnitId,
                     SaleUnit = p.SaleUnit != null ? p.SaleUnit.Code : p.UnitOfMeasure,
                     SaleFactorToBase = p.UnitConversions.Where(c => c.UsageType == "SALE").Select(c => c.FactorToBase).FirstOrDefault(),
+                    MinimumOrderQuantity = p.MinimumOrderQuantity,
+                    OrderMultiple = p.OrderMultiple,
+                    WeightKg = p.WeightKg,
+                    LengthCm = p.LengthCm,
+                    WidthCm = p.WidthCm,
+                    HeightCm = p.HeightCm,
+                    LeadTimeDays = p.LeadTimeDays,
+                    ReorderPoint = p.ReorderPoint,
+                    MinimumStock = p.MinimumStock,
+                    MaximumStock = p.MaximumStock,
                     SalePrice = p.Price,
                     IvaType = p.IvaType,
                     IvaRate = p.IvaRate,
                     PriceIncludesIva = p.PriceIncludesIva,
-                    Status = ToStatus(p.IsActive),
+                    Status = p.CatalogStatus,
                     CreatedAt = p.CreatedAt,
-                    ModifiedAt = p.UpdatedAt ?? p.CreatedAt
-                });
+                    ModifiedAt = p.UpdatedAt ?? p.CreatedAt,
+                    Applicabilities = p.Applicabilities.OrderBy(a => a.VehicleModel.Brand.Name).ThenBy(a => a.VehicleModel.Name)
+                        .Select(a => new MchArticleApplicabilityDto
+                        {
+                            VehicleModelId = a.VehicleModelId,
+                            BrandId = a.VehicleModel.BrandId,
+                            Brand = a.VehicleModel.Brand.Name,
+                            ModelCode = a.VehicleModel.Code,
+                            Model = a.VehicleModel.Name,
+                            SourceType = a.SourceType
+                        }).ToList(),
+                    ReferenceRelations = p.OutgoingReferenceRelations.Where(r => r.RelationType == "INTERCAMBIABLE")
+                        .Select(r => MapMchArticleRelation(r, r.RelatedProduct, "INTERCAMBIABLE"))
+                        .Concat(p.IncomingReferenceRelations.Where(r => r.RelationType == "INTERCAMBIABLE")
+                            .Select(r => MapMchArticleRelation(r, r.Product, "INTERCAMBIABLE")))
+                        .Concat(p.OutgoingReferenceRelations.Where(r => r.RelationType == "SUSTITUYE_A")
+                            .Select(r => MapMchArticleRelation(r, r.RelatedProduct, "SUSTITUYE_A")))
+                        .Concat(p.IncomingReferenceRelations.Where(r => r.RelationType == "SUSTITUYE_A")
+                            .Select(r => MapMchArticleRelation(r, r.Product, "SUSTITUIDA_POR")))
+                        .OrderBy(r => r.RelationType).ThenBy(r => r.RelatedReference).ToList(),
+                    KitComponents = p.KitComponents.OrderBy(c => c.ComponentProduct.SKU).Select(c => new MchArticleKitComponentDto
+                    {
+                        ProductId = c.ComponentProductId,
+                        Reference = c.ComponentProduct.SKU,
+                        Description = c.ComponentProduct.Name,
+                        Quantity = c.Quantity,
+                        UnitId = c.UnitOfMeasureId,
+                        Unit = c.UnitOfMeasure.Code
+                    }).ToList()
+                }).ToList());
 
-            return Ok(await ToPagedResponseAsync(projected, query));
+            return Ok(paged);
         }
 
         [HttpGet("units")]
@@ -1339,6 +1400,32 @@ namespace TPV.Web.Controllers.Api.Integrations
             return value.TimeOfDay == TimeSpan.Zero ? value.Date.AddDays(1).AddTicks(-1) : value;
         }
 
+        private static string? BuildCategoryPath(Category? category)
+        {
+            if (category == null) return null;
+            var names = new Stack<string>();
+            var current = category;
+            while (current != null)
+            {
+                names.Push(current.Name);
+                current = current.Parent;
+            }
+            return string.Join(" / ", names);
+        }
+
+        private static MchArticleReferenceRelationDto MapMchArticleRelation(
+            ProductReferenceRelation relation,
+            Product related,
+            string relationType) => new()
+        {
+            RelatedProductId = related.Id,
+            RelatedReference = related.SKU,
+            RelatedDescription = related.Name,
+            RelationType = relationType,
+            SourceType = relation.SourceType,
+            EffectiveFrom = relation.EffectiveFrom
+        };
+
         private static string ToStatus(bool isActive)
         {
             return isActive ? "Activo" : "Inactivo";
@@ -1441,9 +1528,15 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Barcode { get; set; }
         public string Description { get; set; } = string.Empty;
         public string? ExtendedDescription { get; set; }
+        public int CategoryId { get; set; }
         public string? Category { get; set; }
+        public int? CategoryLevel { get; set; }
         public string? CategoryHierarchy { get; set; }
         public string ArticleType { get; set; } = string.Empty;
+        public string OriginType { get; set; } = string.Empty;
+        public bool IsOfficialCatalog { get; set; }
+        public string? Manufacturer { get; set; }
+        public string ReferenceType { get; set; } = string.Empty;
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public string BaseUnit { get; set; } = string.Empty;
@@ -1455,10 +1548,23 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? SaleUnitId { get; set; }
         public string? SaleUnit { get; set; }
         public decimal SaleFactorToBase { get; set; }
+        public decimal MinimumOrderQuantity { get; set; }
+        public decimal OrderMultiple { get; set; }
+        public decimal? WeightKg { get; set; }
+        public decimal? LengthCm { get; set; }
+        public decimal? WidthCm { get; set; }
+        public decimal? HeightCm { get; set; }
+        public int? LeadTimeDays { get; set; }
+        public decimal ReorderPoint { get; set; }
+        public decimal MinimumStock { get; set; }
+        public decimal MaximumStock { get; set; }
         public decimal SalePrice { get; set; }
         public string IvaType { get; set; } = string.Empty;
         public decimal IvaRate { get; set; }
         public bool PriceIncludesIva { get; set; }
+        public List<MchArticleApplicabilityDto> Applicabilities { get; set; } = new();
+        public List<MchArticleReferenceRelationDto> ReferenceRelations { get; set; } = new();
+        public List<MchArticleKitComponentDto> KitComponents { get; set; } = new();
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
@@ -1501,6 +1607,36 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchArticleApplicabilityDto
+    {
+        public int VehicleModelId { get; set; }
+        public int BrandId { get; set; }
+        public string Brand { get; set; } = string.Empty;
+        public string ModelCode { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+    }
+
+    public class MchArticleReferenceRelationDto
+    {
+        public int RelatedProductId { get; set; }
+        public string RelatedReference { get; set; } = string.Empty;
+        public string RelatedDescription { get; set; } = string.Empty;
+        public string RelationType { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+        public DateTime? EffectiveFrom { get; set; }
+    }
+
+    public class MchArticleKitComponentDto
+    {
+        public int ProductId { get; set; }
+        public string Reference { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public int UnitId { get; set; }
+        public string Unit { get; set; } = string.Empty;
     }
 
     public class MchInventoryLocationBalanceDto

@@ -19,8 +19,8 @@ La integracion MCH existente es una primera capa readonly util, pero aun no cump
 
 Brechas principales:
 
-- Marca no esta modelada como dimension independiente en todos los hechos.
 - Vehiculo maestro por VIN/chasis y catalogos formales de marca/modelo implementados y relacionados.
+- El catalogo avanzado de articulos ya cubre clasificacion cerrada, origen, fabricante, aplicabilidad, equivalencias, sustituciones, kits y reposicion.
 - Garantias de fabricante ya cubren el ciclo desde deteccion hasta factura y pago; los registros anteriores a la migracion se exponen como historicos incompletos sin suponer datos.
 - Unidades cerradas, conversiones compra/base/venta, cantidades decimales y kardex por sucursal/ubicacion ya estan implementados. Las entradas de mercancia seleccionan una ubicacion de recepcion explicita y la conservan para trazabilidad y reversos.
 - Las ordenes de taller ya preservan anulacion e historia de estados; falta extender esta politica a los demas documentos operativos.
@@ -54,7 +54,7 @@ Brechas principales:
 | Sucursales | Cumple | `GET /api/integrations/mch/branches` | Expone `MainBrandId` y marca principal seleccionable desde el maestro. |
 | Clientes | Parcial | `GET /api/integrations/mch/customers` | Basico disponible; falta historizacion de propietario de vehiculo. |
 | Proveedores | Parcial | `GET /api/integrations/mch/suppliers` | Basico disponible; falta clasificar proveedor oficial vs tercero. |
-| Catalogo de articulos | Parcial | `GET /api/integrations/mch/article-catalog` | Ya incluye marca formal, unidad base, compra y venta, fraccionamiento y factores; faltan aplicabilidad, equivalencias, sustitutos y kits del punto 6. |
+| Catalogo de articulos | Cumple | `GET /api/integrations/mch/article-catalog`; modulo interno `Products` | Incluye jerarquia cerrada de categorias, origen original/homologo/generico, marca, fabricante, catalogo oficial, estado, aplicabilidad por modelo con fuente, equivalencias, sustituciones dirigidas con vigencia, referencias simples/kits y composicion, unidades/conversiones, dimensiones, tiempos y parametros de reposicion. |
 | Unidades de medida | Cumple | `GET /api/integrations/mch/units`; maestro interno de articulos | Lista cerrada por empresa con codigo, nombre, simbolo, fraccionamiento y estado. |
 | Inventario | Cumple | `GET /api/integrations/mch/inventory`; `GET /api/integrations/mch/inventory-movements`; modulo `Inventory` | La sucursal actua como bodega; expone unidad base, ubicaciones y saldos, costo, min/max y kardex con unidad, conversion, documento y usuario. |
 | Ventas | Parcial | `GET /api/integrations/mch/sales` | Cada linea expone marca formal; faltan clasificacion contable, anulaciones/notas credito y costo por linea. |

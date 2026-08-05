@@ -1073,6 +1073,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int?>("BrandId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CatalogStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -1083,10 +1088,16 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("HeightCm")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<decimal>("ImpoconsumoRate")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOfficialCatalog")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("IvaRate")
@@ -1096,9 +1107,36 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("LeadTimeDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("LengthCm")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<decimal>("MaximumStock")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("MinimumOrderQuantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("MinimumStock")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("OrderMultiple")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("OriginType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -1111,6 +1149,14 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<int?>("PurchaseUnitId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ReferenceType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("ReorderPoint")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("SKU")
                         .IsRequired()
@@ -1133,6 +1179,12 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("WeightKg")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("WidthCm")
+                        .HasColumnType("decimal(18,4)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BaseUnitId");
@@ -1146,6 +1198,146 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("SaleUnitId");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductApplicability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VehicleModelId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("VehicleModelId");
+
+                    b.HasIndex("TenantId", "ProductId", "VehicleModelId")
+                        .IsUnique();
+
+                    b.ToTable("ProductApplicabilities");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductKitComponent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComponentProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("KitProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentProductId");
+
+                    b.HasIndex("KitProductId");
+
+                    b.HasIndex("UnitOfMeasureId");
+
+                    b.HasIndex("TenantId", "KitProductId", "ComponentProductId")
+                        .IsUnique();
+
+                    b.ToTable("ProductKitComponents");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductReferenceRelation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RelatedProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RelationType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("RelatedProductId");
+
+                    b.HasIndex("TenantId", "ProductId", "RelatedProductId", "RelationType")
+                        .IsUnique();
+
+                    b.ToTable("ProductReferenceRelations");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ProductUnitConversion", b =>
@@ -3237,6 +3429,71 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("SaleUnit");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.ProductApplicability", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany("Applicabilities")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.VehicleModel", "VehicleModel")
+                        .WithMany()
+                        .HasForeignKey("VehicleModelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("VehicleModel");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductKitComponent", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "ComponentProduct")
+                        .WithMany("IncludedInKits")
+                        .HasForeignKey("ComponentProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Product", "KitProduct")
+                        .WithMany("KitComponents")
+                        .HasForeignKey("KitProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ComponentProduct");
+
+                    b.Navigation("KitProduct");
+
+                    b.Navigation("UnitOfMeasure");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductReferenceRelation", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany("OutgoingReferenceRelations")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Product", "RelatedProduct")
+                        .WithMany("IncomingReferenceRelations")
+                        .HasForeignKey("RelatedProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("RelatedProduct");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.ProductUnitConversion", b =>
                 {
                     b.HasOne("TPV.Domain.Entities.Product", "Product")
@@ -3685,6 +3942,16 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>
                 {
+                    b.Navigation("Applicabilities");
+
+                    b.Navigation("IncludedInKits");
+
+                    b.Navigation("IncomingReferenceRelations");
+
+                    b.Navigation("KitComponents");
+
+                    b.Navigation("OutgoingReferenceRelations");
+
                     b.Navigation("SaleDetails");
 
                     b.Navigation("Stocks");

@@ -61,6 +61,9 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<VehicleModel> VehicleModels { get; set; }
         public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
         public DbSet<ProductUnitConversion> ProductUnitConversions { get; set; }
+        public DbSet<ProductApplicability> ProductApplicabilities { get; set; }
+        public DbSet<ProductReferenceRelation> ProductReferenceRelations { get; set; }
+        public DbSet<ProductKitComponent> ProductKitComponents { get; set; }
         public DbSet<InventoryLocation> InventoryLocations { get; set; }
         public DbSet<InventoryLocationBalance> InventoryLocationBalances { get; set; }
         public DbSet<InventoryMovement> InventoryMovements { get; set; }
@@ -170,6 +173,71 @@ namespace TPV.Infrastructure.Persistence
                 .HasOne(p => p.SaleUnit)
                 .WithMany()
                 .HasForeignKey(p => p.SaleUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Product>().Property(p => p.CatalogStatus).HasMaxLength(20);
+            builder.Entity<Product>().Property(p => p.OriginType).HasMaxLength(20);
+            builder.Entity<Product>().Property(p => p.Manufacturer).HasMaxLength(160);
+            builder.Entity<Product>().Property(p => p.ReferenceType).HasMaxLength(20);
+            builder.Entity<Product>().Property(p => p.MinimumOrderQuantity).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.OrderMultiple).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.WeightKg).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.LengthCm).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.WidthCm).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.HeightCm).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.ReorderPoint).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.MinimumStock).HasColumnType("decimal(18,4)");
+            builder.Entity<Product>().Property(p => p.MaximumStock).HasColumnType("decimal(18,4)");
+
+            builder.Entity<ProductApplicability>().Property(a => a.SourceType).HasMaxLength(30);
+            builder.Entity<ProductApplicability>()
+                .HasIndex(a => new { a.TenantId, a.ProductId, a.VehicleModelId })
+                .IsUnique();
+            builder.Entity<ProductApplicability>()
+                .HasOne(a => a.Product)
+                .WithMany(p => p.Applicabilities)
+                .HasForeignKey(a => a.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ProductApplicability>()
+                .HasOne(a => a.VehicleModel)
+                .WithMany()
+                .HasForeignKey(a => a.VehicleModelId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductReferenceRelation>().Property(r => r.RelationType).HasMaxLength(30);
+            builder.Entity<ProductReferenceRelation>().Property(r => r.SourceType).HasMaxLength(30);
+            builder.Entity<ProductReferenceRelation>()
+                .HasIndex(r => new { r.TenantId, r.ProductId, r.RelatedProductId, r.RelationType })
+                .IsUnique();
+            builder.Entity<ProductReferenceRelation>()
+                .HasOne(r => r.Product)
+                .WithMany(p => p.OutgoingReferenceRelations)
+                .HasForeignKey(r => r.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<ProductReferenceRelation>()
+                .HasOne(r => r.RelatedProduct)
+                .WithMany(p => p.IncomingReferenceRelations)
+                .HasForeignKey(r => r.RelatedProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductKitComponent>().Property(c => c.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<ProductKitComponent>()
+                .HasIndex(c => new { c.TenantId, c.KitProductId, c.ComponentProductId })
+                .IsUnique();
+            builder.Entity<ProductKitComponent>()
+                .HasOne(c => c.KitProduct)
+                .WithMany(p => p.KitComponents)
+                .HasForeignKey(c => c.KitProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<ProductKitComponent>()
+                .HasOne(c => c.ComponentProduct)
+                .WithMany(p => p.IncludedInKits)
+                .HasForeignKey(c => c.ComponentProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<ProductKitComponent>()
+                .HasOne(c => c.UnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(c => c.UnitOfMeasureId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<ProductUnitConversion>().Property(c => c.UsageType).HasMaxLength(20);

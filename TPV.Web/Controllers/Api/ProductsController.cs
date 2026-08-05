@@ -41,6 +41,10 @@ namespace TPV.Web.Controllers.Api
                 var created = await _productService.CreateProductAsync(dto);
                 return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
             }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (System.Exception ex)
             {
                 System.Console.WriteLine($"Error creating product: {ex.Message}");
@@ -56,8 +60,15 @@ namespace TPV.Web.Controllers.Api
         public async Task<IActionResult> Update(int id, ProductDto dto)
         {
             if (id != dto.Id) return BadRequest("ID mismatch");
-            await _productService.UpdateProductAsync(dto);
-            return NoContent();
+            try
+            {
+                await _productService.UpdateProductAsync(dto);
+                return NoContent();
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

@@ -32,11 +32,32 @@ namespace TPV.Domain.Entities
         public int? BrandId { get; set; }
         public Brand? Brand { get; set; }
 
+        public string CatalogStatus { get; set; } = "ACTIVO";
+        public string OriginType { get; set; } = "NO_CLASIFICADO";
+        public bool IsOfficialCatalog { get; set; }
+        public string? Manufacturer { get; set; }
+        public string ReferenceType { get; set; } = "SIMPLE";
+        public decimal MinimumOrderQuantity { get; set; }
+        public decimal OrderMultiple { get; set; }
+        public decimal? WeightKg { get; set; }
+        public decimal? LengthCm { get; set; }
+        public decimal? WidthCm { get; set; }
+        public decimal? HeightCm { get; set; }
+        public int? LeadTimeDays { get; set; }
+        public decimal ReorderPoint { get; set; }
+        public decimal MinimumStock { get; set; }
+        public decimal MaximumStock { get; set; }
+
         public int CategoryId { get; set; }
         public Category Category { get; set; }
 
         public ICollection<Stock> Stocks { get; set; }
         public ICollection<SaleDetail> SaleDetails { get; set; }
         public ICollection<ProductUnitConversion> UnitConversions { get; set; } = new List<ProductUnitConversion>();
+        public ICollection<ProductApplicability> Applicabilities { get; set; } = new List<ProductApplicability>();
+        public ICollection<ProductReferenceRelation> OutgoingReferenceRelations { get; set; } = new List<ProductReferenceRelation>();
+        public ICollection<ProductReferenceRelation> IncomingReferenceRelations { get; set; } = new List<ProductReferenceRelation>();
+        public ICollection<ProductKitComponent> KitComponents { get; set; } = new List<ProductKitComponent>();
+        public ICollection<ProductKitComponent> IncludedInKits { get; set; } = new List<ProductKitComponent>();
     }
 }

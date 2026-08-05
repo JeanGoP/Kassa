@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace TPV.Application.DTOs
 {
     public class ProductDto
@@ -28,8 +31,55 @@ namespace TPV.Application.DTOs
         public bool PriceIncludesIva { get; set; }
         public int? BrandId { get; set; }
         public string? BrandName { get; set; }
+        public string CatalogStatus { get; set; } = "ACTIVO";
+        public string OriginType { get; set; } = "GENERICO";
+        public bool IsOfficialCatalog { get; set; }
+        public string? Manufacturer { get; set; }
+        public string ReferenceType { get; set; } = "SIMPLE";
+        public decimal MinimumOrderQuantity { get; set; }
+        public decimal OrderMultiple { get; set; }
+        public decimal? WeightKg { get; set; }
+        public decimal? LengthCm { get; set; }
+        public decimal? WidthCm { get; set; }
+        public decimal? HeightCm { get; set; }
+        public int? LeadTimeDays { get; set; }
+        public decimal ReorderPoint { get; set; }
+        public decimal MinimumStock { get; set; }
+        public decimal MaximumStock { get; set; }
         public int CategoryId { get; set; }
         public string? CategoryName { get; set; }
         public decimal StockQuantity { get; set; }
+        public List<ProductApplicabilityDto> Applicabilities { get; set; } = new();
+        public List<ProductReferenceRelationDto> ReferenceRelations { get; set; } = new();
+        public List<ProductKitComponentDto> KitComponents { get; set; } = new();
+    }
+
+    public class ProductApplicabilityDto
+    {
+        public int VehicleModelId { get; set; }
+        public string? BrandName { get; set; }
+        public string? ModelCode { get; set; }
+        public string? ModelName { get; set; }
+        public string SourceType { get; set; } = "CATALOGO_OFICIAL";
+    }
+
+    public class ProductReferenceRelationDto
+    {
+        public int RelatedProductId { get; set; }
+        public string? RelatedReference { get; set; }
+        public string? RelatedDescription { get; set; }
+        public string RelationType { get; set; } = "INTERCAMBIABLE";
+        public string SourceType { get; set; } = "CATALOGO_OFICIAL";
+        public DateTime? EffectiveFrom { get; set; }
+    }
+
+    public class ProductKitComponentDto
+    {
+        public int ComponentProductId { get; set; }
+        public string? ComponentReference { get; set; }
+        public string? ComponentDescription { get; set; }
+        public decimal Quantity { get; set; }
+        public int UnitOfMeasureId { get; set; }
+        public string? UnitCode { get; set; }
     }
 }
