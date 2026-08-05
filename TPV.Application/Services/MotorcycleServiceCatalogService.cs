@@ -190,7 +190,17 @@ namespace TPV.Application.Services
                 orderBy: query => query.OrderBy(item => item.TenantId).ThenBy(item => item.DisplayOrder).ThenBy(item => item.Name)))
                 .FirstOrDefault();
 
-            return service?.TenantId;
+            if (service != null)
+            {
+                return service.TenantId;
+            }
+
+            var globalService = (await _repository.GetAsync(
+                predicate: item => item.TenantId == 0,
+                orderBy: query => query.OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name)))
+                .FirstOrDefault();
+
+            return globalService?.TenantId;
         }
 
         private async Task DeactivateDuplicateServicesAsync(int tenantId)

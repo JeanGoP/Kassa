@@ -14,6 +14,7 @@
     - La estructura y el historial de migraciones de Entity Framework.
     - El usuario administrador indicado, incluida su contrasena.
     - Los roles y permisos del sistema necesarios para operar la aplicacion.
+    - La plantilla global de los diez servicios de moto predeterminados.
 
     Se elimina:
     - Toda la informacion funcional: empresas, sucursales, productos,
@@ -69,8 +70,29 @@ BEGIN
     WHERE t.is_ms_shipped = 0
       AND t.name NOT LIKE N'AspNet%'
       AND t.name <> N'__EFMigrationsHistory'
+      AND t.name <> N'MotorcycleServices'
     GROUP BY s.name, t.name
     ORDER BY s.name, t.name;
+
+    SELECT
+        N'dbo' AS [Esquema],
+        N'MotorcycleServices' AS [Tabla],
+        COUNT_BIG(*) AS [FilasAEliminar]
+    FROM dbo.MotorcycleServices
+    WHERE TenantId <> 0
+       OR Name NOT IN
+       (
+           N'Revision general',
+           N'Cambio de aceite',
+           N'Mantenimiento preventivo',
+           N'Ajuste de frenos',
+           N'Cambio de pastillas o bandas',
+           N'Revision electrica',
+           N'Cambio de llantas',
+           N'Sincronizacion',
+           N'Revision de suspension',
+           N'Kit de arrastre'
+       );
 
     SELECT
         Email,
@@ -158,6 +180,27 @@ BEGIN TRY
         UpdatedAt = SYSUTCDATETIME()
     WHERE Id = @AdminId;
 
+    DECLARE @DefaultMotorcycleServices TABLE
+    (
+        Name nvarchar(160) NOT NULL,
+        Description nvarchar(500) NULL,
+        EstimatedMinutes int NULL,
+        DisplayOrder int NOT NULL
+    );
+
+    INSERT INTO @DefaultMotorcycleServices (Name, Description, EstimatedMinutes, DisplayOrder)
+    VALUES
+        (N'Revision general', N'Inspeccion general de la moto y puntos de seguridad.', 60, 10),
+        (N'Cambio de aceite', N'Cambio de aceite y revision basica de niveles.', 30, 20),
+        (N'Mantenimiento preventivo', N'Servicio preventivo por kilometraje o rutina.', 90, 30),
+        (N'Ajuste de frenos', N'Revision, ajuste y limpieza del sistema de frenos.', 45, 40),
+        (N'Cambio de pastillas o bandas', N'Cambio de elementos de freno segun estado.', 60, 50),
+        (N'Revision electrica', N'Diagnostico de luces, bateria, carga y conexiones.', 60, 60),
+        (N'Cambio de llantas', N'Montaje o cambio de llanta delantera o trasera.', 45, 70),
+        (N'Sincronizacion', N'Ajuste de motor, carburacion o parametros de marcha.', 90, 80),
+        (N'Revision de suspension', N'Inspeccion de amortiguadores, barras y direccion.', 60, 90),
+        (N'Kit de arrastre', N'Revision o cambio de cadena, sprocket y catalina.', 75, 100);
+
     -- Vaciar todas las tablas funcionales presentes ahora o agregadas en el futuro.
     SET @Sql = N'';
     SELECT @Sql = @Sql
@@ -168,8 +211,50 @@ BEGIN TRY
     WHERE t.is_ms_shipped = 0
       AND t.name NOT LIKE N'AspNet%'
       AND t.name <> N'__EFMigrationsHistory'
+      AND t.name <> N'MotorcycleServices'
     ORDER BY t.object_id;
     EXEC sys.sp_executesql @Sql;
+
+    -- Conservar solo la plantilla global y devolver cualquier servicio faltante.
+    DELETE service
+    FROM dbo.MotorcycleServices AS service
+    WHERE service.TenantId <> 0
+       OR NOT EXISTS
+       (
+           SELECT 1
+           FROM @DefaultMotorcycleServices AS defaults
+           WHERE defaults.Name = service.Name
+       );
+
+    UPDATE service
+    SET service.Description = defaults.Description,
+        service.EstimatedMinutes = defaults.EstimatedMinutes,
+        service.DisplayOrder = defaults.DisplayOrder,
+        service.IsActive = 1,
+        service.UpdatedAt = SYSUTCDATETIME()
+    FROM dbo.MotorcycleServices AS service
+    INNER JOIN @DefaultMotorcycleServices AS defaults ON defaults.Name = service.Name
+    WHERE service.TenantId = 0;
+
+    INSERT INTO dbo.MotorcycleServices
+        (TenantId, Name, Description, EstimatedMinutes, DisplayOrder, CreatedAt, UpdatedAt, IsActive)
+    SELECT
+        0,
+        defaults.Name,
+        defaults.Description,
+        defaults.EstimatedMinutes,
+        defaults.DisplayOrder,
+        SYSUTCDATETIME(),
+        NULL,
+        1
+    FROM @DefaultMotorcycleServices AS defaults
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.MotorcycleServices AS service
+        WHERE service.TenantId = 0
+          AND service.Name = defaults.Name
+    );
 
     -- Limpiar identidad y reconstruir solamente la asignacion Admin.
     DELETE FROM dbo.AspNetUserTokens;
@@ -198,6 +283,7 @@ BEGIN TRY
     WHERE t.is_ms_shipped = 0
       AND t.name NOT LIKE N'AspNet%'
       AND t.name <> N'__EFMigrationsHistory'
+      AND t.name <> N'MotorcycleServices'
     ORDER BY t.object_id;
     EXEC sys.sp_executesql @Sql;
 

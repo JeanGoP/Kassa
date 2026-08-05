@@ -31,7 +31,7 @@ Cada sucursal funciona como una bodega. Las ubicaciones representan zonas físic
 
 ## 3. CATÁLOGOS
 
-Antes de operar cree categorías, marcas/modelos, productos, clientes, proveedores, servicios y personal de taller.
+Antes de operar cree categorías, marcas/modelos, productos, clientes y proveedores. Revise los servicios de moto predeterminados y complete el personal de taller.
 
 ![Marcas y modelos](assets/18_marcas_modelos.png)
 
@@ -52,6 +52,18 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 ![Cliente](assets/19b_nuevo_cliente.png)
 
 ![Proveedor](assets/20b_nuevo_proveedor.png)
+
+### SERVICIOS DE MOTO Y PERSONAL
+
+1. Abra SERVICIOS MOTO y revise los diez servicios predeterminados.
+2. Ajuste nombre, descripción, tiempo estimado y orden de visualización cuando sea necesario.
+3. Cree servicios adicionales para los trabajos propios del taller.
+4. En TÉCNICOS registre el personal que ejecuta los trabajos.
+5. En JEFES DE TALLER registre los responsables y asígnelos a las sucursales.
+
+![Servicios de moto](assets/21_servicios_moto.png)
+
+![Técnicos](assets/22_tecnicos.png)
 
 ## 4. CAJA, VENTAS Y COTIZACIONES
 
