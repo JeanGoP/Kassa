@@ -7,6 +7,8 @@ namespace TPV.Application.DTOs
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Specialty { get; set; }
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
     }
 
     public class CreateTechnicianDto
@@ -15,6 +17,7 @@ namespace TPV.Application.DTOs
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Specialty { get; set; }
+        public int? BranchId { get; set; }
     }
 }
 

@@ -11,10 +11,12 @@ namespace TPV.Application.Services
     public class TechnicianService : ITechnicianService
     {
         private readonly IRepository<Technician> _repository;
+        private readonly IRepository<Branch> _branchRepository;
 
-        public TechnicianService(IRepository<Technician> repository)
+        public TechnicianService(IRepository<Technician> repository, IRepository<Branch> branchRepository)
         {
             _repository = repository;
+            _branchRepository = branchRepository;
         }
 
         public async Task<IEnumerable<TechnicianDto>> GetAllAsync(string? search = null)
@@ -23,7 +25,8 @@ namespace TPV.Application.Services
                 predicate: t => string.IsNullOrEmpty(search) ||
                                 t.Name.Contains(search) ||
                                 (t.Specialty != null && t.Specialty.Contains(search)),
-                orderBy: q => q.OrderBy(t => t.Name)
+                orderBy: q => q.OrderBy(t => t.Name),
+                includeString: "Branch"
             );
 
             return technicians.Select(t => new TechnicianDto
@@ -32,13 +35,15 @@ namespace TPV.Application.Services
                 Name = t.Name,
                 Phone = t.Phone,
                 Email = t.Email,
-                Specialty = t.Specialty
+                Specialty = t.Specialty,
+                BranchId = t.BranchId,
+                BranchName = t.Branch?.Name
             });
         }
 
         public async Task<TechnicianDto> GetByIdAsync(int id)
         {
-            var t = await _repository.GetByIdAsync(id);
+            var t = (await _repository.GetAsync(x => x.Id == id, includeString: "Branch")).FirstOrDefault();
             if (t == null) return null;
 
             return new TechnicianDto
@@ -47,18 +52,23 @@ namespace TPV.Application.Services
                 Name = t.Name,
                 Phone = t.Phone,
                 Email = t.Email,
-                Specialty = t.Specialty
+                Specialty = t.Specialty,
+                BranchId = t.BranchId,
+                BranchName = t.Branch?.Name
             };
         }
 
         public async Task<TechnicianDto> CreateAsync(CreateTechnicianDto dto)
         {
+            var branch = await ResolveBranchAsync(dto.BranchId);
             var entity = new Technician
             {
                 Name = dto.Name,
                 Phone = dto.Phone,
                 Email = dto.Email,
                 Specialty = dto.Specialty,
+                BranchId = branch?.Id,
+                Branch = branch,
                 IsActive = true
             };
 
@@ -70,7 +80,9 @@ namespace TPV.Application.Services
                 Name = created.Name,
                 Phone = created.Phone,
                 Email = created.Email,
-                Specialty = created.Specialty
+                Specialty = created.Specialty,
+                BranchId = created.BranchId,
+                BranchName = branch?.Name
             };
         }
 
@@ -79,10 +91,13 @@ namespace TPV.Application.Services
             var entity = await _repository.GetByIdAsync(id);
             if (entity != null)
             {
+                var branch = await ResolveBranchAsync(dto.BranchId);
                 entity.Name = dto.Name;
                 entity.Phone = dto.Phone;
                 entity.Email = dto.Email;
                 entity.Specialty = dto.Specialty;
+                entity.BranchId = branch?.Id;
+                entity.Branch = branch;
 
                 await _repository.UpdateAsync(entity);
             }
@@ -95,6 +110,17 @@ namespace TPV.Application.Services
             {
                 await _repository.DeleteAsync(entity);
             }
+        }
+
+        private async Task<Branch?> ResolveBranchAsync(int? branchId)
+        {
+            if (!branchId.HasValue) return null;
+            var branch = await _branchRepository.GetByIdAsync(branchId.Value);
+            if (branch == null || !branch.IsActive)
+            {
+                throw new System.InvalidOperationException("Seleccione una sucursal activa para el tecnico.");
+            }
+            return branch;
         }
     }
 }

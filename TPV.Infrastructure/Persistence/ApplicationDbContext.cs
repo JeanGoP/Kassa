@@ -402,6 +402,16 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(m => new { m.TenantId, m.Name })
                 .IsUnique();
 
+            builder.Entity<Technician>()
+                .HasOne(t => t.Branch)
+                .WithMany()
+                .HasForeignKey(t => t.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ApplicationUser>()
+                .Property(user => user.CreatedAt)
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
             builder.Entity<Branch>()
                 .HasOne(b => b.WorkshopManager)
                 .WithMany()

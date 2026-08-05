@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TPV.Application.DTOs
 {
     public class TenantDto
@@ -13,8 +15,10 @@ namespace TPV.Application.DTOs
 
     public class CreateTenantDto
     {
+        [Required]
         public string Name { get; set; }
-        public string? Nit { get; set; }
+        [Required]
+        public string Nit { get; set; } = string.Empty;
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }

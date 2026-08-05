@@ -10,6 +10,10 @@ using TPV.Infrastructure.Persistence;
 using TPV.Infrastructure.Repositories;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +25,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<TPV.Web.Controllers.Api.Integrations.MchUtcJsonResultFilter>();
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddDataProtection()
@@ -35,6 +40,36 @@ builder.Services.AddAuthorization(options =>
     }
 });
 builder.Services.AddSession();
+
+var mchRequestsPerMinute = Math.Max(1, builder.Configuration.GetValue("Integrations:MCH:RequestsPerMinute", 120));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            message = "Limite de solicitudes MCH excedido.",
+            retryAfterSeconds = 60
+        }, cancellationToken);
+    };
+    options.AddPolicy("mch", httpContext =>
+    {
+        var apiKey = httpContext.Request.Headers["X-MCH-API-Key"].FirstOrDefault();
+        var rawPartition = string.IsNullOrWhiteSpace(apiKey)
+            ? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous"
+            : apiKey;
+        var partition = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawPartition)));
+        return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = mchRequestsPerMinute,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+});
 
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:5173", "http://127.0.0.1:5173" };
 
@@ -76,20 +111,22 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
 app.UseRouting();
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+app.UseRateLimiter();
 
 app.UseCors("AllowFrontend");
 

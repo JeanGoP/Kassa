@@ -9,6 +9,8 @@ namespace TPV.Domain.Entities
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Specialty { get; set; }
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
     }
 }
 

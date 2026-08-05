@@ -9,5 +9,7 @@ namespace TPV.Infrastructure.Identity
         public int? CurrentBranchId { get; set; } // Sucursal actual de trabajo
         public int? TenantId { get; set; } // Empresa a la que pertenece
         public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
     }
 }

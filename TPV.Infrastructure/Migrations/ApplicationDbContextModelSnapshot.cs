@@ -2546,6 +2546,9 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -2572,6 +2575,8 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.ToTable("Technicians");
                 });
@@ -3261,6 +3266,11 @@ namespace TPV.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
                     b.Property<int?>("CurrentBranchId")
                         .HasColumnType("int");
 
@@ -3311,6 +3321,9 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -4018,6 +4031,16 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("OfficialBrand");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Technician", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>

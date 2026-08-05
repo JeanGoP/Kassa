@@ -217,7 +217,7 @@ const Tenants = () => {
                         <form onSubmit={handleSubmit} className="p-6">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">NOMBRE *</label>
                                     <input 
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -229,16 +229,17 @@ const Tenants = () => {
                                 
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">NIT</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">NIT *</label>
                                         <input 
                                             type="text" 
                                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             value={formData.nit}
                                             onChange={(e) => setFormData({...formData, nit: e.target.value})}
+                                            required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">TELÉFONO</label>
                                         <input 
                                             type="text" 
                                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -249,7 +250,7 @@ const Tenants = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">EMAIL</label>
                                     <input 
                                         type="email" 
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -259,7 +260,7 @@ const Tenants = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">DIRECCIÓN</label>
                                     <input 
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -269,7 +270,7 @@ const Tenants = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">URL Logo</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">URL LOGO</label>
                                     <input 
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all"

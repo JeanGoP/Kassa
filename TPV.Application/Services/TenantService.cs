@@ -51,6 +51,12 @@ namespace TPV.Application.Services
 
         public async Task<TenantDto> CreateAsync(CreateTenantDto dto)
         {
+            dto.Nit = dto.Nit.Trim();
+            if (string.IsNullOrWhiteSpace(dto.Nit))
+            {
+                throw new System.Exception("El NIT de la empresa es obligatorio.");
+            }
+
             if (!string.IsNullOrEmpty(dto.Nit))
             {
                 dto.Nit = dto.Nit.Trim();
@@ -90,6 +96,12 @@ namespace TPV.Application.Services
             var tenant = await _repository.GetByIdAsync(id);
             if (tenant != null)
             {
+                dto.Nit = dto.Nit.Trim();
+                if (string.IsNullOrWhiteSpace(dto.Nit))
+                {
+                    throw new System.Exception("El NIT de la empresa es obligatorio.");
+                }
+
                 if (!string.IsNullOrEmpty(dto.Nit))
                 {
                     dto.Nit = dto.Nit.Trim();

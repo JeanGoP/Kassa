@@ -195,7 +195,8 @@ namespace TPV.Web.Controllers.Api
                 LastName = request.LastName,
                 IsActive = true,
                 TenantId = targetTenantId,
-                CurrentBranchId = request.CurrentBranchId
+                CurrentBranchId = request.CurrentBranchId,
+                CreatedAt = DateTime.UtcNow
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -297,6 +298,7 @@ namespace TPV.Web.Controllers.Api
             user.FirstName = request.FirstName?.Trim();
             user.LastName = request.LastName?.Trim();
             user.IsActive = request.IsActive;
+            user.UpdatedAt = DateTime.UtcNow;
             
             // 2. Actualizar Tenant (Empresa) y Sucursal
             if (request.TenantId != user.TenantId)

@@ -1,15 +1,22 @@
 using System.Security.Cryptography;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TPV.Domain.Common;
 using TPV.Domain.Entities;
 using TPV.Infrastructure.Persistence;
+using TPV.Infrastructure.Identity;
 
 namespace TPV.Web.Controllers.Api.Integrations
 {
     [ApiController]
     [Route("api/integrations/mch")]
+    [Route("api/integrations/mch/v1")]
+    [EnableRateLimiting("mch")]
+    [ServiceFilter(typeof(MchUtcJsonResultFilter))]
     public class MchIntegrationController : ControllerBase
     {
         private const int DefaultPageSize = 100;
@@ -35,7 +42,8 @@ namespace TPV.Web.Controllers.Api.Integrations
             {
                 name = "MCH Posventa API",
                 mode = "readonly",
-                version = "1.0-base",
+                version = "1.0",
+                canonicalBasePath = "/api/integrations/mch/v1",
                 generatedAtUtc = DateTime.UtcNow,
                 resources = new[]
                 {
@@ -45,6 +53,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "models",
                     "customers",
                     "suppliers",
+                    "personnel",
                     "article-catalog",
                     "inventory",
                     "sales",
@@ -58,6 +67,99 @@ namespace TPV.Web.Controllers.Api.Integrations
             });
         }
 
+        [HttpGet("health")]
+        public async Task<IActionResult> GetHealth()
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            var databaseAvailable = false;
+            try
+            {
+                databaseAvailable = await _dbContext.Database.CanConnectAsync();
+            }
+            catch
+            {
+                databaseAvailable = false;
+            }
+
+            var response = new
+            {
+                status = databaseAvailable ? "available" : "unavailable",
+                apiVersion = "1.0",
+                environment = _configuration["Integrations:MCH:Environment"] ?? "production",
+                databaseAvailable,
+                checkedAtUtc = DateTimeOffset.UtcNow,
+                maintenanceWindow = _configuration["Integrations:MCH:MaintenanceWindow"] ?? "Domingos 02:00-04:00 America/Bogota"
+            };
+
+            return databaseAvailable ? Ok(response) : StatusCode(StatusCodes.Status503ServiceUnavailable, response);
+        }
+
+        [HttpGet("contract")]
+        public IActionResult GetContract()
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            var resources = new Dictionary<string, Type>
+            {
+                ["companies"] = typeof(MchCompanyDto),
+                ["branches"] = typeof(MchBranchDto),
+                ["brands"] = typeof(MchBrandDto),
+                ["models"] = typeof(MchVehicleModelDto),
+                ["customers"] = typeof(MchThirdPartyDto),
+                ["suppliers"] = typeof(MchThirdPartyDto),
+                ["personnel"] = typeof(MchPersonnelDto),
+                ["article-catalog"] = typeof(MchArticleDto),
+                ["units"] = typeof(MchUnitDto),
+                ["inventory"] = typeof(MchInventoryDto),
+                ["inventory-movements"] = typeof(MchInventoryMovementDto),
+                ["sales"] = typeof(MchSaleDto),
+                ["purchases"] = typeof(MchPurchaseDto),
+                ["service-orders"] = typeof(MchServiceOrderDto),
+                ["vehicles"] = typeof(MchVehicleDto),
+                ["warranties"] = typeof(MchWarrantyDto),
+                ["preparation-orders"] = typeof(MchPreparationOrderDto)
+            };
+
+            var componentTypes = resources.Values
+                .Concat(new[]
+                {
+                    typeof(MchQuery), typeof(MchArticleApplicabilityDto), typeof(MchArticleReferenceRelationDto),
+                    typeof(MchArticleKitComponentDto), typeof(MchInventoryLocationBalanceDto),
+                    typeof(MchSaleLineDto), typeof(MchSaleAdjustmentDto), typeof(MchSaleAdjustmentLineDto),
+                    typeof(MchPurchaseLineDto), typeof(MchPreparationOrderConsumptionDto),
+                    typeof(MchServiceOrderWorkDto), typeof(MchServiceOrderPartDto),
+                    typeof(MchServiceOrderStatusHistoryDto), typeof(MchWarrantyReplacementPartDto),
+                    typeof(MchWarrantyStatusHistoryDto), typeof(MchVehicleOwnerDto),
+                    typeof(MchVehicleServiceHistoryDto), typeof(MchVehicleMaintenanceReviewDto)
+                })
+                .Distinct()
+                .ToDictionary(type => type.Name, DescribeContractType);
+
+            return Ok(new
+            {
+                apiVersion = "1.0",
+                basePath = "/api/integrations/mch/v1",
+                authenticationHeader = ApiKeyHeaderName,
+                responseFormat = "application/json",
+                timeZone = "UTC",
+                pagination = new
+                {
+                    request = new { pageSize = "integer (1-500)", continuationToken = "string" },
+                    response = new { data = "array", totalRecords = "integer", pageSize = "integer", nextContinuationToken = "string|null", generatedAtUtc = "string(date-time)" }
+                },
+                endpoints = resources.Select(item => new
+                {
+                    method = "GET",
+                    path = $"/api/integrations/mch/v1/{item.Key}",
+                    responseItemSchema = item.Value.Name
+                }),
+                components = componentTypes
+            });
+        }
+
         [HttpGet("coverage")]
         public IActionResult GetCoverage()
         {
@@ -67,11 +169,12 @@ namespace TPV.Web.Controllers.Api.Integrations
             return Ok(new
             {
                 generatedAtUtc = DateTime.UtcNow,
-                status = "Parcial",
-                note = "Primera capa readonly sobre datos existentes. No crea ni modifica informacion.",
+                status = "Roadmap MCH v6 completado",
+                note = "API versionada de solo lectura. No crea ni modifica informacion.",
                 availableNow = new[]
                 {
                     "Empresas, sucursales, clientes, proveedores y personal basico",
+                    "Personal consolidado desde usuarios, tecnicos y jefes de taller",
                     "Catalogos formales de marcas y modelos por empresa",
                     "Catalogo basico de articulos y servicios con marca",
                     "Inventario por sucursal con costo y niveles minimo/maximo",
@@ -82,12 +185,13 @@ namespace TPV.Web.Controllers.Api.Integrations
                     "Filtros por empresa, sucursal, marca, fechas y modificado_desde donde aplica",
                     "Paginacion por continuationToken"
                 },
-                pendingModelWork = new[]
+                operationalControls = new[]
                 {
-                    "Bodegas/ubicaciones reales y movimientos de inventario",
-                    "Cantidades decimales y conversiones de unidades",
-                    "Historial de estados y anulaciones en documentos distintos de taller y garantias",
-                    "Equivalencias, sustitutos, aplicabilidad por modelo y kits"
+                    "Ruta canonica /api/integrations/mch/v1",
+                    "Contrato consultable en /contract y salud en /health",
+                    "Rotacion sin corte mediante multiples ApiKeys",
+                    "Limite configurable por credencial",
+                    "Politica operativa documentada en Documentation/MCH_API_OPERATIONS.md"
                 }
             });
         }
@@ -110,7 +214,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .Select(t => new MchCompanyDto
                 {
                     Id = t.Id,
-                    Nit = t.Nit,
+                    Nit = t.Nit ?? string.Empty,
                     Name = t.Name,
                     Address = t.Address,
                     Phone = t.Phone,
@@ -421,6 +525,111 @@ namespace TPV.Web.Controllers.Api.Integrations
                 CreatedAt = u.CreatedAt, ModifiedAt = u.UpdatedAt ?? u.CreatedAt
             });
             return Ok(await ToPagedResponseAsync(projected, query));
+        }
+
+        [HttpGet("personnel")]
+        public async Task<IActionResult> GetPersonnel([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            var allowedTenantIds = GetAllowedTenantIds();
+            var branches = await _dbContext.Branches
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(branch => allowedTenantIds.Contains(branch.TenantId))
+                .Select(branch => new { branch.Id, branch.TenantId, branch.Name, branch.WorkshopManagerId })
+                .ToListAsync();
+
+            var branchById = branches.ToDictionary(branch => branch.Id);
+            var personnel = new List<MchPersonnelDto>();
+
+            var users = await _dbContext.Users
+                .AsNoTracking()
+                .Where(user => user.TenantId.HasValue && allowedTenantIds.Contains(user.TenantId.Value))
+                .ToListAsync();
+            var userIds = users.Select(user => user.Id).ToArray();
+            var userRoleRows = await (
+                from userRole in _dbContext.UserRoles.AsNoTracking()
+                join role in _dbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where userIds.Contains(userRole.UserId)
+                select new { userRole.UserId, Role = role.Name! })
+                .ToListAsync();
+            var rolesByUser = userRoleRows
+                .GroupBy(item => item.UserId)
+                .ToDictionary(group => group.Key, group => string.Join(", ", group.Select(item => item.Role).OrderBy(role => role)));
+
+            foreach (var user in users)
+            {
+                var modifiedAt = user.UpdatedAt ?? user.CreatedAt;
+                if (!MatchesPersonnelQuery(user.TenantId!.Value, user.CurrentBranchId, user.CreatedAt, modifiedAt, query)) continue;
+                branchById.TryGetValue(user.CurrentBranchId ?? 0, out var branch);
+                var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(value => !string.IsNullOrWhiteSpace(value))).Trim();
+                personnel.Add(new MchPersonnelDto
+                {
+                    Id = $"USER:{user.Id}", CompanyId = user.TenantId.Value, BranchId = branch?.Id,
+                    BranchName = branch?.Name, Name = string.IsNullOrWhiteSpace(fullName) ? user.Email ?? user.UserName ?? user.Id : fullName,
+                    Position = rolesByUser.GetValueOrDefault(user.Id, "USUARIO"), Source = "USUARIO",
+                    Email = user.Email, Phone = user.PhoneNumber, Status = ToStatus(user.IsActive),
+                    CreatedAt = ToUtcOffset(user.CreatedAt), ModifiedAt = ToUtcOffset(modifiedAt)
+                });
+            }
+
+            var technicians = await _dbContext.Technicians
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(technician => allowedTenantIds.Contains(technician.TenantId))
+                .ToListAsync();
+            foreach (var technician in technicians)
+            {
+                var modifiedAt = technician.UpdatedAt ?? technician.CreatedAt;
+                if (!MatchesPersonnelQuery(technician.TenantId, technician.BranchId, technician.CreatedAt, modifiedAt, query)) continue;
+                branchById.TryGetValue(technician.BranchId ?? 0, out var branch);
+                personnel.Add(new MchPersonnelDto
+                {
+                    Id = $"TECHNICIAN:{technician.Id}", CompanyId = technician.TenantId, BranchId = branch?.Id,
+                    BranchName = branch?.Name, Name = technician.Name, Position = "TECNICO", Specialty = technician.Specialty,
+                    Source = "TECNICO", Email = technician.Email, Phone = technician.Phone, Status = ToStatus(technician.IsActive),
+                    CreatedAt = ToUtcOffset(technician.CreatedAt), ModifiedAt = ToUtcOffset(modifiedAt)
+                });
+            }
+
+            var managers = await _dbContext.WorkshopManagers
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(manager => allowedTenantIds.Contains(manager.TenantId))
+                .ToListAsync();
+            foreach (var manager in managers)
+            {
+                var assignedBranches = branches.Where(branch => branch.WorkshopManagerId == manager.Id).ToList();
+                if (assignedBranches.Count == 0) assignedBranches.Add(null!);
+                foreach (var branch in assignedBranches)
+                {
+                    var modifiedAt = manager.UpdatedAt ?? manager.CreatedAt;
+                    if (!MatchesPersonnelQuery(manager.TenantId, branch?.Id, manager.CreatedAt, modifiedAt, query)) continue;
+                    personnel.Add(new MchPersonnelDto
+                    {
+                        Id = branch == null ? $"WORKSHOP_MANAGER:{manager.Id}" : $"WORKSHOP_MANAGER:{manager.Id}:BRANCH:{branch.Id}",
+                        CompanyId = manager.TenantId, BranchId = branch?.Id, BranchName = branch?.Name,
+                        Name = manager.Name, Position = "JEFE DE TALLER", Source = "JEFE_TALLER",
+                        Email = manager.Email, Phone = manager.Phone, Status = ToStatus(manager.IsActive),
+                        CreatedAt = ToUtcOffset(manager.CreatedAt), ModifiedAt = ToUtcOffset(modifiedAt)
+                    });
+                }
+            }
+
+            var ordered = personnel.OrderBy(item => item.CompanyId).ThenBy(item => item.BranchId).ThenBy(item => item.Name).ThenBy(item => item.Id).ToList();
+            var pageSize = GetPageSize(query);
+            var offset = GetOffset(query);
+            var data = ordered.Skip(offset).Take(pageSize).ToList();
+            return Ok(new MchPagedResponse<MchPersonnelDto>
+            {
+                Data = data,
+                TotalRecords = ordered.Count,
+                PageSize = pageSize,
+                NextContinuationToken = offset + data.Count < ordered.Count ? (offset + data.Count).ToString() : null,
+                GeneratedAtUtc = DateTime.UtcNow
+            });
         }
 
         [HttpGet("inventory")]
@@ -1178,14 +1387,23 @@ namespace TPV.Web.Controllers.Api.Integrations
         private IActionResult? ValidateAccess()
         {
             var enabled = _configuration.GetValue("Integrations:MCH:Enabled", false);
-            var expectedApiKey = _configuration["Integrations:MCH:ApiKey"];
+            var configuredApiKeys = GetConfiguredApiKeys();
 
-            if (!enabled || string.IsNullOrWhiteSpace(expectedApiKey))
+            Response.Headers["X-MCH-API-Version"] = "1.0";
+            Response.Headers["X-MCH-Time-Zone"] = "UTC";
+            Response.Headers.CacheControl = "no-store";
+            if (!Request.Path.StartsWithSegments("/api/integrations/mch/v1"))
+            {
+                Response.Headers["Deprecation"] = "true";
+                Response.Headers.Link = "</api/integrations/mch/v1>; rel=\"successor-version\"";
+            }
+
+            if (!enabled || configuredApiKeys.Length == 0)
             {
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new
                 {
                     message = "Integracion MCH no configurada.",
-                    requiredConfiguration = "Integrations:MCH:Enabled=true e Integrations:MCH:ApiKey"
+                    requiredConfiguration = "Integrations:MCH:Enabled=true e Integrations:MCH:ApiKeys con al menos una clave"
                 });
             }
 
@@ -1199,7 +1417,7 @@ namespace TPV.Web.Controllers.Api.Integrations
             }
 
             var providedApiKey = Request.Headers[ApiKeyHeaderName].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(providedApiKey) || !SecureEquals(providedApiKey, expectedApiKey))
+            if (string.IsNullOrWhiteSpace(providedApiKey) || !configuredApiKeys.Any(expected => SecureEquals(providedApiKey, expected)))
             {
                 return Unauthorized(new { message = "Clave de integracion MCH invalida o ausente." });
             }
@@ -1212,6 +1430,18 @@ namespace TPV.Web.Controllers.Api.Integrations
             var valueBytes = Encoding.UTF8.GetBytes(value);
             var expectedBytes = Encoding.UTF8.GetBytes(expected);
             return CryptographicOperations.FixedTimeEquals(valueBytes, expectedBytes);
+        }
+
+        private string[] GetConfiguredApiKeys()
+        {
+            var keys = _configuration.GetSection("Integrations:MCH:ApiKeys").Get<string[]>() ?? Array.Empty<string>();
+            var legacyKey = _configuration["Integrations:MCH:ApiKey"];
+            return keys
+                .Append(legacyKey)
+                .Where(key => !string.IsNullOrWhiteSpace(key))
+                .Select(key => key!.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
         }
 
         private IQueryable<Tenant> ApplyTenantScope(IQueryable<Tenant> source)
@@ -1437,6 +1667,65 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .ToArray() ?? Array.Empty<int>();
         }
 
+        private static bool MatchesPersonnelQuery(int companyId, int? branchId, DateTime createdAt, DateTime modifiedAt, MchQuery query)
+        {
+            if (query.EmpresaId.HasValue && query.EmpresaId.Value != companyId) return false;
+            if (query.SucursalId.HasValue && query.SucursalId.Value != branchId) return false;
+            if (query.Desde.HasValue && createdAt < query.Desde.Value) return false;
+            if (query.Hasta.HasValue && createdAt > NormalizeEndDate(query.Hasta.Value)) return false;
+            if (query.ModificadoDesde.HasValue && modifiedAt < query.ModificadoDesde.Value) return false;
+            return true;
+        }
+
+        private static DateTimeOffset ToUtcOffset(DateTime value)
+        {
+            var utc = value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+            return new DateTimeOffset(utc);
+        }
+
+        private static object DescribeContractType(Type type)
+        {
+            var nullability = new NullabilityInfoContext();
+            return new
+            {
+                type = "object",
+                fields = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Select(property =>
+                    {
+                        var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                        var isCollection = propertyType != typeof(string) && typeof(System.Collections.IEnumerable).IsAssignableFrom(propertyType);
+                        var itemType = isCollection
+                            ? propertyType.IsArray ? propertyType.GetElementType() : propertyType.GetGenericArguments().FirstOrDefault()
+                            : null;
+                        return new
+                        {
+                            name = JsonNamingPolicy.CamelCase.ConvertName(property.Name),
+                            type = ToContractType(propertyType),
+                            nullable = Nullable.GetUnderlyingType(property.PropertyType) != null ||
+                                       (!property.PropertyType.IsValueType && nullability.Create(property).WriteState == NullabilityState.Nullable),
+                            itemType = itemType == null ? null : ToContractType(itemType)
+                        };
+                    })
+            };
+        }
+
+        private static string ToContractType(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (type == typeof(string) || type == typeof(char)) return "string";
+            if (type == typeof(DateTime) || type == typeof(DateTimeOffset)) return "string(date-time)";
+            if (type == typeof(bool)) return "boolean";
+            if (type == typeof(byte) || type == typeof(short) || type == typeof(int) || type == typeof(long)) return "integer";
+            if (type == typeof(float) || type == typeof(double) || type == typeof(decimal)) return "number(decimal)";
+            if (type.IsArray || (type != typeof(string) && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))) return "array";
+            return type.Name;
+        }
+
         private static int GetPageSize(MchQuery query)
         {
             var requested = query.PageSize <= 0 ? DefaultPageSize : query.PageSize;
@@ -1514,7 +1803,7 @@ namespace TPV.Web.Controllers.Api.Integrations
     public class MchCompanyDto
     {
         public int Id { get; set; }
-        public string? Nit { get; set; }
+        public string Nit { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? Address { get; set; }
         public string? Phone { get; set; }
@@ -1551,6 +1840,23 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchPersonnelDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Position { get; set; } = string.Empty;
+        public string? Specialty { get; set; }
+        public string Source { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset ModifiedAt { get; set; }
     }
 
     public class MchVehicleModelDto : MchBrandDto

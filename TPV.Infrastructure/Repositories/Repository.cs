@@ -64,6 +64,7 @@ namespace TPV.Infrastructure.Repositories
 
         public async Task UpdateAsync(T entity)
         {
+            entity.UpdatedAt = DateTime.UtcNow;
             _dbContext.Entry(entity).State = EntityState.Modified;
             await _dbContext.SaveChangesAsync();
         }

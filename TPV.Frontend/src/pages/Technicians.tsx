@@ -8,6 +8,13 @@ interface Technician {
     phone?: string;
     email?: string;
     specialty?: string;
+    branchId?: number | null;
+    branchName?: string;
+}
+
+interface Branch {
+    id: number;
+    name: string;
 }
 
 const Technicians = () => {
@@ -16,11 +23,13 @@ const Technicians = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentTechnician, setCurrentTechnician] = useState<Technician | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         email: '',
-        specialty: ''
+        specialty: '',
+        branchId: ''
     });
 
     const fetchTechnicians = async () => {
@@ -38,13 +47,23 @@ const Technicians = () => {
         fetchTechnicians();
     }, [searchTerm]);
 
+    useEffect(() => {
+        api.get('/branches').then(response => setBranches(response.data));
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             if (currentTechnician) {
-                await api.put(`/technicians/${currentTechnician.id}`, formData);
+                await api.put(`/technicians/${currentTechnician.id}`, {
+                    ...formData,
+                    branchId: formData.branchId ? Number(formData.branchId) : null
+                });
             } else {
-                await api.post('/technicians', formData);
+                await api.post('/technicians', {
+                    ...formData,
+                    branchId: formData.branchId ? Number(formData.branchId) : null
+                });
             }
             await fetchTechnicians();
             handleCloseModal();
@@ -60,7 +79,8 @@ const Technicians = () => {
                 name: technician.name,
                 phone: technician.phone || '',
                 email: technician.email || '',
-                specialty: technician.specialty || ''
+                specialty: technician.specialty || '',
+                branchId: technician.branchId?.toString() || ''
             });
         } else {
             setCurrentTechnician(null);
@@ -68,7 +88,8 @@ const Technicians = () => {
                 name: '',
                 phone: '',
                 email: '',
-                specialty: ''
+                specialty: '',
+                branchId: ''
             });
         }
         setIsModalOpen(true);
@@ -123,6 +144,7 @@ const Technicians = () => {
                                 <th className="p-4 border-b">Nombre</th>
                                 <th className="p-4 border-b">Contacto</th>
                                 <th className="p-4 border-b">Especialidad</th>
+                                <th className="p-4 border-b">Sucursal</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -139,6 +161,7 @@ const Technicians = () => {
                                     <td className="p-4 text-sm">
                                         {t.specialty || '-'}
                                     </td>
+                                    <td className="p-4 text-sm">{t.branchName || 'SIN ASIGNAR'}</td>
                                     <td className="p-4 text-center">
                                         <div className="flex justify-center space-x-2">
                                             <button
@@ -159,7 +182,7 @@ const Technicians = () => {
                             ))}
                             {technicians.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={4} className="p-8 text-center text-gray-400">
+                                    <td colSpan={5} className="p-8 text-center text-gray-400">
                                         No se encontraron técnicos.
                                     </td>
                                 </tr>
@@ -182,7 +205,7 @@ const Technicians = () => {
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">NOMBRE</label>
                                 <input
                                     type="text"
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -193,7 +216,7 @@ const Technicians = () => {
                             </div>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">TELÉFONO</label>
                                     <input
                                         type="text"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -202,7 +225,7 @@ const Technicians = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">EMAIL</label>
                                     <input
                                         type="email"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -212,13 +235,24 @@ const Technicians = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Especialidad</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ESPECIALIDAD</label>
                                 <input
                                     type="text"
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={formData.specialty}
                                     onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">SUCURSAL</label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={formData.branchId}
+                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                >
+                                    <option value="">SIN ASIGNAR</option>
+                                    {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                                </select>
                             </div>
                             <div className="flex justify-end pt-4">
                                 <button
