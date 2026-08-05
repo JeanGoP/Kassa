@@ -16,11 +16,16 @@ interface PurchaseDetail {
 interface Purchase {
     id: number;
     supplierName: string;
+    supplierType: string;
+    officialBrandName?: string;
     branchName: string;
     inventoryLocationCode: string;
     inventoryLocationName: string;
     date: string;
     supplierInvoiceDate?: string | null;
+    receivedAt: string;
+    purchaseOrderNumber?: string | null;
+    purchaseOrderDate?: string | null;
     referenceNumber: string;
     totalAmount: number;
     itemsSubTotal: number;
@@ -112,12 +117,15 @@ const PurchasePrint = () => {
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 print:bg-white">
                     <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-gray-500">Proveedor</h2>
                     <div className="text-lg font-bold text-gray-900">{purchase.supplierName}</div>
+                    <div className="text-sm font-bold text-gray-600">{purchase.supplierType || 'TERCERO'}{purchase.officialBrandName ? ` - ${purchase.officialBrandName}` : ''}</div>
                     <div className="mt-2 text-sm text-gray-600">Factura: {purchase.referenceNumber || '-'}</div>
                     <div className="text-sm text-gray-600">Fecha factura: {formatDate(purchase.supplierInvoiceDate)}</div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 print:bg-white">
                     <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-gray-500">Movimiento</h2>
-                    <div className="text-sm text-gray-600">Fecha entrada: {formatDate(purchase.date)}</div>
+                    <div className="text-sm text-gray-600">Fecha documento: {formatDate(purchase.date)}</div>
+                    <div className="text-sm font-bold text-gray-700">Recepcion efectiva: {formatDate(purchase.receivedAt)}</div>
+                    <div className="text-sm text-gray-600">Pedido: {purchase.purchaseOrderNumber || '-'} / {formatDate(purchase.purchaseOrderDate)}</div>
                     <div className="text-sm text-gray-600">Bodega: {purchase.branchName}</div>
                     <div className="text-sm text-gray-600">Ubicación: {purchase.inventoryLocationCode} - {purchase.inventoryLocationName}</div>
                 </div>

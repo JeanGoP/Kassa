@@ -12,17 +12,19 @@ namespace TPV.Application.Services
     public class SupplierService : ISupplierService
     {
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IRepository<Brand> _brandRepository;
         private readonly ILogger<SupplierService> _logger;
 
-        public SupplierService(IRepository<Supplier> supplierRepository, ILogger<SupplierService> logger)
+        public SupplierService(IRepository<Supplier> supplierRepository, IRepository<Brand> brandRepository, ILogger<SupplierService> logger)
         {
             _supplierRepository = supplierRepository;
+            _brandRepository = brandRepository;
             _logger = logger;
         }
 
         public async Task<IEnumerable<SupplierDto>> GetAllAsync()
         {
-            var suppliers = await _supplierRepository.GetAllAsync();
+            var suppliers = await _supplierRepository.GetAsync(includeString: "OfficialBrand");
             return suppliers.Where(s => s.IsActive).Select(s => new SupplierDto
             {
                 Id = s.Id,
@@ -32,13 +34,16 @@ namespace TPV.Application.Services
                 Email = s.Email,
                 Address = s.Address,
                 IdentificationType = s.IdentificationType,
-                TaxId = s.TaxId
+                TaxId = s.TaxId,
+                SupplierType = s.SupplierType,
+                OfficialBrandId = s.OfficialBrandId,
+                OfficialBrandName = s.OfficialBrand?.Name
             });
         }
 
         public async Task<SupplierDto?> GetByIdAsync(int id)
         {
-            var s = await _supplierRepository.GetByIdAsync(id);
+            var s = (await _supplierRepository.GetAsync(row => row.Id == id, includeString: "OfficialBrand")).FirstOrDefault();
             if (s == null || !s.IsActive) return null;
             return new SupplierDto
             {
@@ -49,12 +54,16 @@ namespace TPV.Application.Services
                 Email = s.Email,
                 Address = s.Address,
                 IdentificationType = s.IdentificationType,
-                TaxId = s.TaxId
+                TaxId = s.TaxId,
+                SupplierType = s.SupplierType,
+                OfficialBrandId = s.OfficialBrandId,
+                OfficialBrandName = s.OfficialBrand?.Name
             };
         }
 
         public async Task<SupplierDto> CreateAsync(CreateSupplierDto dto)
         {
+            await NormalizeAndValidateTypeAsync(dto);
             if (!string.IsNullOrEmpty(dto.TaxId))
             {
                 dto.TaxId = dto.TaxId.Trim();
@@ -75,6 +84,8 @@ namespace TPV.Application.Services
                 Address = dto.Address,
                 IdentificationType = dto.IdentificationType,
                 TaxId = dto.TaxId,
+                SupplierType = dto.SupplierType,
+                OfficialBrandId = dto.OfficialBrandId,
                 IsActive = true
             };
 
@@ -90,7 +101,9 @@ namespace TPV.Application.Services
                     Email = created.Email,
                     Address = created.Address,
                     IdentificationType = created.IdentificationType,
-                    TaxId = created.TaxId
+                    TaxId = created.TaxId,
+                    SupplierType = created.SupplierType,
+                    OfficialBrandId = created.OfficialBrandId
                 };
             }
             catch (System.Exception ex)
@@ -107,6 +120,7 @@ namespace TPV.Application.Services
 
         public async Task UpdateAsync(int id, CreateSupplierDto dto)
         {
+            await NormalizeAndValidateTypeAsync(dto);
             var supplier = await _supplierRepository.GetByIdAsync(id);
             if (supplier != null)
             {
@@ -131,6 +145,8 @@ namespace TPV.Application.Services
                 supplier.Address = dto.Address;
                 supplier.IdentificationType = dto.IdentificationType;
                 supplier.TaxId = dto.TaxId;
+                supplier.SupplierType = dto.SupplierType;
+                supplier.OfficialBrandId = dto.OfficialBrandId;
 
                 try
                 {
@@ -156,6 +172,24 @@ namespace TPV.Application.Services
             {
                 supplier.IsActive = false;
                 await _supplierRepository.UpdateAsync(supplier);
+            }
+        }
+
+        private async Task NormalizeAndValidateTypeAsync(CreateSupplierDto dto)
+        {
+            dto.SupplierType = string.IsNullOrWhiteSpace(dto.SupplierType)
+                ? "TERCERO"
+                : dto.SupplierType.Trim().ToUpperInvariant();
+            if (dto.SupplierType != "OFICIAL" && dto.SupplierType != "TERCERO")
+                throw new System.InvalidOperationException("El tipo de proveedor debe ser OFICIAL o TERCERO.");
+            if (dto.SupplierType == "OFICIAL" && !dto.OfficialBrandId.HasValue)
+                throw new System.InvalidOperationException("Un proveedor oficial debe indicar la marca que representa.");
+            if (dto.SupplierType == "TERCERO") dto.OfficialBrandId = null;
+            if (dto.OfficialBrandId.HasValue)
+            {
+                var brand = await _brandRepository.GetByIdAsync(dto.OfficialBrandId.Value);
+                if (brand == null || !brand.IsActive)
+                    throw new System.InvalidOperationException("La marca oficial seleccionada no existe o está inactiva.");
             }
         }
     }

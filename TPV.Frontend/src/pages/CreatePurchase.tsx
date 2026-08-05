@@ -16,6 +16,8 @@ interface Product {
 interface Supplier {
     id: number;
     name: string;
+    supplierType: string;
+    officialBrandName?: string;
 }
 
 interface Branch {
@@ -80,6 +82,9 @@ const CreatePurchase = () => {
     const [inventoryLocationId, setInventoryLocationId] = useState<number | ''>('');
     const [date, setDate] = useState(today());
     const [supplierInvoiceDate, setSupplierInvoiceDate] = useState(today());
+    const [receivedAt, setReceivedAt] = useState(today());
+    const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
+    const [purchaseOrderDate, setPurchaseOrderDate] = useState('');
     const [referenceNumber, setReferenceNumber] = useState('');
     const [freight, setFreight] = useState<number>(0);
     const [freightTaxRate, setFreightTaxRate] = useState<number>(0);
@@ -351,6 +356,9 @@ const CreatePurchase = () => {
                 inventoryLocationId,
                 date,
                 supplierInvoiceDate,
+                receivedAt,
+                purchaseOrderNumber: purchaseOrderNumber.trim() || null,
+                purchaseOrderDate: purchaseOrderNumber.trim() ? purchaseOrderDate : null,
                 referenceNumber,
                 freight,
                 freightTaxRate,
@@ -404,7 +412,7 @@ const CreatePurchase = () => {
                         </div>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                             <label className="space-y-1.5">
-                                <span className="text-sm font-bold text-slate-700">Proveedor</span>
+                                <span className="text-sm font-bold text-slate-700">PROVEEDOR</span>
                                 <select
                                     className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={supplierId}
@@ -413,13 +421,13 @@ const CreatePurchase = () => {
                                 >
                                     <option value="">Seleccione proveedor</option>
                                     {suppliers.map(supplier => (
-                                        <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                                        <option key={supplier.id} value={supplier.id}>{supplier.name} | {supplier.supplierType || 'TERCERO'}{supplier.officialBrandName ? ` - ${supplier.officialBrandName}` : ''}</option>
                                     ))}
                                 </select>
                             </label>
 
                             <label className="space-y-1.5">
-                                <span className="text-sm font-bold text-slate-700">Fecha de entrada</span>
+                                <span className="text-sm font-bold text-slate-700">FECHA DEL DOCUMENTO</span>
                                 <div className="relative">
                                     <Calendar className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
                                     <input
@@ -433,7 +441,7 @@ const CreatePurchase = () => {
                             </label>
 
                             <label className="space-y-1.5">
-                                <span className="text-sm font-bold text-slate-700">Fecha factura proveedor</span>
+                                <span className="text-sm font-bold text-slate-700">FECHA FACTURA PROVEEDOR</span>
                                 <div className="relative">
                                     <Calendar className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
                                     <input
@@ -447,7 +455,7 @@ const CreatePurchase = () => {
                             </label>
 
                             <label className="space-y-1.5">
-                                <span className="text-sm font-bold text-slate-700">Factura / remision</span>
+                                <span className="text-sm font-bold text-slate-700">FACTURA / REMISION</span>
                                 <div className="relative">
                                     <FileText className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
                                     <input
@@ -479,6 +487,21 @@ const CreatePurchase = () => {
                                         ))}
                                     </select>
                                 </div>
+                            </label>
+
+                            <label className="space-y-1.5">
+                                <span className="text-sm font-bold text-slate-700">RECEPCION EFECTIVA</span>
+                                <input type="date" required className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" value={receivedAt} onChange={event => setReceivedAt(event.target.value)} />
+                            </label>
+
+                            <label className="space-y-1.5">
+                                <span className="text-sm font-bold text-slate-700">PEDIDO / ORDEN DE COMPRA</span>
+                                <input type="text" className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm uppercase" value={purchaseOrderNumber} onChange={event => setPurchaseOrderNumber(event.target.value)} placeholder="OPCIONAL" />
+                            </label>
+
+                            <label className="space-y-1.5">
+                                <span className="text-sm font-bold text-slate-700">FECHA DEL PEDIDO</span>
+                                <input type="date" required={Boolean(purchaseOrderNumber.trim())} disabled={!purchaseOrderNumber.trim()} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100" value={purchaseOrderDate} onChange={event => setPurchaseOrderDate(event.target.value)} />
                             </label>
 
                             <label className="space-y-1.5 md:col-span-2 xl:col-span-1">

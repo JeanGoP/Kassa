@@ -13,7 +13,12 @@ interface Supplier {
     address: string;
     identificationType: string;
     taxId: string;
+    supplierType: 'OFICIAL' | 'TERCERO';
+    officialBrandId?: number;
+    officialBrandName?: string;
 }
+
+interface Brand { id: number; name: string; }
 
 const IDENTIFICATION_TYPES = [
     "RCN Registro Civil de Nacimiento",
@@ -30,6 +35,7 @@ const IDENTIFICATION_TYPES = [
 
 const Suppliers = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showAddressBuilder, setShowAddressBuilder] = useState(false);
@@ -45,13 +51,16 @@ const Suppliers = () => {
         email: '',
         address: '',
         identificationType: '',
-        taxId: ''
+        taxId: '',
+        supplierType: 'TERCERO',
+        officialBrandId: '' as number | ''
     });
 
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchSuppliers();
+        api.get('/vehiclecatalogs/brands').then(response => setBrands(response.data)).catch(console.error);
     }, []);
 
     const fetchSuppliers = async () => {
@@ -101,7 +110,9 @@ const Suppliers = () => {
                 email: formData.email,
                 address: formData.address,
                 identificationType: formData.identificationType,
-                taxId: formData.taxId
+                taxId: formData.taxId,
+                supplierType: formData.supplierType,
+                officialBrandId: formData.supplierType === 'OFICIAL' ? formData.officialBrandId : null
             };
 
             if (currentSupplier) {
@@ -164,7 +175,9 @@ const Suppliers = () => {
                 email: supplier.email || '',
                 address: supplier.address || '',
                 identificationType: supplier.identificationType || '',
-                taxId: supplier.taxId || ''
+                taxId: supplier.taxId || '',
+                supplierType: supplier.supplierType || 'TERCERO',
+                officialBrandId: supplier.officialBrandId || ''
             });
         } else {
             setCurrentSupplier(null);
@@ -179,7 +192,9 @@ const Suppliers = () => {
                 email: '',
                 address: '',
                 identificationType: '',
-                taxId: ''
+                taxId: '',
+                supplierType: 'TERCERO',
+                officialBrandId: ''
             });
         }
         setIsModalOpen(true);
@@ -235,6 +250,7 @@ const Suppliers = () => {
                                 <th className="p-4 border-b">Nombre</th>
                                 <th className="p-4 border-b">Identificación</th>
                                 <th className="p-4 border-b">Contacto</th>
+                                <th className="p-4 border-b">TIPO</th>
                                 <th className="p-4 border-b">Teléfono</th>
                                 <th className="p-4 border-b">Email</th>
                                 <th className="p-4 border-b text-center">Acciones</th>
@@ -249,6 +265,10 @@ const Suppliers = () => {
                                         <div className="text-xs text-gray-500">{item.identificationType}</div>
                                     </td>
                                     <td className="p-4 text-sm">{item.contactName}</td>
+                                    <td className="p-4 text-sm">
+                                        <div className="font-bold">{item.supplierType || 'TERCERO'}</div>
+                                        <div className="text-xs text-gray-500">{item.officialBrandName || '-'}</div>
+                                    </td>
                                     <td className="p-4 text-sm">{item.phone}</td>
                                     <td className="p-4 text-sm">{item.email}</td>
                                     <td className="p-4 flex justify-center space-x-2">
@@ -269,7 +289,7 @@ const Suppliers = () => {
                             ))}
                             {filteredSuppliers.length === 0 && !loading && (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-400">
+                                    <td colSpan={7} className="p-8 text-center text-gray-400">
                                         {searchTerm ? 'No se encontraron proveedores con ese criterio.' : 'No hay proveedores registrados.'}
                                     </td>
                                 </tr>
@@ -358,6 +378,21 @@ const Suppliers = () => {
                                         )}
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <label className="block text-sm font-bold text-gray-700">TIPO DE PROVEEDOR
+                                    <select className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" value={formData.supplierType} onChange={e => setFormData({...formData, supplierType: e.target.value as 'OFICIAL' | 'TERCERO', officialBrandId: e.target.value === 'OFICIAL' ? formData.officialBrandId : ''})}>
+                                        <option value="TERCERO">TERCERO</option>
+                                        <option value="OFICIAL">OFICIAL</option>
+                                    </select>
+                                </label>
+                                <label className="block text-sm font-bold text-gray-700">MARCA OFICIAL
+                                    <select disabled={formData.supplierType !== 'OFICIAL'} required={formData.supplierType === 'OFICIAL'} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100" value={formData.officialBrandId} onChange={e => setFormData({...formData, officialBrandId: Number(e.target.value)})}>
+                                        <option value="">SELECCIONE</option>
+                                        {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                                    </select>
+                                </label>
                             </div>
 
                             {personType === 'Juridica' ? (

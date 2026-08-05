@@ -31,5 +31,6 @@ namespace TPV.Domain.Entities
         public string ElectronicInvoicingStatus { get; set; } = "Pending"; // Pending, Sent, Error
 
         public ICollection<SaleDetail> SaleDetails { get; set; }
+        public ICollection<SaleAdjustment> Adjustments { get; set; } = new List<SaleAdjustment>();
     }
 }

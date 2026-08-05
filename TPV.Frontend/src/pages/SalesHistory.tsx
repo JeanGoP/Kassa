@@ -1,12 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { Search, Calendar, FileText, Printer, Eye, X, Check } from 'lucide-react';
+import { Check, Eye, FileMinus2, FileText, Printer, RotateCcw, Search, X } from 'lucide-react';
 
 interface SaleItem {
+    saleDetailId: number;
+    productId: number;
     productName: string;
+    sku: string;
     quantity: number;
+    adjustedQuantity: number;
+    unitCode: string;
     unitPrice: number;
+    discountAmount: number;
     subTotal: number;
+    unitCost: number;
+    totalCost: number;
+    brandName?: string;
+    accountingClassification: string;
+}
+
+interface SaleAdjustment {
+    id: number;
+    documentType: string;
+    documentNumber: string;
+    date: string;
+    reason: string;
+    restocksInventory: boolean;
+    totalAmount: number;
+    status: string;
 }
 
 interface SaleResult {
@@ -17,309 +38,123 @@ interface SaleResult {
     paymentMethod: string;
     customerName?: string;
     cufe?: string;
-    qrCode?: string;
     electronicInvoicingStatus?: string;
+    serviceOrderId?: number;
     items: SaleItem[];
+    adjustments: SaleAdjustment[];
 }
+
+const money = (value: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value || 0);
 
 const SalesHistory = () => {
     const [sales, setSales] = useState<SaleResult[]>([]);
     const [loading, setLoading] = useState(false);
-    
-    // Filters
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [customerName, setCustomerName] = useState('');
-
-    // Modal
     const [selectedSale, setSelectedSale] = useState<SaleResult | null>(null);
-    const [showModal, setShowModal] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [showAdjustment, setShowAdjustment] = useState(false);
+    const [adjustmentType, setAdjustmentType] = useState<'DEVOLUCION' | 'NOTA_CREDITO'>('DEVOLUCION');
+    const [reason, setReason] = useState('');
+    const [quantities, setQuantities] = useState<Record<number, number>>({});
 
     const fetchSales = async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (fromDate) params.append('fromDate', fromDate);
-            if (toDate) params.append('toDate', toDate);
-            if (invoiceNumber) params.append('invoiceNumber', invoiceNumber);
-            if (customerName) params.append('customerName', customerName);
-
-            const response = await api.get(`/sales?${params.toString()}`);
+            const response = await api.get('/sales', { params: { fromDate: fromDate || undefined, toDate: toDate || undefined, invoiceNumber: invoiceNumber || undefined, customerName: customerName || undefined } });
             setSales(response.data);
         } catch (error) {
-            console.error("Error fetching sales", error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchSales();
-    }, []);
+    useEffect(() => { fetchSales(); }, []);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        fetchSales();
+    const openSale = async (saleId: number) => {
+        try {
+            const response = await api.get(`/sales/${saleId}`);
+            setSelectedSale(response.data);
+            setShowAdjustment(false);
+            setReason('');
+            setQuantities({});
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'NO FUE POSIBLE CARGAR LA VENTA');
+        }
     };
 
-    const handleViewSale = (sale: SaleResult) => {
-        setSelectedSale(sale);
-        setShowModal(true);
-    };
-
-    const handleRetryInvoice = async () => {
+    const retryInvoice = async () => {
         if (!selectedSale) return;
         setProcessing(true);
         try {
             const response = await api.post(`/sales/${selectedSale.saleId}/emit-invoice`);
             setSelectedSale(response.data);
-            // Update in list as well
-            setSales(prev => prev.map(s => s.saleId === response.data.saleId ? response.data : s));
-        } catch (error) {
-            console.error("Error emitting invoice", error);
-            alert("Error al emitir factura electrónica");
+            await fetchSales();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'NO FUE POSIBLE EMITIR LA FACTURA');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const createAdjustment = async () => {
+        if (!selectedSale) return;
+        const items = Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([saleDetailId, quantity]) => ({ saleDetailId: Number(saleDetailId), quantity }));
+        if (!items.length || reason.trim().length < 5) {
+            alert('INDIQUE CANTIDADES Y UN MOTIVO DE AL MENOS CINCO CARACTERES');
+            return;
+        }
+        setProcessing(true);
+        try {
+            await api.post(`/sales/${selectedSale.saleId}/adjustments`, { documentType: adjustmentType, reason, items });
+            await openSale(selectedSale.saleId);
+            await fetchSales();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'NO FUE POSIBLE CREAR EL AJUSTE');
         } finally {
             setProcessing(false);
         }
     };
 
     return (
-        <div className="mx-auto w-full max-w-[1600px] p-0 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Historial de Ventas</h1>
+        <div className="mx-auto w-full max-w-[1600px] space-y-5 p-0 sm:p-6">
+            <h1 className="text-2xl font-extrabold text-slate-900">HISTORIAL DE VENTAS</h1>
+            <form onSubmit={event => { event.preventDefault(); fetchSales(); }} className="grid grid-cols-1 gap-3 border border-slate-200 bg-white p-4 md:grid-cols-5">
+                <label className="text-xs font-bold text-slate-600">DESDE<input type="date" className="mt-1 h-10 w-full border border-slate-300 px-3" value={fromDate} onChange={event => setFromDate(event.target.value)} /></label>
+                <label className="text-xs font-bold text-slate-600">HASTA<input type="date" className="mt-1 h-10 w-full border border-slate-300 px-3" value={toDate} onChange={event => setToDate(event.target.value)} /></label>
+                <label className="text-xs font-bold text-slate-600">FACTURA<input className="mt-1 h-10 w-full border border-slate-300 px-3" value={invoiceNumber} onChange={event => setInvoiceNumber(event.target.value)} /></label>
+                <label className="text-xs font-bold text-slate-600">CLIENTE<input className="mt-1 h-10 w-full border border-slate-300 px-3" value={customerName} onChange={event => setCustomerName(event.target.value)} /></label>
+                <button className="mt-auto flex h-10 items-center justify-center gap-2 bg-blue-600 px-4 text-sm font-bold text-white"><Search size={17} />BUSCAR</button>
+            </form>
+
+            <div className="overflow-x-auto border border-slate-200 bg-white">
+                <table className="w-full min-w-[900px] text-left text-sm">
+                    <thead className="bg-slate-50 text-xs font-extrabold text-slate-600"><tr><th className="p-4">FACTURA</th><th className="p-4">FECHA</th><th className="p-4">CLIENTE</th><th className="p-4">PAGO</th><th className="p-4 text-right">TOTAL</th><th className="p-4 text-center">FE</th><th className="p-4 text-center">ACCIONES</th></tr></thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {sales.map(sale => <tr key={sale.saleId} className="hover:bg-slate-50"><td className="p-4 font-bold">{sale.invoiceNumber}</td><td className="p-4">{new Date(sale.date).toLocaleString('es-CO')}</td><td className="p-4">{sale.customerName || 'CLIENTE GENERAL'}</td><td className="p-4">{sale.paymentMethod}</td><td className="p-4 text-right font-extrabold">{money(sale.totalAmount)}</td><td className="p-4 text-center">{sale.cufe ? <Check className="inline text-emerald-600" size={18} /> : 'PENDIENTE'}</td><td className="p-4 text-center"><button title="VER DETALLE" onClick={() => openSale(sale.saleId)} className="p-2 text-blue-700"><Eye size={19} /></button></td></tr>)}
+                        {!loading && !sales.length && <tr><td colSpan={7} className="p-10 text-center text-slate-400">NO HAY VENTAS PARA LOS FILTROS SELECCIONADOS</td></tr>}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-                <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Desde</label>
-                        <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="date" 
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={fromDate}
-                                onChange={(e) => setFromDate(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
-                        <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="date" 
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={toDate}
-                                onChange={(e) => setToDate(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">No. Factura</label>
-                        <div className="relative">
-                            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="V-2024..."
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={invoiceNumber}
-                                onChange={(e) => setInvoiceNumber(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Nombre..."
-                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={customerName}
-                                onChange={(e) => setCustomerName(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <button 
-                        type="submit"
-                        className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-medium flex justify-center items-center gap-2"
-                    >
-                        <Search size={18} /> Buscar
-                    </button>
-                </form>
-            </div>
+            {selectedSale && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3">
+                <div className="max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto bg-white shadow-2xl">
+                    <header className="sticky top-0 z-10 flex items-center justify-between bg-slate-900 px-5 py-4 text-white"><div><div className="text-xs font-bold text-slate-300">FACTURA ORIGINAL</div><div className="text-lg font-extrabold">{selectedSale.invoiceNumber}</div></div><button title="CERRAR" onClick={() => setSelectedSale(null)}><X /></button></header>
+                    <div className="space-y-5 p-5">
+                        <div className="grid gap-3 text-sm sm:grid-cols-4"><div><b>FECHA</b><br />{new Date(selectedSale.date).toLocaleString('es-CO')}</div><div><b>CLIENTE</b><br />{selectedSale.customerName || 'CLIENTE GENERAL'}</div><div><b>ORDEN DE TALLER</b><br />{selectedSale.serviceOrderId || '-'}</div><div><b>TOTAL</b><br /><span className="text-lg font-extrabold text-blue-700">{money(selectedSale.totalAmount)}</span></div></div>
+                        <div className="overflow-x-auto border border-slate-200"><table className="w-full min-w-[950px] text-sm"><thead className="bg-slate-50 text-xs font-extrabold"><tr><th className="p-3 text-left">REFERENCIA</th><th className="p-3 text-left">MARCA / CLASIFICACION</th><th className="p-3 text-right">CANTIDAD</th><th className="p-3 text-right">PRECIO</th><th className="p-3 text-right">DESCUENTO</th><th className="p-3 text-right">COSTO</th><th className="p-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y">{selectedSale.items.map(item => <tr key={item.saleDetailId}><td className="p-3"><b>{item.sku}</b><br />{item.productName}</td><td className="p-3">{item.brandName || '-'}<br /><span className="text-xs text-slate-500">{item.accountingClassification}</span></td><td className="p-3 text-right">{item.quantity} {item.unitCode}<br /><span className="text-xs text-amber-700">AJUSTADA {item.adjustedQuantity || 0}</span></td><td className="p-3 text-right">{money(item.unitPrice)}</td><td className="p-3 text-right">{money(item.discountAmount)}</td><td className="p-3 text-right">{money(item.totalCost)}</td><td className="p-3 text-right font-bold">{money(item.subTotal)}</td></tr>)}</tbody></table></div>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Factura</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Fecha</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Cliente</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm">Pago</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm text-right">Total</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm text-center">Estado FE</th>
-                                <th className="px-6 py-4 font-semibold text-slate-700 text-sm text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
-                                        Cargando ventas...
-                                    </td>
-                                </tr>
-                            ) : sales.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
-                                        No se encontraron ventas con los filtros seleccionados.
-                                    </td>
-                                </tr>
-                            ) : (
-                                sales.map((sale) => (
-                                    <tr key={sale.saleId} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{sale.invoiceNumber}</td>
-                                        <td className="px-6 py-4 text-slate-600">
-                                            {new Date(sale.date).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600">{sale.customerName}</td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                                {sale.paymentMethod === 'Cash' ? 'Efectivo' : sale.paymentMethod === 'Card' ? 'Tarjeta' : sale.paymentMethod}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-900 font-bold text-right">
-                                            ${sale.totalAmount.toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {sale.cufe ? (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                                                    <Check size={12} className="mr-1" /> Enviada
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                                    Pendiente
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button 
-                                                onClick={() => handleViewSale(sale)}
-                                                className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                                                title="Ver detalle"
-                                            >
-                                                <Eye size={20} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        <div className="flex flex-wrap gap-2"><button onClick={() => window.print()} className="flex items-center gap-2 border border-slate-300 px-4 py-2 text-sm font-bold"><Printer size={17} />IMPRIMIR</button>{!selectedSale.cufe && <button disabled={processing} onClick={retryInvoice} className="flex items-center gap-2 bg-blue-600 px-4 py-2 text-sm font-bold text-white"><FileText size={17} />EMITIR FACTURA</button>}<button onClick={() => setShowAdjustment(value => !value)} className="flex items-center gap-2 bg-amber-500 px-4 py-2 text-sm font-bold text-white"><RotateCcw size={17} />DEVOLUCION / NOTA CREDITO</button></div>
 
-            {/* Ticket Modal (Reuse logic from POS) */}
-            {showModal && selectedSale && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="max-h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
-                            <h3 className="font-bold text-lg flex items-center">
-                                <FileText className="mr-2 text-blue-400" /> Detalle de Venta
-                            </h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 bg-gray-50 max-h-[70vh] overflow-y-auto">
-                            <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-lg text-sm font-mono relative" id="printable-ticket">
-                                {/* Ticket Header */}
-                                <div className="text-center border-b border-dashed border-gray-300 pb-4 mb-4">
-                                    <h2 className="font-bold text-xl text-black">KASSA</h2>
-                                    <p className="text-gray-500">Sucursal Principal</p>
-                                    <p className="text-gray-500 mt-2">{new Date(selectedSale.date).toLocaleString()}</p>
-                                    <p className="font-bold mt-1">Ticket: {selectedSale.invoiceNumber}</p>
-                                </div>
-                                
-                                {/* Customer Info */}
-                                {selectedSale.customerName && (
-                                    <div className="mb-4 border-b border-dashed border-gray-300 pb-4">
-                                        <p className="font-bold">Cliente:</p>
-                                        <p>{selectedSale.customerName}</p>
-                                    </div>
-                                )}
+                        {showAdjustment && <section className="space-y-4 border border-amber-200 bg-amber-50 p-4"><div className="grid gap-3 md:grid-cols-[220px_1fr]"><label className="text-xs font-bold">TIPO DE DOCUMENTO<select className="mt-1 h-10 w-full border border-amber-300 bg-white px-3" value={adjustmentType} onChange={event => setAdjustmentType(event.target.value as typeof adjustmentType)}><option value="DEVOLUCION">DEVOLUCION CON INVENTARIO</option><option value="NOTA_CREDITO">NOTA CREDITO SIN INVENTARIO</option></select></label><label className="text-xs font-bold">MOTIVO<input className="mt-1 h-10 w-full border border-amber-300 px-3" value={reason} onChange={event => setReason(event.target.value)} /></label></div><div className="grid gap-2">{selectedSale.items.map(item => { const available = item.quantity - (item.adjustedQuantity || 0); return <label key={item.saleDetailId} className="grid grid-cols-[1fr_130px] items-center gap-3 bg-white p-3 text-sm"><span><b>{item.sku}</b> {item.productName}<br /><span className="text-xs text-slate-500">SALDO AJUSTABLE: {available} {item.unitCode}</span></span><input type="number" min="0" max={available} step="0.0001" disabled={available <= 0} className="h-10 border border-slate-300 px-3 text-right" value={quantities[item.saleDetailId] || ''} onChange={event => setQuantities({...quantities, [item.saleDetailId]: Math.min(Number(event.target.value), available)})} /></label>; })}</div><button disabled={processing} onClick={createAdjustment} className="flex items-center gap-2 bg-amber-600 px-4 py-2 text-sm font-extrabold text-white"><FileMinus2 size={17} />{processing ? 'PROCESANDO...' : 'CREAR DOCUMENTO'}</button></section>}
 
-                                {/* Items */}
-                                <div className="space-y-2 mb-4">
-                                    {selectedSale.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between">
-                                            <span>{item.quantity} x {item.productName}</span>
-                                            <span>${item.subTotal.toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Totals */}
-                                <div className="border-t border-dashed border-gray-300 pt-4">
-                                    <div className="flex justify-between font-bold text-lg">
-                                        <span>TOTAL</span>
-                                        <span>${selectedSale.totalAmount.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-gray-500 mt-2">
-                                        <span>Método de Pago</span>
-                                        <span>{selectedSale.paymentMethod === 'Cash' ? 'Efectivo' : selectedSale.paymentMethod}</span>
-                                    </div>
-                                </div>
-                                
-                                {/* Electronic Invoicing */}
-                                {selectedSale.cufe && selectedSale.qrCode ? (
-                                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                                        <p className="text-xs font-bold text-gray-500 mb-2">Factura Electrónica</p>
-                                        <div className="flex justify-center mb-2">
-                                            <img 
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(selectedSale.qrCode)}`} 
-                                                alt="QR Code" 
-                                                className="w-24 h-24"
-                                            />
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 break-all leading-tight">CUFE: {selectedSale.cufe}</p>
-                                    </div>
-                                ) : (
-                                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                                        <p className="text-xs text-amber-600 font-bold mb-2">Factura Electrónica Pendiente</p>
-                                        <button 
-                                            onClick={handleRetryInvoice}
-                                            disabled={processing}
-                                            className="bg-amber-100 text-amber-800 text-xs px-3 py-2 rounded hover:bg-amber-200 disabled:opacity-50 w-full font-bold transition-colors"
-                                        >
-                                            {processing ? 'Emitiendo...' : 'Emitir Factura Ahora'}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Cut Line Visual */}
-                                <div className="absolute -bottom-3 -left-2 -right-2 h-6 bg-gray-50 rounded-full"></div>
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-white border-t flex gap-3">
-                            <button 
-                                onClick={() => window.print()} 
-                                className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 flex justify-center items-center gap-2"
-                            >
-                                <Printer size={20} /> Imprimir
-                            </button>
-                        </div>
+                        <section><h3 className="mb-2 text-sm font-extrabold">DEVOLUCIONES Y NOTAS CREDITO</h3><div className="grid gap-2">{selectedSale.adjustments?.map(adjustment => <div key={adjustment.id} className="grid gap-2 border border-slate-200 p-3 text-sm md:grid-cols-[160px_1fr_160px]"><div><b>{adjustment.documentType}</b><br />{adjustment.documentNumber}</div><div>{adjustment.reason}<br /><span className="text-xs text-slate-500">{new Date(adjustment.date).toLocaleString('es-CO')} | {adjustment.restocksInventory ? 'REINTEGRA INVENTARIO' : 'SIN MOVIMIENTO FISICO'}</span></div><div className="text-right font-extrabold">{money(adjustment.totalAmount)}<br /><span className="text-xs text-emerald-700">{adjustment.status}</span></div></div>)}{!selectedSale.adjustments?.length && <div className="text-sm text-slate-400">SIN AJUSTES</div>}</div></section>
                     </div>
                 </div>
-            )}
+            </div>}
         </div>
     );
 };

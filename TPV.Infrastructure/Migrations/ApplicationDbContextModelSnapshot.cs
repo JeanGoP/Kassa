@@ -1440,6 +1440,23 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("ItemsTaxAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("OfficialBrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OfficialBrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("PurchaseOrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PurchaseOrderNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ReferenceNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1453,6 +1470,11 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<DateTime?>("SupplierInvoiceDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("SupplierType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
@@ -1481,6 +1503,13 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -1777,6 +1806,162 @@ namespace TPV.Infrastructure.Migrations
                     b.ToTable("Sales");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.SaleAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("RestocksInventory")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SaleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("TenantId", "DocumentNumber")
+                        .IsUnique();
+
+                    b.ToTable("SaleAdjustments");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.SaleAdjustmentDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountingClassification")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SaleAdjustmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SaleDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleAdjustmentId");
+
+                    b.HasIndex("SaleDetailId");
+
+                    b.ToTable("SaleAdjustmentDetails");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.SaleDetail", b =>
                 {
                     b.Property<int>("Id")
@@ -1785,8 +1970,23 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AccountingClassification")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -1812,10 +2012,16 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("TaxRate")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("UnitCode")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int?>("UnitOfMeasureId")
                         .HasColumnType("int");
@@ -2301,8 +2507,16 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("OfficialBrandId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupplierType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("TaxId")
                         .HasColumnType("nvarchar(450)");
@@ -2314,6 +2528,8 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OfficialBrandId");
 
                     b.HasIndex("TenantId", "TaxId")
                         .IsUnique()
@@ -3610,6 +3826,52 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("ServiceOrder");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.SaleAdjustment", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Sale", "Sale")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.SaleAdjustmentDetail", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.SaleAdjustment", "SaleAdjustment")
+                        .WithMany("Details")
+                        .HasForeignKey("SaleAdjustmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.SaleDetail", "SaleDetail")
+                        .WithMany("AdjustmentDetails")
+                        .HasForeignKey("SaleDetailId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SaleAdjustment");
+
+                    b.Navigation("SaleDetail");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.SaleDetail", b =>
                 {
                     b.HasOne("TPV.Domain.Entities.Product", "Product")
@@ -3746,6 +4008,16 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.Supplier", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Brand", "OfficialBrand")
+                        .WithMany()
+                        .HasForeignKey("OfficialBrandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OfficialBrand");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
@@ -3971,7 +4243,19 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Sale", b =>
                 {
+                    b.Navigation("Adjustments");
+
                     b.Navigation("SaleDetails");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.SaleAdjustment", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.SaleDetail", b =>
+                {
+                    b.Navigation("AdjustmentDetails");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrder", b =>

@@ -258,6 +258,7 @@ namespace TPV.Web.Controllers.Api.Integrations
 
             IQueryable<Supplier> source = _dbContext.Suppliers
                 .IgnoreQueryFilters()
+                .Include(s => s.OfficialBrand)
                 .AsNoTracking();
 
             source = ApplyTenantScope(source);
@@ -280,6 +281,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Address = s.Address,
                     City = null,
                     Department = null,
+                    SupplierType = s.SupplierType,
+                    OfficialBrandId = s.OfficialBrandId,
+                    OfficialBrand = s.OfficialBrand != null ? s.OfficialBrand.Name : null,
                     Status = ToStatus(s.IsActive),
                     CreatedAt = s.CreatedAt,
                     ModifiedAt = s.UpdatedAt ?? s.CreatedAt
@@ -517,6 +521,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .Include(s => s.SaleDetails)
                     .ThenInclude(d => d.Product)
                         .ThenInclude(p => p.Brand)
+                .Include(s => s.Adjustments)
+                    .ThenInclude(a => a.Details)
+                        .ThenInclude(d => d.Product)
                 .AsNoTracking();
 
             source = ApplyTenantScope(source);
@@ -535,6 +542,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                 Date = s.Date,
                 CustomerId = s.CustomerId,
                 CustomerName = s.Customer != null ? $"{s.Customer.FirstName} {s.Customer.LastName}".Trim() : null,
+                CustomerIdentificationType = s.Customer != null ? s.Customer.IdentificationType : null,
+                CustomerTaxId = s.Customer != null ? s.Customer.TaxId : null,
                 ServiceOrderId = s.ServiceOrderId,
                 PaymentMethod = s.PaymentMethod,
                 ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
@@ -548,17 +557,55 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ProductId = d.ProductId,
                     Reference = d.Product?.SKU,
                     Description = d.Product?.Name,
-                    BrandId = d.Product?.BrandId,
-                    Brand = d.Product?.Brand?.Name,
+                    BrandId = d.BrandId ?? d.Product?.BrandId,
+                    Brand = d.BrandName ?? d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
                     UnitId = d.UnitOfMeasureId,
                     Unit = d.UnitCode,
                     BaseQuantity = d.QuantityBase,
                     UnitPrice = d.UnitPrice,
+                    DiscountAmount = d.DiscountAmount,
                     TaxRate = d.TaxRate,
                     TaxAmount = d.TaxAmount,
                     SubTotal = d.SubTotal,
-                    Cost = null
+                    UnitCost = d.UnitCost,
+                    Cost = d.TotalCost,
+                    AccountingClassification = d.AccountingClassification
+                }).ToList(),
+                Adjustments = s.Adjustments.OrderBy(a => a.Id).Select(a => new MchSaleAdjustmentDto
+                {
+                    Id = a.Id,
+                    OriginalSaleId = a.SaleId,
+                    OriginalDocumentNumber = s.InvoiceNumber,
+                    DocumentType = a.DocumentType,
+                    DocumentNumber = a.DocumentNumber,
+                    Date = a.Date,
+                    Reason = a.Reason,
+                    RestocksInventory = a.RestocksInventory,
+                    TotalAmount = a.TotalAmount,
+                    Status = a.Status,
+                    Lines = a.Details.Select(d => new MchSaleAdjustmentLineDto
+                    {
+                        Id = d.Id,
+                        SaleDetailId = d.SaleDetailId,
+                        ProductId = d.ProductId,
+                        Reference = d.Product.SKU,
+                        Description = d.Product.Name,
+                        BrandId = d.BrandId,
+                        Brand = d.BrandName,
+                        Quantity = d.Quantity,
+                        UnitId = d.UnitOfMeasureId,
+                        Unit = d.UnitCode,
+                        BaseQuantity = d.QuantityBase,
+                        UnitPrice = d.UnitPrice,
+                        DiscountAmount = d.DiscountAmount,
+                        TaxRate = d.TaxRate,
+                        TaxAmount = d.TaxAmount,
+                        SubTotal = d.SubTotal,
+                        UnitCost = d.UnitCost,
+                        Cost = d.TotalCost,
+                        AccountingClassification = d.AccountingClassification
+                    }).ToList()
                 }).ToList()
             }).ToList());
 
@@ -597,11 +644,18 @@ namespace TPV.Web.Controllers.Api.Integrations
                 LocationName = p.InventoryLocation.Name,
                 SupplierId = p.SupplierId,
                 SupplierName = p.Supplier?.Name,
+                SupplierIdentificationType = p.Supplier?.IdentificationType,
+                SupplierTaxId = p.Supplier?.TaxId,
+                SupplierType = p.SupplierType,
+                OfficialBrandId = p.OfficialBrandId,
+                OfficialBrand = p.OfficialBrandName,
                 DocumentType = "Purchase",
                 DocumentNumber = p.ReferenceNumber,
                 Date = p.Date,
                 SupplierInvoiceDate = p.SupplierInvoiceDate,
-                ReceptionDate = null,
+                ReceptionDate = p.ReceivedAt,
+                PurchaseOrderNumber = p.PurchaseOrderNumber,
+                PurchaseOrderDate = p.PurchaseOrderDate,
                 ItemsSubTotal = p.ItemsSubTotal,
                 ItemsTaxAmount = p.ItemsTaxAmount,
                 TotalAmount = p.TotalAmount,
@@ -620,8 +674,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ProductId = d.ProductId,
                     Reference = d.Product?.SKU,
                     Description = d.Product?.Name,
-                    BrandId = d.Product?.BrandId,
-                    Brand = d.Product?.Brand?.Name,
+                    BrandId = d.BrandId ?? d.Product?.BrandId,
+                    Brand = d.BrandName ?? d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
                     UnitId = d.UnitOfMeasureId,
                     Unit = d.UnitCode,
@@ -1210,7 +1264,9 @@ namespace TPV.Web.Controllers.Api.Integrations
 
             if (!string.IsNullOrWhiteSpace(query.Marca))
             {
-                source = source.Where(s => s.SaleDetails.Any(d => d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca)));
+                source = source.Where(s => s.SaleDetails.Any(d =>
+                    (d.BrandName != null && d.BrandName.Contains(query.Marca)) ||
+                    (d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca))));
             }
 
             return source;
@@ -1227,7 +1283,9 @@ namespace TPV.Web.Controllers.Api.Integrations
 
             if (!string.IsNullOrWhiteSpace(query.Marca))
             {
-                source = source.Where(p => p.PurchaseDetails.Any(d => d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca)));
+                source = source.Where(p => p.PurchaseDetails.Any(d =>
+                    (d.BrandName != null && d.BrandName.Contains(query.Marca)) ||
+                    (d.Product.Brand != null && d.Product.Brand.Name.Contains(query.Marca))));
             }
 
             return source;
@@ -1515,6 +1573,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Address { get; set; }
         public string? City { get; set; }
         public string? Department { get; set; }
+        public string? SupplierType { get; set; }
+        public int? OfficialBrandId { get; set; }
+        public string? OfficialBrand { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
@@ -1691,6 +1752,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public DateTime Date { get; set; }
         public int? CustomerId { get; set; }
         public string? CustomerName { get; set; }
+        public string? CustomerIdentificationType { get; set; }
+        public string? CustomerTaxId { get; set; }
         public int? ServiceOrderId { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public string ElectronicInvoicingStatus { get; set; } = string.Empty;
@@ -1699,6 +1762,7 @@ namespace TPV.Web.Controllers.Api.Integrations
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
         public List<MchSaleLineDto> Lines { get; set; } = new();
+        public List<MchSaleAdjustmentDto> Adjustments { get; set; } = new();
     }
 
     public class MchSaleLineDto
@@ -1714,10 +1778,33 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Unit { get; set; }
         public decimal BaseQuantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public decimal DiscountAmount { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal SubTotal { get; set; }
-        public decimal? Cost { get; set; }
+        public decimal UnitCost { get; set; }
+        public decimal Cost { get; set; }
+        public string AccountingClassification { get; set; } = string.Empty;
+    }
+
+    public class MchSaleAdjustmentDto
+    {
+        public int Id { get; set; }
+        public int OriginalSaleId { get; set; }
+        public string OriginalDocumentNumber { get; set; } = string.Empty;
+        public string DocumentType { get; set; } = string.Empty;
+        public string DocumentNumber { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public bool RestocksInventory { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public List<MchSaleAdjustmentLineDto> Lines { get; set; } = new();
+    }
+
+    public class MchSaleAdjustmentLineDto : MchSaleLineDto
+    {
+        public int SaleDetailId { get; set; }
     }
 
     public class MchPurchaseDto
@@ -1731,11 +1818,18 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? LocationName { get; set; }
         public int SupplierId { get; set; }
         public string? SupplierName { get; set; }
+        public string? SupplierIdentificationType { get; set; }
+        public string? SupplierTaxId { get; set; }
+        public string SupplierType { get; set; } = string.Empty;
+        public int? OfficialBrandId { get; set; }
+        public string? OfficialBrand { get; set; }
         public string DocumentType { get; set; } = string.Empty;
         public string DocumentNumber { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public DateTime? SupplierInvoiceDate { get; set; }
         public DateTime? ReceptionDate { get; set; }
+        public string? PurchaseOrderNumber { get; set; }
+        public DateTime? PurchaseOrderDate { get; set; }
         public decimal ItemsSubTotal { get; set; }
         public decimal ItemsTaxAmount { get; set; }
         public decimal TotalAmount { get; set; }

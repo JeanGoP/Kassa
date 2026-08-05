@@ -111,7 +111,7 @@ namespace TPV.Application.Services
                                                   // Let's assume UnitPrice is the price sold. We might need to back-calculate tax if it's inclusive.
                                                   // For this exercise, I'll assume the Price in SaleDetail is the base price or handle it simply.
                                                   // Actually, SaleDetail.SubTotal usually implies Qty * Price.
-                    DiscountAmount = 0, // Not tracking discounts per line in SaleDetail yet
+                    DiscountAmount = detail.DiscountAmount,
                     SubTotal = detail.SubTotal
                 };
 

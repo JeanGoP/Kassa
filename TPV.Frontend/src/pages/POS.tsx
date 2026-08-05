@@ -21,6 +21,8 @@ interface Product {
 
 interface CartItem extends Product {
     quantity: number;
+    discountType: 'NONE' | 'PERCENT' | 'FIXED';
+    discountValue: number;
 }
 
 interface Customer {
@@ -114,12 +116,16 @@ const POS = () => {
     });
     const [creatingCustomer, setCreatingCustomer] = useState(false);
 
-    const { subTotal, taxAmount, total } = cart.reduce((acc, item) => {
+    const { subTotal, taxAmount, total, totalDiscount } = cart.reduce((acc, item) => {
         const quantity = item.quantity;
         const price = item.price;
         const ivaRate = item.ivaRate || 0;
         const impoRate = item.impoconsumoRate || 0;
         const totalTaxRate = ivaRate + impoRate;
+        const listedAmount = price * quantity;
+        const discount = item.discountType === 'PERCENT'
+            ? listedAmount * (Math.min(Math.max(item.discountValue, 0), 100) / 100)
+            : item.discountType === 'FIXED' ? Math.min(Math.max(item.discountValue, 0), listedAmount) : 0;
         
         let itemSubTotal = 0;
         let itemTax = 0;
@@ -127,13 +133,13 @@ const POS = () => {
 
         if (item.priceIncludesIva) {
             // Price is the final price (includes tax)
-            itemTotal = price * quantity;
+            itemTotal = listedAmount - discount;
             // Base = Total / (1 + Rate)
             itemSubTotal = itemTotal / (1 + (totalTaxRate / 100));
             itemTax = itemTotal - itemSubTotal;
         } else {
             // Price is the base price (excludes tax)
-            itemSubTotal = price * quantity;
+            itemSubTotal = listedAmount - discount;
             itemTax = itemSubTotal * (totalTaxRate / 100);
             itemTotal = itemSubTotal + itemTax;
         }
@@ -141,9 +147,10 @@ const POS = () => {
         return {
             subTotal: acc.subTotal + itemSubTotal,
             taxAmount: acc.taxAmount + itemTax,
-            total: acc.total + itemTotal
+            total: acc.total + itemTotal,
+            totalDiscount: acc.totalDiscount + discount
         };
-    }, { subTotal: 0, taxAmount: 0, total: 0 });
+    }, { subTotal: 0, taxAmount: 0, total: 0, totalDiscount: 0 });
 
     // --- Effects ---
     useEffect(() => {
@@ -201,7 +208,7 @@ const POS = () => {
             if (existing) {
                 return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
-            return [...prev, { ...product, quantity: 1 }];
+            return [...prev, { ...product, quantity: 1, discountType: 'NONE', discountValue: 0 }];
         });
     };
 
@@ -295,7 +302,9 @@ const POS = () => {
                 items: cart.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
-                    unitOfMeasureId: item.saleUnitId
+                    unitOfMeasureId: item.saleUnitId,
+                    discountType: item.discountType,
+                    discountValue: item.discountValue
                 })),
                 paymentMethod
             };
@@ -480,35 +489,27 @@ const POS = () => {
                     ) : (
                         <div className="space-y-3">
                             {cart.map(item => (
-                                <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 shadow-sm group">
-                                    <div className="flex-1 min-w-0 mr-3">
-                                        <h4 className="font-medium text-gray-800 truncate text-sm">{item.name}</h4>
-                                        <div className="flex items-center text-xs text-gray-500 mt-1">
-                                            <span className="font-semibold text-blue-600">${item.price.toFixed(2)}</span>
-                                            <span className="mx-1">x</span>
-                                            <span>{item.quantity}</span>
+                                <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="mr-2 min-w-0 flex-1">
+                                            <h4 className="truncate text-sm font-medium text-gray-800">{item.name}</h4>
+                                            <div className="mt-1 text-xs font-semibold text-blue-600">${item.price.toFixed(2)}</div>
                                         </div>
+                                        <div className="flex items-center rounded-lg bg-gray-100 p-1">
+                                            <button onClick={() => updateQuantity(item.id, -1)} className="rounded p-1 text-gray-600 hover:bg-white"><Minus size={14} /></button>
+                                            <input type="number" min={item.allowsFractionalQuantity ? 0.0001 : 1} step={item.allowsFractionalQuantity ? 0.0001 : 1} value={item.quantity} onChange={event => { const value = Number(event.target.value); if (value > 0) setCart(previous => previous.map(row => row.id === item.id ? {...row, quantity: value} : row)); }} className="w-16 bg-transparent text-center text-sm font-bold outline-none" />
+                                            <button onClick={() => updateQuantity(item.id, 1)} className="rounded p-1 text-gray-600 hover:bg-white"><Plus size={14} /></button>
+                                        </div>
+                                        <button onClick={() => removeFromCart(item.id)} className="rounded-lg p-2 text-gray-300 hover:bg-red-50 hover:text-red-500"><Trash2 size={16} /></button>
                                     </div>
-                                    
-                                    <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                                        <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-white rounded shadow-sm transition-all text-gray-600"><Minus size={14} /></button>
-                                        <input
-                                            type="number"
-                                            min={item.allowsFractionalQuantity ? 0.0001 : 1}
-                                            step={item.allowsFractionalQuantity ? 0.0001 : 1}
-                                            value={item.quantity}
-                                            onChange={(event) => {
-                                                const value = Number(event.target.value);
-                                                if (value > 0) setCart(previous => previous.map(row => row.id === item.id ? {...row, quantity: value} : row));
-                                            }}
-                                            className="w-16 bg-transparent text-center text-sm font-bold text-gray-700 outline-none"
-                                        />
-                                        <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-white rounded shadow-sm transition-all text-gray-600"><Plus size={14} /></button>
+                                    <div className="mt-3 grid grid-cols-[1fr_110px] gap-2 border-t border-slate-100 pt-3">
+                                        <select value={item.discountType} onChange={event => setCart(previous => previous.map(row => row.id === item.id ? {...row, discountType: event.target.value as CartItem['discountType'], discountValue: 0} : row))} className="h-9 rounded-lg border border-slate-200 px-2 text-xs font-bold">
+                                            <option value="NONE">SIN DESCUENTO</option>
+                                            <option value="PERCENT">DESCUENTO %</option>
+                                            <option value="FIXED">DESCUENTO VALOR</option>
+                                        </select>
+                                        <input type="number" min="0" max={item.discountType === 'PERCENT' ? 100 : undefined} step="0.01" disabled={item.discountType === 'NONE'} value={item.discountValue || ''} onChange={event => setCart(previous => previous.map(row => row.id === item.id ? {...row, discountValue: Number(event.target.value)} : row))} className="h-9 rounded-lg border border-slate-200 px-2 text-right text-xs disabled:bg-slate-100" placeholder="0" />
                                     </div>
-                                    
-                                    <button onClick={() => removeFromCart(item.id)} className="ml-2 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                        <Trash2 size={16} />
-                                    </button>
                                 </div>
                             ))}
                         </div>
@@ -524,6 +525,10 @@ const POS = () => {
                     <div className="flex justify-between text-gray-500 text-sm mb-3">
                         <span>Impuestos:</span>
                         <span>${taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="mb-3 flex justify-between text-sm font-semibold text-emerald-700">
+                        <span>DESCUENTOS:</span>
+                        <span>-${totalDiscount.toFixed(2)}</span>
                     </div>
                     <div className="mb-4 flex flex-wrap justify-between gap-2 border-t border-dashed border-gray-200 pt-3 text-2xl font-bold text-slate-800">
                         <span>Total:</span>

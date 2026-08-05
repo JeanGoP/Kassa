@@ -13,5 +13,8 @@ namespace TPV.Domain.Entities
         public string? Address { get; set; }
         public string? IdentificationType { get; set; }
         public string? TaxId { get; set; }
+        public string SupplierType { get; set; } = "TERCERO";
+        public int? OfficialBrandId { get; set; }
+        public Brand? OfficialBrand { get; set; }
     }
 }

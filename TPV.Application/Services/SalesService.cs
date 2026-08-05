@@ -19,6 +19,7 @@ namespace TPV.Application.Services
         private readonly IUserService _userService;
         private readonly IStockService _stockService;
         private readonly IRepository<UnitOfMeasure> _unitRepository;
+        private readonly IRepository<SaleAdjustment> _adjustmentRepository;
 
         public SalesService(
             IRepository<Sale> saleRepository,
@@ -28,7 +29,8 @@ namespace TPV.Application.Services
             IElectronicInvoicingService electronicInvoicingService,
             IUserService userService,
             IStockService stockService,
-            IRepository<UnitOfMeasure> unitRepository)
+            IRepository<UnitOfMeasure> unitRepository,
+            IRepository<SaleAdjustment> adjustmentRepository)
         {
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
@@ -38,6 +40,7 @@ namespace TPV.Application.Services
             _userService = userService;
             _stockService = stockService;
             _unitRepository = unitRepository;
+            _adjustmentRepository = adjustmentRepository;
         }
 
         public async Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId)
@@ -51,11 +54,14 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("No hay ítems en la venta.");
 
             // Validar stock disponible y obtener precios reales
-            var processedItems = new List<(int ProductId, decimal Quantity, int UnitId, string UnitCode, decimal BaseQuantity, decimal UnitPrice, string ProductName, decimal IvaRate, string IvaType, bool PriceIncludesIva)>();
+            var processedItems = new List<(int ProductId, decimal Quantity, int UnitId, string UnitCode, decimal BaseQuantity,
+                decimal UnitPrice, decimal DiscountAmount, decimal UnitCost, decimal TotalCost, string ProductName,
+                decimal IvaRate, string IvaType, bool PriceIncludesIva, int? BrandId, string? BrandName, string Classification)>();
 
             foreach (var item in dto.Items)
             {
-                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null, "UnitConversions")).FirstOrDefault();
+                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null,
+                    "UnitConversions,Brand,Category,Category.Parent,Category.Parent.Parent,Category.Parent.Parent.Parent")).FirstOrDefault();
                 if (product == null)
                     throw new InvalidOperationException($"Producto con ID {item.ProductId} no encontrado.");
                 if (item.Quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor que cero.");
@@ -98,7 +104,20 @@ namespace TPV.Application.Services
                     finalPrice = System.Math.Round(finalPrice, 2);
                 }
 
-                processedItems.Add((item.ProductId, item.Quantity, unit.Id, unit.Code, baseQuantity, finalPrice, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
+                var discountType = string.IsNullOrWhiteSpace(item.DiscountType) ? "NONE" : item.DiscountType.Trim().ToUpperInvariant();
+                if (discountType != "NONE" && discountType != "PERCENT" && discountType != "FIXED")
+                    throw new InvalidOperationException("El tipo de descuento no es válido.");
+                if (item.DiscountValue < 0) throw new InvalidOperationException("El descuento no puede ser negativo.");
+                var listedAmount = finalPrice * item.Quantity;
+                var discountAmount = discountType == "PERCENT"
+                    ? decimal.Round(listedAmount * Math.Min(item.DiscountValue, 100m) / 100m, 2)
+                    : discountType == "FIXED" ? Math.Min(item.DiscountValue, listedAmount) : 0m;
+                var unitCost = stock.Cost * factor;
+                var totalCost = stock.Cost * baseQuantity;
+
+                processedItems.Add((item.ProductId, item.Quantity, unit.Id, unit.Code, baseQuantity, finalPrice,
+                    discountAmount, unitCost, totalCost, product.Name, product.IvaRate, product.IvaType,
+                    product.PriceIncludesIva, product.BrandId, product.Brand?.Name, BuildCategoryPath(product.Category)));
             }
 
             var sale = new Sale
@@ -123,13 +142,13 @@ namespace TPV.Application.Services
 
                 if (item.IvaType == "Exento" || item.IvaType == "Excluido" || item.IvaRate <= 0)
                 {
-                    lineBase = item.UnitPrice * item.Quantity;
+                    lineBase = item.UnitPrice * item.Quantity - item.DiscountAmount;
                     lineTax = 0;
                 }
                 else if (item.PriceIncludesIva)
                 {
                     var divisor = 1 + (item.IvaRate / 100m);
-                    var gross = item.UnitPrice * item.Quantity;
+                    var gross = item.UnitPrice * item.Quantity - item.DiscountAmount;
                     var baseAmount = decimal.Round(gross / divisor, 2);
                     var taxAmount = gross - baseAmount;
                     lineBase = baseAmount;
@@ -137,7 +156,7 @@ namespace TPV.Application.Services
                 }
                 else
                 {
-                    lineBase = item.UnitPrice * item.Quantity;
+                    lineBase = item.UnitPrice * item.Quantity - item.DiscountAmount;
                     lineTax = decimal.Round(lineBase * (item.IvaRate / 100m), 2);
                 }
 
@@ -150,9 +169,15 @@ namespace TPV.Application.Services
                     UnitCode = item.UnitCode,
                     QuantityBase = item.BaseQuantity,
                     UnitPrice = item.UnitPrice, // Usar precio verificado
+                    DiscountAmount = item.DiscountAmount,
                     SubTotal = lineBase + lineTax,
                     TaxRate = item.IvaRate,
-                    TaxAmount = lineTax
+                    TaxAmount = lineTax,
+                    UnitCost = item.UnitCost,
+                    TotalCost = item.TotalCost,
+                    BrandId = item.BrandId,
+                    BrandName = item.BrandName,
+                    AccountingClassification = item.Classification
                 };
                 await _saleDetailRepository.AddAsync(detail);
 
@@ -240,7 +265,7 @@ namespace TPV.Application.Services
                      (string.IsNullOrEmpty(invoiceNumber) || s.InvoiceNumber.Contains(invoiceNumber)) &&
                      (string.IsNullOrEmpty(customerName) || (s.Customer != null && (s.Customer.FirstName.Contains(customerName) || s.Customer.LastName.Contains(customerName)))),
                 q => q.OrderByDescending(s => s.Date),
-                "Customer,SaleDetails.Product"
+                "Customer,SaleDetails.Product,Adjustments.Details.Product"
             );
 
             return sales.Select(s => new SaleResultDto
@@ -254,22 +279,37 @@ namespace TPV.Application.Services
                 Cufe = s.Cufe,
                 QrCode = s.QrCode,
                 ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
+                ServiceOrderId = s.ServiceOrderId,
                 Items = s.SaleDetails.Select(d => new SaleItemDto
                 {
+                    SaleDetailId = d.Id,
+                    ProductId = d.ProductId,
+                    SKU = d.Product?.SKU ?? string.Empty,
                     ProductName = d.Product?.Name ?? "Unknown",
                     Quantity = d.Quantity,
                     UnitOfMeasureId = d.UnitOfMeasureId,
                     UnitCode = d.UnitCode,
                     QuantityBase = d.QuantityBase,
                     UnitPrice = d.UnitPrice,
-                    SubTotal = d.SubTotal
-                }).ToList()
+                    DiscountAmount = d.DiscountAmount,
+                    SubTotal = d.SubTotal,
+                    TaxRate = d.TaxRate,
+                    TaxAmount = d.TaxAmount,
+                    UnitCost = d.UnitCost,
+                    TotalCost = d.TotalCost,
+                    BrandId = d.BrandId,
+                    BrandName = d.BrandName,
+                    AccountingClassification = d.AccountingClassification,
+                    AdjustedQuantity = s.Adjustments.Where(a => a.Status == "APLICADA")
+                        .SelectMany(a => a.Details).Where(a => a.SaleDetailId == d.Id).Sum(a => a.Quantity)
+                }).ToList(),
+                Adjustments = s.Adjustments.OrderByDescending(a => a.Date).Select(MapAdjustment).ToList()
             });
         }
 
         public async Task<SaleResultDto> GetSaleAsync(int saleId)
         {
-            var saleList = await _saleRepository.GetAsync(s => s.Id == saleId, null, "Branch,Customer");
+            var saleList = await _saleRepository.GetAsync(s => s.Id == saleId, null, "Branch,Customer,Adjustments.Details.Product");
             var sale = saleList.FirstOrDefault();
             if (sale == null) return null;
 
@@ -286,23 +326,162 @@ namespace TPV.Application.Services
                 PaymentMethod = sale.PaymentMethod,
                 Cufe = sale.Cufe,
                 QrCode = sale.QrCode,
+                ElectronicInvoiceId = sale.ElectronicInvoiceId,
+                ElectronicInvoicingStatus = sale.ElectronicInvoicingStatus,
+                ServiceOrderId = sale.ServiceOrderId,
+                Adjustments = sale.Adjustments.OrderByDescending(a => a.Date).Select(MapAdjustment).ToList(),
                 Items = details.Select(d => new SaleItemDto
                 {
+                    SaleDetailId = d.Id,
                     ProductId = d.ProductId,
                     ProductName = d.Product?.Name,
                     SKU = d.Product?.SKU,
                     UnitPrice = d.UnitPrice,
+                    DiscountAmount = d.DiscountAmount,
                     Quantity = d.Quantity,
                     UnitOfMeasureId = d.UnitOfMeasureId,
                     UnitCode = d.UnitCode,
                     QuantityBase = d.QuantityBase,
                     SubTotal = d.SubTotal,
                     TaxRate = d.TaxRate,
-                    TaxAmount = d.TaxAmount
+                    TaxAmount = d.TaxAmount,
+                    UnitCost = d.UnitCost,
+                    TotalCost = d.TotalCost,
+                    BrandId = d.BrandId,
+                    BrandName = d.BrandName,
+                    AccountingClassification = d.AccountingClassification,
+                    AdjustedQuantity = sale.Adjustments.Where(a => a.Status == "APLICADA")
+                        .SelectMany(a => a.Details).Where(a => a.SaleDetailId == d.Id).Sum(a => a.Quantity)
                 }).ToList()
             };
 
             return result;
+        }
+
+        public async Task<SaleAdjustmentDto> CreateAdjustmentAsync(int saleId, CreateSaleAdjustmentDto dto, string userId)
+        {
+            var sale = (await _saleRepository.GetAsync(s => s.Id == saleId, null,
+                "SaleDetails.Product,Adjustments.Details.Product")).FirstOrDefault()
+                ?? throw new InvalidOperationException("La venta original no existe.");
+            if (!await _userService.IsUserInBranchAsync(userId, sale.BranchId))
+                throw new UnauthorizedAccessException("El usuario no tiene permiso para ajustar ventas de esta sucursal.");
+
+            var documentType = string.IsNullOrWhiteSpace(dto.DocumentType)
+                ? string.Empty
+                : dto.DocumentType.Trim().ToUpperInvariant();
+            if (documentType != "DEVOLUCION" && documentType != "NOTA_CREDITO")
+                throw new InvalidOperationException("El documento debe ser DEVOLUCION o NOTA_CREDITO.");
+            var reason = dto.Reason?.Trim() ?? string.Empty;
+            if (reason.Length < 5) throw new InvalidOperationException("Indique un motivo de al menos cinco caracteres.");
+            if (dto.Items == null || dto.Items.Count == 0)
+                throw new InvalidOperationException("Seleccione al menos una línea de la venta original.");
+            if (dto.Items.Select(i => i.SaleDetailId).Distinct().Count() != dto.Items.Count)
+                throw new InvalidOperationException("No repita líneas dentro del ajuste.");
+
+            var adjustment = new SaleAdjustment
+            {
+                TenantId = sale.TenantId,
+                SaleId = sale.Id,
+                BranchId = sale.BranchId,
+                DocumentType = documentType,
+                DocumentNumber = $"{(documentType == "DEVOLUCION" ? "DEV" : "NC")}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{sale.Id}",
+                Date = DateTime.UtcNow,
+                Reason = reason,
+                RestocksInventory = documentType == "DEVOLUCION",
+                Status = "APLICADA",
+                CreatedByUserId = userId
+            };
+
+            foreach (var requested in dto.Items)
+            {
+                var original = sale.SaleDetails.FirstOrDefault(d => d.Id == requested.SaleDetailId)
+                    ?? throw new InvalidOperationException("Una línea seleccionada no pertenece a la venta original.");
+                if (requested.Quantity <= 0) throw new InvalidOperationException("La cantidad ajustada debe ser mayor que cero.");
+                var alreadyAdjusted = sale.Adjustments.Where(a => a.Status == "APLICADA")
+                    .SelectMany(a => a.Details).Where(d => d.SaleDetailId == original.Id).Sum(d => d.Quantity);
+                if (requested.Quantity > original.Quantity - alreadyAdjusted)
+                    throw new InvalidOperationException($"La cantidad de '{original.Product.Name}' supera el saldo ajustable de la factura.");
+
+                var ratio = requested.Quantity / original.Quantity;
+                adjustment.Details.Add(new SaleAdjustmentDetail
+                {
+                    SaleDetailId = original.Id,
+                    ProductId = original.ProductId,
+                    Quantity = requested.Quantity,
+                    UnitOfMeasureId = original.UnitOfMeasureId,
+                    UnitCode = original.UnitCode,
+                    QuantityBase = decimal.Round(original.QuantityBase * ratio, 4),
+                    UnitPrice = original.UnitPrice,
+                    DiscountAmount = decimal.Round(original.DiscountAmount * ratio, 2),
+                    TaxRate = original.TaxRate,
+                    TaxAmount = decimal.Round(original.TaxAmount * ratio, 2),
+                    SubTotal = decimal.Round(original.SubTotal * ratio, 2),
+                    UnitCost = original.UnitCost,
+                    TotalCost = decimal.Round(original.TotalCost * ratio, 2),
+                    BrandId = original.BrandId,
+                    BrandName = original.BrandName,
+                    AccountingClassification = original.AccountingClassification
+                });
+            }
+
+            adjustment.TotalAmount = adjustment.Details.Sum(d => d.SubTotal);
+            var created = await _adjustmentRepository.AddAsync(adjustment);
+            var saleToTouch = await _saleRepository.GetByIdAsync(sale.Id);
+            if (saleToTouch != null)
+            {
+                saleToTouch.UpdatedAt = DateTime.UtcNow;
+                await _saleRepository.UpdateAsync(saleToTouch);
+            }
+            if (created.RestocksInventory)
+            {
+                foreach (var line in created.Details)
+                {
+                    await _stockService.ApplyMovementAsync(line.ProductId, sale.BranchId, line.Quantity,
+                        line.UnitOfMeasureId, true, "DEVOLUCION_VENTA", "DEVOLUCION", created.Id,
+                        created.DocumentNumber, created.Reason, null, userId);
+                }
+            }
+
+            var loaded = (await _adjustmentRepository.GetAsync(a => a.Id == created.Id, null,
+                "Sale,Details.Product")).First();
+            return MapAdjustment(loaded);
+        }
+
+        private static SaleAdjustmentDto MapAdjustment(SaleAdjustment adjustment) => new()
+        {
+            Id = adjustment.Id,
+            SaleId = adjustment.SaleId,
+            OriginalInvoiceNumber = adjustment.Sale?.InvoiceNumber ?? string.Empty,
+            DocumentType = adjustment.DocumentType,
+            DocumentNumber = adjustment.DocumentNumber,
+            Date = adjustment.Date,
+            Reason = adjustment.Reason,
+            RestocksInventory = adjustment.RestocksInventory,
+            TotalAmount = adjustment.TotalAmount,
+            Status = adjustment.Status,
+            Items = adjustment.Details.Select(d => new SaleAdjustmentItemDto
+            {
+                SaleDetailId = d.SaleDetailId,
+                ProductId = d.ProductId,
+                Reference = d.Product?.SKU ?? string.Empty,
+                Description = d.Product?.Name ?? string.Empty,
+                Quantity = d.Quantity,
+                UnitCode = d.UnitCode,
+                SubTotal = d.SubTotal
+            }).ToList()
+        };
+
+        private static string BuildCategoryPath(Category? category)
+        {
+            if (category == null) return "SIN_CLASIFICAR";
+            var names = new Stack<string>();
+            var current = category;
+            while (current != null)
+            {
+                names.Push(current.Name.Trim().ToUpperInvariant());
+                current = current.Parent;
+            }
+            return string.Join(" / ", names);
         }
     }
 }

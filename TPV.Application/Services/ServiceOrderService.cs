@@ -28,6 +28,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Tenant> _tenantRepository;
+        private readonly IRepository<Stock> _stockRepository;
         private readonly IUserService _userService;
         private readonly IVehicleService _vehicleService;
 
@@ -44,6 +45,7 @@ namespace TPV.Application.Services
             IRepository<Category> categoryRepository,
             IRepository<Branch> branchRepository,
             IRepository<Tenant> tenantRepository,
+            IRepository<Stock> stockRepository,
             IUserService userService,
             IVehicleService vehicleService)
         {
@@ -59,6 +61,7 @@ namespace TPV.Application.Services
             _categoryRepository = categoryRepository;
             _branchRepository = branchRepository;
             _tenantRepository = tenantRepository;
+            _stockRepository = stockRepository;
             _userService = userService;
             _vehicleService = vehicleService;
         }
@@ -393,7 +396,9 @@ namespace TPV.Application.Services
                 {
                     ProductId = i.ProductId,
                     Quantity = i.Quantity,
-                    UnitOfMeasureId = i.UnitOfMeasureId
+                    UnitOfMeasureId = i.UnitOfMeasureId,
+                    DiscountType = i.DiscountType,
+                    DiscountValue = i.DiscountValue
                 }).ToList()
             };
 
@@ -610,7 +615,7 @@ namespace TPV.Application.Services
 
             var parts = await _partRepository.GetAsync(
                 predicate: p => p.ServiceOrderId == serviceOrderId,
-                includeString: "Product");
+                includeString: "Product.Brand,Product.Category,Product.Category.Parent,Product.Category.Parent.Parent");
             var works = await _workRepository.GetAsync(w => w.ServiceOrderId == serviceOrderId);
             var billableLaborCost = works.Any()
                 ? works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost)
@@ -666,6 +671,8 @@ namespace TPV.Application.Services
                     }
                 }
 
+                var stock = (await _stockRepository.GetAsync(s => s.ProductId == part.ProductId && s.BranchId == branchId)).FirstOrDefault();
+                var totalCost = (stock?.Cost ?? 0m) * part.QuantityBase;
                 var detail = new SaleDetail
                 {
                     SaleId = sale.Id,
@@ -675,9 +682,15 @@ namespace TPV.Application.Services
                     UnitCode = part.UnitCode,
                     QuantityBase = part.QuantityBase,
                     UnitPrice = part.UnitPrice,
+                    DiscountAmount = part.DiscountAmount,
                     TaxRate = taxRate * 100, // Store as percentage
                     TaxAmount = taxAmount,
-                    SubTotal = subTotal
+                    SubTotal = subTotal,
+                    UnitCost = part.Quantity > 0 ? totalCost / part.Quantity : 0m,
+                    TotalCost = totalCost,
+                    BrandId = part.Product?.BrandId,
+                    BrandName = part.Product?.Brand?.Name,
+                    AccountingClassification = BuildSaleClassification(part.Product?.Category, part.LineType)
                 };
                 await _saleDetailRepository.AddAsync(detail);
                 totalSaleAmount += subTotal;
@@ -707,9 +720,13 @@ namespace TPV.Application.Services
                     ProductId = laborProduct.Id,
                     Quantity = 1,
                     UnitPrice = billableLaborCost,
+                    DiscountAmount = 0,
                     TaxRate = taxRate * 100,
                     TaxAmount = taxAmount,
-                    SubTotal = subTotal
+                    SubTotal = subTotal,
+                    UnitCost = 0,
+                    TotalCost = 0,
+                    AccountingClassification = "TALLER / MANO_DE_OBRA"
                 };
                 await _saleDetailRepository.AddAsync(laborDetail);
                 totalSaleAmount += subTotal;
@@ -729,6 +746,19 @@ namespace TPV.Application.Services
             await RecordStatusChangeAsync(serviceOrder, statusBeforeInvoice, userId, $"Factura {sale.InvoiceNumber} generada");
 
             return await _salesService.GetSaleAsync(sale.Id);
+        }
+
+        private static string BuildSaleClassification(Category? category, string fallback)
+        {
+            if (category == null) return $"TALLER / {fallback}";
+            var names = new Stack<string>();
+            var current = category;
+            while (current != null)
+            {
+                names.Push(current.Name.Trim().ToUpperInvariant());
+                current = current.Parent;
+            }
+            return string.Join(" / ", names);
         }
 
         private ServiceOrderDto MapToDto(ServiceOrder entity, Customer customer = null)

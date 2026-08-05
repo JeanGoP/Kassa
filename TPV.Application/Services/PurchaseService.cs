@@ -68,6 +68,14 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("El flete y su IVA no pueden ser negativos.");
             }
 
+            var supplier = (await _supplierRepository.GetAsync(s => s.Id == dto.SupplierId, includeString: "OfficialBrand")).FirstOrDefault()
+                ?? throw new InvalidOperationException("El proveedor seleccionado no existe.");
+            if (!string.IsNullOrWhiteSpace(dto.PurchaseOrderNumber) != dto.PurchaseOrderDate.HasValue)
+                throw new InvalidOperationException("El pedido asociado debe incluir número y fecha.");
+            var receivedAt = dto.ReceivedAt == default ? DateTime.Now : dto.ReceivedAt;
+            if (dto.PurchaseOrderDate.HasValue && dto.PurchaseOrderDate.Value > receivedAt)
+                throw new InvalidOperationException("La fecha del pedido no puede ser posterior a la recepción.");
+
             var receptionLocation = await _locationRepository.GetByIdAsync(dto.InventoryLocationId);
             if (receptionLocation == null || receptionLocation.BranchId != dto.BranchId || !receptionLocation.IsActive)
             {
@@ -81,6 +89,12 @@ namespace TPV.Application.Services
                 InventoryLocationId = receptionLocation.Id,
                 Date = dto.Date == default ? DateTime.Today : dto.Date,
                 SupplierInvoiceDate = dto.SupplierInvoiceDate,
+                ReceivedAt = receivedAt,
+                PurchaseOrderNumber = string.IsNullOrWhiteSpace(dto.PurchaseOrderNumber) ? null : dto.PurchaseOrderNumber.Trim().ToUpperInvariant(),
+                PurchaseOrderDate = dto.PurchaseOrderDate,
+                SupplierType = string.IsNullOrWhiteSpace(supplier.SupplierType) ? "TERCERO" : supplier.SupplierType,
+                OfficialBrandId = supplier.OfficialBrandId,
+                OfficialBrandName = supplier.OfficialBrand?.Name,
                 ReferenceNumber = dto.ReferenceNumber?.Trim() ?? string.Empty,
                 Status = "Completed",
                 Freight = dto.Freight,
@@ -108,7 +122,7 @@ namespace TPV.Application.Services
                     throw new InvalidOperationException("El costo y el IVA de los articulos no pueden ser negativos.");
                 }
 
-                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null, "UnitConversions")).FirstOrDefault()
+                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null, "UnitConversions,Brand")).FirstOrDefault()
                     ?? throw new InvalidOperationException("El producto de la compra no existe.");
                 var unitId = item.UnitOfMeasureId ?? product.PurchaseUnitId ?? product.BaseUnitId
                     ?? throw new InvalidOperationException($"El producto '{product.Name}' no tiene unidad de compra configurada.");
@@ -134,6 +148,8 @@ namespace TPV.Application.Services
                     SubTotal = subTotal,
                     TaxRate = item.TaxRate,
                     TaxAmount = taxAmount,
+                    BrandId = product.BrandId,
+                    BrandName = product.Brand?.Name,
                     IsActive = true
                 };
                 purchase.PurchaseDetails.Add(detail);
@@ -180,7 +196,7 @@ namespace TPV.Application.Services
                      p.ReferenceNumber.Contains(search) ||
                      (p.Supplier != null && p.Supplier.Name.Contains(search)),
                 query => query.OrderByDescending(p => p.Id),
-                "Supplier,Branch,InventoryLocation");
+                "Supplier.OfficialBrand,Branch,InventoryLocation");
             return purchases.Select(MapToDto);
         }
 
@@ -188,7 +204,7 @@ namespace TPV.Application.Services
         {
             var purchases = await _purchaseRepository.GetAsync(
                 p => p.Id == id,
-                includeString: "Supplier,Branch,InventoryLocation,PurchaseDetails.Product");
+                includeString: "Supplier.OfficialBrand,Branch,InventoryLocation,PurchaseDetails.Product");
             var purchase = purchases.FirstOrDefault();
             return purchase == null ? null : MapToDto(purchase);
         }
@@ -250,7 +266,9 @@ namespace TPV.Application.Services
                 UnitCost = d.UnitCost,
                 SubTotal = d.SubTotal,
                 TaxRate = d.TaxRate,
-                TaxAmount = d.TaxAmount
+                TaxAmount = d.TaxAmount,
+                BrandId = d.BrandId,
+                BrandName = d.BrandName
             }).ToList() ?? new List<PurchaseDetailDto>();
 
             var itemsSubTotal = p.ItemsSubTotal != 0 ? p.ItemsSubTotal : detailDtos.Sum(d => d.SubTotal);
@@ -261,12 +279,19 @@ namespace TPV.Application.Services
             {
                 Id = p.Id,
                 SupplierName = p.Supplier?.Name ?? "Unknown",
+                SupplierTaxId = p.Supplier?.TaxId,
+                SupplierType = p.SupplierType,
+                OfficialBrandId = p.OfficialBrandId,
+                OfficialBrandName = p.OfficialBrandName,
                 BranchName = p.Branch?.Name ?? "Unknown",
                 InventoryLocationId = p.InventoryLocationId,
                 InventoryLocationCode = p.InventoryLocation?.Code ?? string.Empty,
                 InventoryLocationName = p.InventoryLocation?.Name ?? string.Empty,
                 Date = p.Date,
                 SupplierInvoiceDate = p.SupplierInvoiceDate,
+                ReceivedAt = p.ReceivedAt,
+                PurchaseOrderNumber = p.PurchaseOrderNumber,
+                PurchaseOrderDate = p.PurchaseOrderDate,
                 ReferenceNumber = p.ReferenceNumber,
                 TotalAmount = p.TotalAmount,
                 ItemsSubTotal = itemsSubTotal,

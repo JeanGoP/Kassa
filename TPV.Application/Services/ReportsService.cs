@@ -13,21 +13,11 @@ namespace TPV.Application.Services
     {
         private readonly IRepository<Sale> _saleRepository;
         private readonly IRepository<SaleDetail> _detailRepository;
-        private readonly IRepository<Product> _productRepository;
-        private readonly IRepository<Branch> _branchRepository;
-        private readonly IRepository<Stock> _stockRepository;
 
-        public ReportsService(IRepository<Sale> saleRepository,
-                              IRepository<SaleDetail> detailRepository,
-                              IRepository<Product> productRepository,
-                              IRepository<Branch> branchRepository,
-                              IRepository<Stock> stockRepository)
+        public ReportsService(IRepository<Sale> saleRepository, IRepository<SaleDetail> detailRepository)
         {
             _saleRepository = saleRepository;
             _detailRepository = detailRepository;
-            _productRepository = productRepository;
-            _branchRepository = branchRepository;
-            _stockRepository = stockRepository;
         }
 
         public async Task<IEnumerable<SalesByBranchDto>> GetSalesByBranchAsync(DateTime? start, DateTime? end)
@@ -38,14 +28,14 @@ namespace TPV.Application.Services
                 null, "Branch");
 
             return sales.GroupBy(s => new { s.BranchId, s.Branch?.Name })
-                        .Select(g => new SalesByBranchDto
-                        {
-                            BranchId = g.Key.BranchId,
-                            BranchName = g.Key.Name,
-                            TotalSales = g.Sum(x => x.TotalAmount)
-                        })
-                        .OrderByDescending(r => r.TotalSales)
-                        .ToList();
+                .Select(group => new SalesByBranchDto
+                {
+                    BranchId = group.Key.BranchId,
+                    BranchName = group.Key.Name,
+                    TotalSales = group.Sum(s => s.TotalAmount)
+                })
+                .OrderByDescending(row => row.TotalSales)
+                .ToList();
         }
 
         public async Task<IEnumerable<ProductMarginDto>> GetProductMarginsAsync(DateTime? start, DateTime? end)
@@ -55,38 +45,18 @@ namespace TPV.Application.Services
                 (!end.HasValue || d.Sale.Date <= end.Value),
                 null, "Product,Sale");
 
-            // Obtener todos los pares ProductId/BranchId necesarios
-            var productIds = details.Select(d => d.ProductId).Distinct().ToList();
-            var branchIds = details.Select(d => d.Sale.BranchId).Distinct().ToList();
-
-            // Cargar stocks para obtener costos por sucursal
-            // Nota: Esto obtiene el costo ACTUAL. Idealmente deberíamos tener histórico de costos en SaleDetail,
-            // pero bajo la premisa actual usamos el costo promedio ponderado actual de la sucursal.
-            var stocks = await _stockRepository.GetAsync(s => productIds.Contains(s.ProductId) && branchIds.Contains(s.BranchId));
-            
-            // Crear diccionario (BranchId, ProductId) -> Cost
-            var costMap = stocks.ToDictionary(s => (s.BranchId, s.ProductId), s => s.Cost);
-
-            // Calcular costo para cada detalle
-            var detailsWithCost = details.Select(d => new 
-            {
-                Detail = d,
-                Cost = costMap.TryGetValue((d.Sale.BranchId, d.ProductId), out var cost) ? cost : 0
-            }).ToList();
-
-            return detailsWithCost.GroupBy(x => new { x.Detail.ProductId, x.Detail.Product?.SKU, x.Detail.Product?.Name })
-                          .Select(g => new ProductMarginDto
-                          {
-                              ProductId = g.Key.ProductId,
-                              SKU = g.Key.SKU,
-                              Name = g.Key.Name,
-                              QuantitySold = g.Sum(x => x.Detail.Quantity),
-                              Revenue = g.Sum(x => x.Detail.SubTotal),
-                              CostTotal = g.Sum(x => x.Cost * x.Detail.Quantity)
-                          })
-                          .OrderByDescending(r => r.Margin)
-                          .ToList();
+            return details.GroupBy(d => new { d.ProductId, d.Product.SKU, d.Product.Name })
+                .Select(group => new ProductMarginDto
+                {
+                    ProductId = group.Key.ProductId,
+                    SKU = group.Key.SKU,
+                    Name = group.Key.Name,
+                    QuantitySold = group.Sum(d => d.Quantity),
+                    Revenue = group.Sum(d => d.SubTotal),
+                    CostTotal = group.Sum(d => d.TotalCost)
+                })
+                .OrderByDescending(row => row.Margin)
+                .ToList();
         }
     }
 }
-

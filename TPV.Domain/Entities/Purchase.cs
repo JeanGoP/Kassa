@@ -18,6 +18,12 @@ namespace TPV.Domain.Entities
 
         public DateTime Date { get; set; }
         public DateTime? SupplierInvoiceDate { get; set; }
+        public DateTime ReceivedAt { get; set; }
+        public string? PurchaseOrderNumber { get; set; }
+        public DateTime? PurchaseOrderDate { get; set; }
+        public string SupplierType { get; set; } = "TERCERO";
+        public int? OfficialBrandId { get; set; }
+        public string? OfficialBrandName { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty; // Invoice number
         public decimal TotalAmount { get; set; }
         public decimal ItemsSubTotal { get; set; }

@@ -43,6 +43,10 @@ namespace TPV.Web.Controllers.Api
             }
             catch (System.Exception ex)
             {
+                if (ex is System.InvalidOperationException)
+                {
+                    return BadRequest(new { message = ex.Message });
+                }
                 if (ex.Message.Contains("Ya existe"))
                 {
                     return Conflict(new { message = ex.Message });
@@ -61,6 +65,10 @@ namespace TPV.Web.Controllers.Api
             }
             catch (System.Exception ex)
             {
+                if (ex is System.InvalidOperationException)
+                {
+                    return BadRequest(new { message = ex.Message });
+                }
                 if (ex.Message.Contains("Ya existe"))
                 {
                     return Conflict(new { message = ex.Message });

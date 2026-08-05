@@ -19,5 +19,7 @@ namespace TPV.Domain.Entities
         public decimal SubTotal { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
+        public int? BrandId { get; set; }
+        public string? BrandName { get; set; }
     }
 }

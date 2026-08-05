@@ -6,11 +6,16 @@ import { Link } from 'react-router-dom';
 interface Purchase {
     id: number;
     supplierName: string;
+    supplierType: string;
+    officialBrandName?: string;
     branchName: string;
     inventoryLocationCode: string;
     inventoryLocationName: string;
     date: string;
     supplierInvoiceDate?: string | null;
+    receivedAt: string;
+    purchaseOrderNumber?: string | null;
+    purchaseOrderDate?: string | null;
     referenceNumber: string;
     totalAmount: number;
     freight: number;
@@ -129,6 +134,7 @@ const Purchases = () => {
                                             {formatDate(item.date)}
                                         </div>
                                         <div className="mt-1 text-xs text-slate-500">ID #{item.id}</div>
+                                        <div className="mt-1 text-xs font-bold text-emerald-700">RECIBIDA: {formatDate(item.receivedAt)}</div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -148,6 +154,8 @@ const Purchases = () => {
                                             <Building2 size={15} className="text-slate-400" />
                                             {item.branchName}
                                         </div>
+                                        <div className="mt-1 text-xs font-bold text-slate-500">{item.supplierType || 'TERCERO'}{item.officialBrandName ? ` - ${item.officialBrandName}` : ''}</div>
+                                        <div className="mt-1 text-xs text-slate-500">PEDIDO: {item.purchaseOrderNumber || '-'}</div>
                                         <div className="mt-1 text-xs text-slate-500">
                                             {item.inventoryLocationCode} - {item.inventoryLocationName}
                                         </div>
@@ -208,6 +216,7 @@ const Purchases = () => {
                                         {item.referenceNumber || `Entrada #${item.id}`}
                                     </div>
                                     <div className="mt-1 text-sm font-semibold text-slate-600">{item.supplierName}</div>
+                                    <div className="mt-1 text-xs font-bold text-slate-500">{item.supplierType || 'TERCERO'}{item.officialBrandName ? ` - ${item.officialBrandName}` : ''}</div>
                                 </div>
                                 <span className="shrink-0 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-extrabold text-amber-700 ring-1 ring-amber-100">
                                     {item.accountingStatus || 'Pending'}
@@ -217,10 +226,12 @@ const Purchases = () => {
                                 <div>
                                     <div className="text-xs font-bold uppercase text-slate-400">Entrada</div>
                                     <div className="font-semibold text-slate-700">{formatDate(item.date)}</div>
+                                    <div className="text-xs font-bold text-emerald-700">RECIBIDA {formatDate(item.receivedAt)}</div>
                                 </div>
                                 <div>
                                     <div className="text-xs font-bold uppercase text-slate-400">Factura</div>
                                     <div className="font-semibold text-slate-700">{formatDate(item.supplierInvoiceDate)}</div>
+                                    <div className="text-xs text-slate-500">PEDIDO {item.purchaseOrderNumber || '-'}</div>
                                 </div>
                                 <div>
                                     <div className="text-xs font-bold uppercase text-slate-400">Bodega</div>

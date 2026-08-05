@@ -15,5 +15,7 @@ namespace TPV.Application.DTOs
         public int ProductId { get; set; }
         public decimal Quantity { get; set; }
         public int? UnitOfMeasureId { get; set; }
+        public string DiscountType { get; set; } = "NONE";
+        public decimal DiscountValue { get; set; }
     }
 }

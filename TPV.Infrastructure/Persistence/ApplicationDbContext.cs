@@ -31,6 +31,8 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<Stock> Stocks { get; set; }
         public DbSet<Sale> Sales { get; set; }
         public DbSet<SaleDetail> SaleDetails { get; set; }
+        public DbSet<SaleAdjustment> SaleAdjustments { get; set; }
+        public DbSet<SaleAdjustmentDetail> SaleAdjustmentDetails { get; set; }
         public DbSet<CashSession> CashSessions { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Purchase> Purchases { get; set; }
@@ -123,6 +125,10 @@ namespace TPV.Infrastructure.Persistence
                 .Property(p => p.CreatedByUserId)
                 .HasMaxLength(450);
 
+            builder.Entity<Purchase>().Property(p => p.PurchaseOrderNumber).HasMaxLength(80);
+            builder.Entity<Purchase>().Property(p => p.SupplierType).HasMaxLength(20);
+            builder.Entity<Purchase>().Property(p => p.OfficialBrandName).HasMaxLength(120);
+
             builder.Entity<Purchase>()
                 .HasOne(p => p.InventoryLocation)
                 .WithMany()
@@ -144,6 +150,67 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<PurchaseDetail>()
                 .Property(pd => pd.TaxAmount)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<PurchaseDetail>().Property(pd => pd.BrandName).HasMaxLength(120);
+
+            builder.Entity<Supplier>().Property(s => s.SupplierType).HasMaxLength(20);
+            builder.Entity<Supplier>()
+                .HasOne(s => s.OfficialBrand)
+                .WithMany()
+                .HasForeignKey(s => s.OfficialBrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SaleDetail>().Property(d => d.DiscountAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleDetail>().Property(d => d.UnitCost).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleDetail>().Property(d => d.TotalCost).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleDetail>().Property(d => d.BrandName).HasMaxLength(120);
+            builder.Entity<SaleDetail>().Property(d => d.AccountingClassification).HasMaxLength(200);
+
+            builder.Entity<SaleAdjustment>().Property(a => a.DocumentType).HasMaxLength(20);
+            builder.Entity<SaleAdjustment>().Property(a => a.DocumentNumber).HasMaxLength(80);
+            builder.Entity<SaleAdjustment>().Property(a => a.Reason).HasMaxLength(500);
+            builder.Entity<SaleAdjustment>().Property(a => a.Status).HasMaxLength(20);
+            builder.Entity<SaleAdjustment>().Property(a => a.CreatedByUserId).HasMaxLength(450);
+            builder.Entity<SaleAdjustment>().Property(a => a.TotalAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustment>().HasIndex(a => new { a.TenantId, a.DocumentNumber }).IsUnique();
+            builder.Entity<SaleAdjustment>()
+                .HasOne(a => a.Sale)
+                .WithMany(s => s.Adjustments)
+                .HasForeignKey(a => a.SaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<SaleAdjustment>()
+                .HasOne(a => a.Branch)
+                .WithMany()
+                .HasForeignKey(a => a.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.QuantityBase).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.UnitPrice).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.DiscountAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.TaxRate).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.TaxAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.SubTotal).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.UnitCost).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.TotalCost).HasColumnType("decimal(18,2)");
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.UnitCode).HasMaxLength(20);
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.BrandName).HasMaxLength(120);
+            builder.Entity<SaleAdjustmentDetail>().Property(d => d.AccountingClassification).HasMaxLength(200);
+            builder.Entity<SaleAdjustmentDetail>()
+                .HasOne(d => d.SaleAdjustment)
+                .WithMany(a => a.Details)
+                .HasForeignKey(d => d.SaleAdjustmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<SaleAdjustmentDetail>()
+                .HasOne(d => d.SaleDetail)
+                .WithMany(d => d.AdjustmentDetails)
+                .HasForeignKey(d => d.SaleDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<SaleAdjustmentDetail>()
+                .HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Stock: Clave compuesta o única por Producto + Sucursal
             builder.Entity<Stock>()

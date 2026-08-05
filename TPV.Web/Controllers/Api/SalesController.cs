@@ -97,5 +97,24 @@ namespace TPV.Web.Controllers.Api
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("{id}/adjustments")]
+        public async Task<IActionResult> CreateAdjustment(int id, [FromBody] CreateSaleAdjustmentDto dto)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId)) return Unauthorized();
+                return Ok(await _salesService.CreateAdjustmentAsync(id, dto, userId));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
