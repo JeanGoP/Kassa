@@ -18,7 +18,8 @@ namespace TPV.Application.DTOs
     public class CreatePurchaseDetailDto
     {
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
         public decimal UnitCost { get; set; }
         public decimal TaxRate { get; set; }
     }
@@ -48,7 +49,10 @@ namespace TPV.Application.DTOs
     {
         public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
+        public string UnitCode { get; set; } = "UND";
+        public decimal QuantityBase { get; set; }
         public decimal UnitCost { get; set; }
         public decimal SubTotal { get; set; }
         public decimal TaxRate { get; set; }

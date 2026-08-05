@@ -21,5 +21,6 @@ namespace TPV.Domain.Entities
         // Navigation properties
         public ICollection<Stock> Stocks { get; set; }
         public ICollection<Sale> Sales { get; set; }
+        public ICollection<InventoryLocation> InventoryLocations { get; set; } = new List<InventoryLocation>();
     }
 }

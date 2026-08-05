@@ -26,6 +26,7 @@ namespace TPV.Application.Services
         private readonly IRepository<WarrantyReplacementPart> _replacementPartRepository;
         private readonly IRepository<WarrantyStatusHistory> _statusHistoryRepository;
         private readonly IRepository<WarrantyManufacturerInvoice> _invoiceRepository;
+        private readonly IRepository<UnitOfMeasure> _unitRepository;
         private readonly IUserService _userService;
 
         public WarrantyService(
@@ -41,6 +42,7 @@ namespace TPV.Application.Services
             IRepository<WarrantyReplacementPart> replacementPartRepository,
             IRepository<WarrantyStatusHistory> statusHistoryRepository,
             IRepository<WarrantyManufacturerInvoice> invoiceRepository,
+            IRepository<UnitOfMeasure> unitRepository,
             IUserService userService)
         {
             _repository = repository;
@@ -55,6 +57,7 @@ namespace TPV.Application.Services
             _replacementPartRepository = replacementPartRepository;
             _statusHistoryRepository = statusHistoryRepository;
             _invoiceRepository = invoiceRepository;
+            _unitRepository = unitRepository;
             _userService = userService;
         }
 
@@ -348,6 +351,17 @@ namespace TPV.Application.Services
 
             foreach (var item in requestedParts)
             {
+                Product? product = null;
+                if (item.ProductId.HasValue)
+                    product = (await _productRepository.GetAsync(p => p.Id == item.ProductId.Value, null, "UnitConversions")).FirstOrDefault();
+                var unit = item.UnitOfMeasureId.HasValue
+                    ? await _unitRepository.GetByIdAsync(item.UnitOfMeasureId.Value)
+                    : (await _unitRepository.GetAsync(u => u.Code == item.Unit.Trim().ToUpperInvariant())).FirstOrDefault();
+                unit ??= (await _unitRepository.GetAsync(u => u.Code == "UND")).FirstOrDefault();
+                if (unit == null) throw new InvalidOperationException("No existe una unidad válida para la pieza reemplazada.");
+                var factor = product == null || product.BaseUnitId == unit.Id ? 1m
+                    : product.UnitConversions.FirstOrDefault(c => c.UnitOfMeasureId == unit.Id)?.FactorToBase ?? 0m;
+                if (factor <= 0) throw new InvalidOperationException($"No existe conversión de {unit.Code} a la unidad base.");
                 await _replacementPartRepository.AddAsync(new WarrantyReplacementPart
                 {
                     TenantId = warranty.TenantId,
@@ -356,7 +370,9 @@ namespace TPV.Application.Services
                     Reference = item.Reference.Trim(),
                     Description = item.Description.Trim(),
                     Quantity = item.Quantity,
-                    Unit = item.Unit.Trim().ToUpperInvariant(),
+                    UnitOfMeasureId = unit.Id,
+                    Unit = unit.Code,
+                    QuantityBase = item.Quantity * factor,
                     UnitValue = item.UnitValue,
                     TotalValue = decimal.Round(item.Quantity * item.UnitValue, 2)
                 });
@@ -474,6 +490,8 @@ namespace TPV.Application.Services
                     Reference = p.Reference,
                     Description = p.Description,
                     Quantity = p.Quantity,
+                    UnitOfMeasureId = p.UnitOfMeasureId,
+                    QuantityBase = p.QuantityBase,
                     Unit = p.Unit,
                     UnitValue = p.UnitValue,
                     TotalValue = p.TotalValue

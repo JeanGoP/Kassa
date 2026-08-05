@@ -26,7 +26,10 @@ namespace TPV.Application.DTOs
         public string ProductName { get; set; }
         public string SKU { get; set; }
         public decimal UnitPrice { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
+        public string UnitCode { get; set; } = "UND";
+        public decimal QuantityBase { get; set; }
         public decimal SubTotal { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }

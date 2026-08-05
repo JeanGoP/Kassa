@@ -9,6 +9,8 @@ interface Product {
     sku: string;
     ivaRate: number;
     unitOfMeasure?: string;
+    purchaseUnitId?: number;
+    purchaseUnitCode?: string;
 }
 
 interface Supplier {
@@ -34,6 +36,7 @@ interface PurchaseItem {
     unitCost: number;
     taxRate: number;
     unitOfMeasure: string;
+    unitOfMeasureId?: number;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -204,7 +207,8 @@ const CreatePurchase = () => {
             quantity,
             unitCost,
             taxRate,
-            unitOfMeasure: selectedProduct.unitOfMeasure || 'UND'
+            unitOfMeasure: selectedProduct.purchaseUnitCode || selectedProduct.unitOfMeasure || 'UND',
+            unitOfMeasureId: selectedProduct.purchaseUnitId
         };
 
         setDetails(prev => {
@@ -217,7 +221,8 @@ const CreatePurchase = () => {
                             quantity: item.quantity + quantity,
                             unitCost,
                             taxRate,
-                            unitOfMeasure: newItem.unitOfMeasure
+                            unitOfMeasure: newItem.unitOfMeasure,
+                            unitOfMeasureId: newItem.unitOfMeasureId
                         }
                         : item
                 );
@@ -312,7 +317,8 @@ const CreatePurchase = () => {
                     productId: item.productId,
                     quantity: item.quantity,
                     unitCost: item.unitCost,
-                    taxRate: item.taxRate
+                    taxRate: item.taxRate,
+                    unitOfMeasureId: item.unitOfMeasureId
                 }))
             });
             navigate('/purchases');

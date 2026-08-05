@@ -10,7 +10,7 @@ namespace TPV.Domain.Entities
         public string SearchTerm { get; set; } = string.Empty;
         public string? MatchedProductName { get; set; }
         public bool FoundInStock { get; set; }
-        public int TotalQuantity { get; set; }
+        public decimal TotalQuantity { get; set; }
         public string? UserId { get; set; }
     }
 }

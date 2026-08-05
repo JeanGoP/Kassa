@@ -11,7 +11,9 @@ interface Product {
     id: number;
     name: string;
     sku: string;
+    saleUnitId?: number;
 }
+interface InventoryLocation { id: number; code: string; name: string; isDefault: boolean; }
 
 interface StockInfo {
     quantity: number;
@@ -22,6 +24,10 @@ const StockTransfers = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [sourceBranchId, setSourceBranchId] = useState<number | null>(null);
     const [targetBranchId, setTargetBranchId] = useState<number | null>(null);
+    const [sourceLocations, setSourceLocations] = useState<InventoryLocation[]>([]);
+    const [targetLocations, setTargetLocations] = useState<InventoryLocation[]>([]);
+    const [sourceLocationId, setSourceLocationId] = useState<number | null>(null);
+    const [targetLocationId, setTargetLocationId] = useState<number | null>(null);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
@@ -51,6 +57,24 @@ const StockTransfers = () => {
         };
         fetchBranches();
     }, []);
+
+    useEffect(() => {
+        if (!sourceBranchId) return;
+        api.get(`/inventory/locations?branchId=${sourceBranchId}`).then(response => {
+            setSourceLocations(response.data);
+            const location = response.data.find((item: InventoryLocation) => item.isDefault) || response.data[0];
+            setSourceLocationId(location?.id || null);
+        }).catch(console.error);
+    }, [sourceBranchId]);
+
+    useEffect(() => {
+        if (!targetBranchId) return;
+        api.get(`/inventory/locations?branchId=${targetBranchId}`).then(response => {
+            setTargetLocations(response.data);
+            const location = response.data.find((item: InventoryLocation) => item.isDefault) || response.data[0];
+            setTargetLocationId(location?.id || null);
+        }).catch(console.error);
+    }, [targetBranchId]);
 
     useEffect(() => {
         if (searchTerm.length > 2 && sourceBranchId) {
@@ -93,8 +117,8 @@ const StockTransfers = () => {
         e.preventDefault();
         if (!selectedProduct || !sourceBranchId || !targetBranchId) return;
         
-        if (sourceBranchId === targetBranchId) {
-            setError('La sucursal de origen y destino no pueden ser la misma');
+        if (sourceBranchId === targetBranchId && sourceLocationId === targetLocationId) {
+            setError('EL ORIGEN Y EL DESTINO DEBEN SER DIFERENTES');
             return;
         }
 
@@ -111,7 +135,10 @@ const StockTransfers = () => {
                 sourceBranchId,
                 targetBranchId,
                 quantity: transferQuantity,
-                notes
+                notes,
+                unitOfMeasureId: selectedProduct.saleUnitId,
+                sourceLocationId,
+                targetLocationId
             });
             setSuccess('Traslado realizado correctamente');
             
@@ -173,12 +200,27 @@ const StockTransfers = () => {
                                 onChange={(e) => setTargetBranchId(Number(e.target.value))}
                             >
                                 {branches.map(b => (
-                                    <option key={b.id} value={b.id} disabled={b.id === sourceBranchId}>
+                                    <option key={b.id} value={b.id}>
                                         {b.name}
                                     </option>
                                 ))}
                             </select>
                         </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">UBICACIÓN DE ORIGEN</label>
+                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2" value={sourceLocationId ?? ''} onChange={e => setSourceLocationId(Number(e.target.value))}>
+                            {sourceLocations.map(location => <option key={location.id} value={location.id}>{location.code} - {location.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">UBICACIÓN DE DESTINO</label>
+                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2" value={targetLocationId ?? ''} onChange={e => setTargetLocationId(Number(e.target.value))}>
+                            {targetLocations.map(location => <option key={location.id} value={location.id}>{location.code} - {location.name}</option>)}
+                        </select>
                     </div>
                 </div>
 
@@ -231,10 +273,11 @@ const StockTransfers = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad a Trasladar</label>
                                 <input
                                     type="number"
+                                    step="0.0001"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={transferQuantity || ''}
                                     onChange={(e) => setTransferQuantity(Number(e.target.value))}
-                                    min="1"
+                                    min="0.0001"
                                     max={sourceStock?.quantity ?? 0}
                                 />
                             </div>

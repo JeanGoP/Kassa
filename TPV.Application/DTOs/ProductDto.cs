@@ -9,6 +9,15 @@ namespace TPV.Application.DTOs
         public string? Description { get; set; }
         public string Type { get; set; } = "Producto";
         public string UnitOfMeasure { get; set; } = "UND";
+        public int? BaseUnitId { get; set; }
+        public string? BaseUnitCode { get; set; }
+        public int? PurchaseUnitId { get; set; }
+        public string? PurchaseUnitCode { get; set; }
+        public decimal PurchaseFactorToBase { get; set; } = 1m;
+        public int? SaleUnitId { get; set; }
+        public string? SaleUnitCode { get; set; }
+        public decimal SaleFactorToBase { get; set; } = 1m;
+        public bool AllowsFractionalQuantity { get; set; }
         public decimal Price { get; set; }
         // public decimal Cost { get; set; } - Removed
         public decimal? ProfitabilityPercentage { get; set; }
@@ -21,6 +30,6 @@ namespace TPV.Application.DTOs
         public string? BrandName { get; set; }
         public int CategoryId { get; set; }
         public string? CategoryName { get; set; }
-        public int StockQuantity { get; set; }
+        public decimal StockQuantity { get; set; }
     }
 }

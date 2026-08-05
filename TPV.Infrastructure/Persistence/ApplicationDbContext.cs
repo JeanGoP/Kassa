@@ -59,6 +59,11 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<VehicleOwnerHistory> VehicleOwnerHistories { get; set; }
         public DbSet<Brand> Brands { get; set; }
         public DbSet<VehicleModel> VehicleModels { get; set; }
+        public DbSet<UnitOfMeasure> UnitsOfMeasure { get; set; }
+        public DbSet<ProductUnitConversion> ProductUnitConversions { get; set; }
+        public DbSet<InventoryLocation> InventoryLocations { get; set; }
+        public DbSet<InventoryLocationBalance> InventoryLocationBalances { get; set; }
+        public DbSet<InventoryMovement> InventoryMovements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -136,6 +141,106 @@ namespace TPV.Infrastructure.Persistence
                 .HasIndex(s => new { s.ProductId, s.BranchId })
                 .IsUnique();
 
+            builder.Entity<Stock>().Property(s => s.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<Stock>().Property(s => s.MinStockLevel).HasColumnType("decimal(18,4)");
+            builder.Entity<Stock>().Property(s => s.MaxStockLevel).HasColumnType("decimal(18,4)");
+
+            builder.Entity<UnitOfMeasure>().Property(u => u.Code).HasMaxLength(20);
+            builder.Entity<UnitOfMeasure>().Property(u => u.Name).HasMaxLength(80);
+            builder.Entity<UnitOfMeasure>().Property(u => u.Symbol).HasMaxLength(20);
+            builder.Entity<UnitOfMeasure>().HasIndex(u => new { u.TenantId, u.Code }).IsUnique();
+
+            builder.Entity<Product>()
+                .HasOne(p => p.BaseUnit)
+                .WithMany()
+                .HasForeignKey(p => p.BaseUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Product>()
+                .HasOne(p => p.PurchaseUnit)
+                .WithMany()
+                .HasForeignKey(p => p.PurchaseUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Product>()
+                .HasOne(p => p.SaleUnit)
+                .WithMany()
+                .HasForeignKey(p => p.SaleUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProductUnitConversion>().Property(c => c.UsageType).HasMaxLength(20);
+            builder.Entity<ProductUnitConversion>().Property(c => c.FactorToBase).HasColumnType("decimal(18,6)");
+            builder.Entity<ProductUnitConversion>()
+                .HasIndex(c => new { c.TenantId, c.ProductId, c.UsageType })
+                .IsUnique();
+            builder.Entity<ProductUnitConversion>()
+                .HasOne(c => c.Product)
+                .WithMany(p => p.UnitConversions)
+                .HasForeignKey(c => c.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ProductUnitConversion>()
+                .HasOne(c => c.UnitOfMeasure)
+                .WithMany(u => u.ProductConversions)
+                .HasForeignKey(c => c.UnitOfMeasureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InventoryLocation>().Property(l => l.Code).HasMaxLength(40);
+            builder.Entity<InventoryLocation>().Property(l => l.Name).HasMaxLength(120);
+            builder.Entity<InventoryLocation>().Property(l => l.Description).HasMaxLength(300);
+            builder.Entity<InventoryLocation>()
+                .HasIndex(l => new { l.TenantId, l.BranchId, l.Code })
+                .IsUnique();
+            builder.Entity<InventoryLocation>()
+                .HasOne(l => l.Branch)
+                .WithMany(b => b.InventoryLocations)
+                .HasForeignKey(l => l.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InventoryLocationBalance>().Property(b => b.QuantityBase).HasColumnType("decimal(18,4)");
+            builder.Entity<InventoryLocationBalance>()
+                .HasIndex(b => new { b.TenantId, b.ProductId, b.InventoryLocationId })
+                .IsUnique();
+            builder.Entity<InventoryLocationBalance>()
+                .HasOne(b => b.Product)
+                .WithMany()
+                .HasForeignKey(b => b.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryLocationBalance>()
+                .HasOne(b => b.InventoryLocation)
+                .WithMany(l => l.Balances)
+                .HasForeignKey(b => b.InventoryLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InventoryMovement>().Property(m => m.MovementType).HasMaxLength(40);
+            builder.Entity<InventoryMovement>().Property(m => m.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<InventoryMovement>().Property(m => m.UnitCode).HasMaxLength(20);
+            builder.Entity<InventoryMovement>().Property(m => m.FactorToBase).HasColumnType("decimal(18,6)");
+            builder.Entity<InventoryMovement>().Property(m => m.BaseQuantity).HasColumnType("decimal(18,4)");
+            builder.Entity<InventoryMovement>().Property(m => m.DocumentType).HasMaxLength(40);
+            builder.Entity<InventoryMovement>().Property(m => m.DocumentNumber).HasMaxLength(80);
+            builder.Entity<InventoryMovement>().Property(m => m.Reason).HasMaxLength(500);
+            builder.Entity<InventoryMovement>().Property(m => m.UserId).HasMaxLength(450);
+            builder.Entity<InventoryMovement>().HasIndex(m => new { m.TenantId, m.OccurredAt });
+            builder.Entity<InventoryMovement>().HasOne(m => m.Product).WithMany().HasForeignKey(m => m.ProductId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryMovement>().HasOne(m => m.Branch).WithMany().HasForeignKey(m => m.BranchId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryMovement>().HasOne(m => m.InventoryLocation).WithMany().HasForeignKey(m => m.InventoryLocationId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryMovement>().HasOne(m => m.DestinationBranch).WithMany().HasForeignKey(m => m.DestinationBranchId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryMovement>().HasOne(m => m.DestinationLocation).WithMany().HasForeignKey(m => m.DestinationLocationId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<InventoryMovement>().HasOne(m => m.UnitOfMeasure).WithMany().HasForeignKey(m => m.UnitOfMeasureId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SaleDetail>().Property(d => d.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleDetail>().Property(d => d.QuantityBase).HasColumnType("decimal(18,4)");
+            builder.Entity<SaleDetail>().Property(d => d.UnitCode).HasMaxLength(20);
+            builder.Entity<SaleDetail>().HasOne(d => d.UnitOfMeasure).WithMany().HasForeignKey(d => d.UnitOfMeasureId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PurchaseDetail>().Property(d => d.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<PurchaseDetail>().Property(d => d.QuantityBase).HasColumnType("decimal(18,4)");
+            builder.Entity<PurchaseDetail>().Property(d => d.UnitCode).HasMaxLength(20);
+            builder.Entity<PurchaseDetail>().HasOne(d => d.UnitOfMeasure).WithMany().HasForeignKey(d => d.UnitOfMeasureId).OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ServiceOrderPart>().Property(d => d.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<ServiceOrderPart>().Property(d => d.QuantityBase).HasColumnType("decimal(18,4)");
+            builder.Entity<ServiceOrderPart>().Property(d => d.UnitCode).HasMaxLength(20);
+            builder.Entity<ServiceOrderPart>().HasOne(d => d.UnitOfMeasure).WithMany().HasForeignKey(d => d.UnitOfMeasureId).OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<WorkshopManager>()
                 .Property(m => m.Name)
                 .HasMaxLength(150);
@@ -175,6 +280,10 @@ namespace TPV.Infrastructure.Persistence
 
             builder.Entity<QuotationSearchHistory>()
                 .HasIndex(h => new { h.TenantId, h.SearchedAt });
+
+            builder.Entity<QuotationSearchHistory>()
+                .Property(h => h.TotalQuantity)
+                .HasColumnType("decimal(18,4)");
 
             builder.Entity<Quotation>()
                 .Property(q => q.QuotationNumber)
@@ -227,6 +336,10 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<QuotationDetail>()
                 .Property(d => d.SubTotal)
                 .HasColumnType("decimal(18,2)");
+
+            builder.Entity<QuotationDetail>()
+                .Property(d => d.AvailableQuantity)
+                .HasColumnType("decimal(18,4)");
 
             builder.Entity<QuotationDetail>()
                 .HasOne(d => d.Product)
@@ -565,6 +678,10 @@ namespace TPV.Infrastructure.Persistence
                 .HasColumnType("decimal(18,3)");
 
             builder.Entity<PreparationOrderItem>()
+                .Property(i => i.QuantityBase)
+                .HasColumnType("decimal(18,4)");
+
+            builder.Entity<PreparationOrderItem>()
                 .Property(i => i.Unit)
                 .HasMaxLength(40);
 
@@ -580,6 +697,12 @@ namespace TPV.Infrastructure.Persistence
                 .HasOne(i => i.Product)
                 .WithMany()
                 .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PreparationOrderItem>()
+                .HasOne(i => i.UnitOfMeasure)
+                .WithMany()
+                .HasForeignKey(i => i.UnitOfMeasureId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Unique Index for Customer (TenantId + TaxId)
@@ -839,12 +962,14 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Warranty>().HasOne(w => w.ManufacturerInvoice).WithMany(i => i.Warranties).HasForeignKey(w => w.ManufacturerInvoiceId).OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<WarrantyReplacementPart>().Property(p => p.Quantity).HasColumnType("decimal(18,4)");
+            builder.Entity<WarrantyReplacementPart>().Property(p => p.QuantityBase).HasColumnType("decimal(18,4)");
             builder.Entity<WarrantyReplacementPart>().Property(p => p.UnitValue).HasColumnType("decimal(18,2)");
             builder.Entity<WarrantyReplacementPart>().Property(p => p.TotalValue).HasColumnType("decimal(18,2)");
             builder.Entity<WarrantyReplacementPart>().Property(p => p.Reference).HasMaxLength(120);
             builder.Entity<WarrantyReplacementPart>().Property(p => p.Unit).HasMaxLength(30);
             builder.Entity<WarrantyReplacementPart>().HasOne(p => p.Warranty).WithMany(w => w.ReplacementParts).HasForeignKey(p => p.WarrantyId).OnDelete(DeleteBehavior.Cascade);
             builder.Entity<WarrantyReplacementPart>().HasOne(p => p.Product).WithMany().HasForeignKey(p => p.ProductId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<WarrantyReplacementPart>().HasOne(p => p.UnitOfMeasure).WithMany().HasForeignKey(p => p.UnitOfMeasureId).OnDelete(DeleteBehavior.Restrict);
             builder.Entity<WarrantyReplacementPart>().HasIndex(p => new { p.TenantId, p.WarrantyId });
 
             builder.Entity<WarrantyStatusHistory>().Property(h => h.ManufacturerStatus).HasMaxLength(120);

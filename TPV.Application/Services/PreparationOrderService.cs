@@ -16,8 +16,10 @@ namespace TPV.Application.Services
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<UnitOfMeasure> _unitRepository;
         private readonly IUserService _userService;
         private readonly IVehicleService _vehicleService;
+        private readonly IStockService _stockService;
 
         public PreparationOrderService(
             IRepository<PreparationOrder> repository,
@@ -25,16 +27,20 @@ namespace TPV.Application.Services
             IRepository<Branch> branchRepository,
             IRepository<Customer> customerRepository,
             IRepository<Product> productRepository,
+            IRepository<UnitOfMeasure> unitRepository,
             IUserService userService,
-            IVehicleService vehicleService)
+            IVehicleService vehicleService,
+            IStockService stockService)
         {
             _repository = repository;
             _itemRepository = itemRepository;
             _branchRepository = branchRepository;
             _customerRepository = customerRepository;
             _productRepository = productRepository;
+            _unitRepository = unitRepository;
             _userService = userService;
             _vehicleService = vehicleService;
+            _stockService = stockService;
         }
 
         public async Task<IEnumerable<PreparationOrderDto>> GetAllAsync(string? search)
@@ -199,6 +205,17 @@ namespace TPV.Application.Services
                 throw new UnauthorizedAccessException("El usuario no tiene permiso para cerrar alistamientos de esta sucursal.");
             }
 
+            if (string.Equals(order.Status, "Completada", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("El alistamiento ya fue completado y sus consumos ya afectaron inventario.");
+
+            var consumptions = await _itemRepository.GetAsync(i => i.PreparationOrderId == order.Id && i.ProductId.HasValue);
+            foreach (var item in consumptions)
+            {
+                await _stockService.ApplyMovementAsync(item.ProductId!.Value, order.BranchId, item.Quantity,
+                    item.UnitOfMeasureId, false, "CONSUMO_ALISTAMIENTO", "ALISTAMIENTO", order.Id,
+                    order.OrderNumber, item.Notes, null, userId);
+            }
+
             order.Status = "Completada";
             order.CompletedAt = dto.CompletedAt ?? DateTime.Now;
             order.ExecutedBy = Clean(dto.ExecutedBy) ?? order.ExecutedBy;
@@ -282,7 +299,7 @@ namespace TPV.Application.Services
                 Product? product = null;
                 if (dto.ProductId.HasValue)
                 {
-                    product = await _productRepository.GetByIdAsync(dto.ProductId.Value);
+                    product = (await _productRepository.GetAsync(p => p.Id == dto.ProductId.Value, null, "UnitConversions")).FirstOrDefault();
                     if (product == null)
                     {
                         throw new InvalidOperationException($"Producto {dto.ProductId.Value} no encontrado.");
@@ -301,7 +318,18 @@ namespace TPV.Application.Services
                     throw new InvalidOperationException("Cada consumo debe tener producto, referencia o descripcion.");
                 }
 
-                var unit = Clean(dto.Unit) ?? product?.UnitOfMeasure ?? "UND";
+                var requestedUnitCode = Clean(dto.Unit) ?? product?.UnitOfMeasure ?? "UND";
+                var unitEntity = dto.UnitOfMeasureId.HasValue
+                    ? await _unitRepository.GetByIdAsync(dto.UnitOfMeasureId.Value)
+                    : (await _unitRepository.GetAsync(u => u.Code == requestedUnitCode)).FirstOrDefault();
+                unitEntity ??= (await _unitRepository.GetAsync(u => u.Code == "UND")).FirstOrDefault();
+                if (unitEntity == null) throw new InvalidOperationException("No existe una unidad válida para el consumo.");
+                if (product != null && !product.AllowsFractionalQuantity && dto.Quantity != decimal.Truncate(dto.Quantity))
+                    throw new InvalidOperationException($"El producto '{product.Name}' no admite cantidades fraccionadas.");
+                var factor = product == null || product.BaseUnitId == unitEntity.Id ? 1m
+                    : product.UnitConversions.FirstOrDefault(c => c.UnitOfMeasureId == unitEntity.Id)?.FactorToBase ?? 0m;
+                if (factor <= 0) throw new InvalidOperationException($"No existe conversión de {unitEntity.Code} a la unidad base.");
+                var unit = unitEntity.Code;
                 var unitValue = dto.UnitValue;
 
                 items.Add(new PreparationOrderItem
@@ -311,6 +339,8 @@ namespace TPV.Application.Services
                     Reference = reference,
                     Description = description,
                     Quantity = dto.Quantity,
+                    UnitOfMeasureId = unitEntity.Id,
+                    QuantityBase = dto.Quantity * factor,
                     Unit = unit,
                     UnitValue = unitValue,
                     TotalValue = decimal.Round(dto.Quantity * unitValue, 2),
@@ -356,6 +386,8 @@ namespace TPV.Application.Services
                     Reference = i.Reference,
                     Description = i.Description,
                     Quantity = i.Quantity,
+                    UnitOfMeasureId = i.UnitOfMeasureId,
+                    QuantityBase = i.QuantityBase,
                     Unit = i.Unit,
                     UnitValue = i.UnitValue,
                     TotalValue = i.TotalValue,

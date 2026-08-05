@@ -12,6 +12,13 @@ namespace TPV.Domain.Entities
         public string Description { get; set; }
         public string Type { get; set; } = "Producto"; // Producto, Servicio
         public string UnitOfMeasure { get; set; } = "UND"; // Unidad de medida, por defecto UND
+        public int? BaseUnitId { get; set; }
+        public UnitOfMeasure? BaseUnit { get; set; }
+        public int? PurchaseUnitId { get; set; }
+        public UnitOfMeasure? PurchaseUnit { get; set; }
+        public int? SaleUnitId { get; set; }
+        public UnitOfMeasure? SaleUnit { get; set; }
+        public bool AllowsFractionalQuantity { get; set; }
         public decimal Price { get; set; } // Precio de venta
         // Cost moved to Stock entity per branch
         public decimal? ProfitabilityPercentage { get; set; } // Porcentaje de rentabilidad opcional
@@ -30,5 +37,6 @@ namespace TPV.Domain.Entities
 
         public ICollection<Stock> Stocks { get; set; }
         public ICollection<SaleDetail> SaleDetails { get; set; }
+        public ICollection<ProductUnitConversion> UnitConversions { get; set; } = new List<ProductUnitConversion>();
     }
 }

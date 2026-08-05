@@ -15,7 +15,7 @@ namespace TPV.Domain.Entities
         public string SKU { get; set; } = string.Empty;
         public string? Barcode { get; set; }
         public int Quantity { get; set; }
-        public int AvailableQuantity { get; set; }
+        public decimal AvailableQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal SubTotal { get; set; }
     }

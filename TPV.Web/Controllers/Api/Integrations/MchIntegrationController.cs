@@ -319,7 +319,15 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ArticleType = p.Type,
                     BrandId = p.BrandId,
                     Brand = p.Brand != null ? p.Brand.Name : null,
-                    BaseUnit = p.UnitOfMeasure,
+                    BaseUnitId = p.BaseUnitId,
+                    BaseUnit = p.BaseUnit != null ? p.BaseUnit.Code : p.UnitOfMeasure,
+                    AllowsFractionalQuantity = p.AllowsFractionalQuantity,
+                    PurchaseUnitId = p.PurchaseUnitId,
+                    PurchaseUnit = p.PurchaseUnit != null ? p.PurchaseUnit.Code : p.UnitOfMeasure,
+                    PurchaseFactorToBase = p.UnitConversions.Where(c => c.UsageType == "PURCHASE").Select(c => c.FactorToBase).FirstOrDefault(),
+                    SaleUnitId = p.SaleUnitId,
+                    SaleUnit = p.SaleUnit != null ? p.SaleUnit.Code : p.UnitOfMeasure,
+                    SaleFactorToBase = p.UnitConversions.Where(c => c.UsageType == "SALE").Select(c => c.FactorToBase).FirstOrDefault(),
                     SalePrice = p.Price,
                     IvaType = p.IvaType,
                     IvaRate = p.IvaRate,
@@ -329,6 +337,24 @@ namespace TPV.Web.Controllers.Api.Integrations
                     ModifiedAt = p.UpdatedAt ?? p.CreatedAt
                 });
 
+            return Ok(await ToPagedResponseAsync(projected, query));
+        }
+
+        [HttpGet("units")]
+        public async Task<IActionResult> GetUnits([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+            IQueryable<UnitOfMeasure> source = _dbContext.UnitsOfMeasure.IgnoreQueryFilters().AsNoTracking();
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            var projected = source.OrderBy(u => u.Id).Select(u => new MchUnitDto
+            {
+                Id = u.Id, CompanyId = u.TenantId, Code = u.Code, Name = u.Name, Symbol = u.Symbol,
+                AllowsDecimals = u.AllowsDecimals, Status = ToStatus(u.IsActive),
+                CreatedAt = u.CreatedAt, ModifiedAt = u.UpdatedAt ?? u.CreatedAt
+            });
             return Ok(await ToPagedResponseAsync(projected, query));
         }
 
@@ -361,17 +387,59 @@ namespace TPV.Web.Controllers.Api.Integrations
                     BrandId = s.Product.BrandId,
                     Brand = s.Product.Brand != null ? s.Product.Brand.Name : null,
                     Quantity = s.Quantity,
-                    Unit = s.Product.UnitOfMeasure,
+                    UnitId = s.Product.BaseUnitId,
+                    Unit = s.Product.BaseUnit != null ? s.Product.BaseUnit.Code : s.Product.UnitOfMeasure,
                     CurrentCost = s.Cost,
                     SalePrice = s.Product.Price,
                     MinimumStock = s.MinStockLevel,
                     MaximumStock = s.MaxStockLevel,
                     ProductStatus = ToStatus(s.Product.IsActive),
                     Status = ToStatus(s.IsActive),
+                    Locations = _dbContext.InventoryLocationBalances.IgnoreQueryFilters()
+                        .Where(b => b.TenantId == s.TenantId && b.ProductId == s.ProductId && b.InventoryLocation.BranchId == s.BranchId)
+                        .Select(b => new MchInventoryLocationBalanceDto
+                        {
+                            LocationId = b.InventoryLocationId,
+                            LocationCode = b.InventoryLocation.Code,
+                            LocationName = b.InventoryLocation.Name,
+                            Quantity = b.QuantityBase,
+                            Unit = s.Product.BaseUnit != null ? s.Product.BaseUnit.Code : s.Product.UnitOfMeasure
+                        }).ToList(),
                     CreatedAt = s.CreatedAt,
                     ModifiedAt = s.UpdatedAt ?? s.CreatedAt
                 });
 
+            return Ok(await ToPagedResponseAsync(projected, query));
+        }
+
+        [HttpGet("inventory-movements")]
+        public async Task<IActionResult> GetInventoryMovements([FromQuery] MchQuery query)
+        {
+            var denied = ValidateAccess();
+            if (denied != null) return denied;
+
+            IQueryable<InventoryMovement> source = _dbContext.InventoryMovements.IgnoreQueryFilters().AsNoTracking();
+            source = ApplyTenantScope(source);
+            source = ApplyEntityFilters(source, query);
+            source = ApplyModifiedFilter(source, query);
+            source = ApplyDateRange(source, query, m => m.OccurredAt);
+            if (query.SucursalId.HasValue) source = source.Where(m => m.BranchId == query.SucursalId.Value);
+
+            var projected = source.OrderBy(m => m.Id).Select(m => new MchInventoryMovementDto
+            {
+                Id = m.Id, CompanyId = m.TenantId, BranchId = m.BranchId, BranchName = m.Branch.Name,
+                Warehouse = m.Branch.Name, LocationId = m.InventoryLocationId,
+                Location = m.InventoryLocation != null ? m.InventoryLocation.Code + " - " + m.InventoryLocation.Name : null,
+                DestinationBranchId = m.DestinationBranchId, DestinationBranchName = m.DestinationBranch != null ? m.DestinationBranch.Name : null,
+                DestinationLocationId = m.DestinationLocationId,
+                DestinationLocation = m.DestinationLocation != null ? m.DestinationLocation.Code + " - " + m.DestinationLocation.Name : null,
+                ProductId = m.ProductId, Reference = m.Product.SKU, Description = m.Product.Name,
+                MovementType = m.MovementType, Quantity = m.Quantity, UnitId = m.UnitOfMeasureId,
+                Unit = m.UnitCode, FactorToBase = m.FactorToBase, BaseQuantity = m.BaseQuantity,
+                DocumentType = m.DocumentType, DocumentId = m.DocumentId, DocumentNumber = m.DocumentNumber,
+                Reason = m.Reason, UserId = m.UserId, OccurredAt = m.OccurredAt,
+                CreatedAt = m.CreatedAt, ModifiedAt = m.UpdatedAt ?? m.CreatedAt
+            });
             return Ok(await ToPagedResponseAsync(projected, query));
         }
 
@@ -422,7 +490,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                     BrandId = d.Product?.BrandId,
                     Brand = d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
-                    Unit = d.Product?.UnitOfMeasure,
+                    UnitId = d.UnitOfMeasureId,
+                    Unit = d.UnitCode,
+                    BaseQuantity = d.QuantityBase,
                     UnitPrice = d.UnitPrice,
                     TaxRate = d.TaxRate,
                     TaxAmount = d.TaxAmount,
@@ -488,7 +558,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                     BrandId = d.Product?.BrandId,
                     Brand = d.Product?.Brand?.Name,
                     Quantity = d.Quantity,
-                    Unit = d.Product?.UnitOfMeasure,
+                    UnitId = d.UnitOfMeasureId,
+                    Unit = d.UnitCode,
+                    BaseQuantity = d.QuantityBase,
                     UnitCost = d.UnitCost,
                     TaxRate = d.TaxRate,
                     TaxAmount = d.TaxAmount,
@@ -634,7 +706,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                             Reference = p.Product?.SKU,
                             Description = p.Product?.Name,
                             Quantity = p.Quantity,
-                            Unit = p.Product?.UnitOfMeasure,
+                            UnitId = p.UnitOfMeasureId,
+                            Unit = p.UnitCode,
+                            BaseQuantity = p.QuantityBase,
                             LineType = p.LineType,
                             Payer = p.Payer,
                             AddsToCustomerTotal = p.AddsToCustomerTotal,
@@ -894,7 +968,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                         Reference = p.Reference,
                         Description = p.Description,
                         Quantity = p.Quantity,
+                        UnitId = p.UnitOfMeasureId,
                         Unit = p.Unit,
+                        BaseQuantity = p.QuantityBase,
                         UnitValue = p.UnitValue,
                         TotalValue = p.TotalValue
                     }).ToList(),
@@ -968,7 +1044,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Reference = string.IsNullOrWhiteSpace(i.Reference) ? i.Product != null ? i.Product.SKU : null : i.Reference,
                     Description = string.IsNullOrWhiteSpace(i.Description) ? i.Product != null ? i.Product.Name : null : i.Description,
                     Quantity = i.Quantity,
+                    UnitId = i.UnitOfMeasureId,
                     Unit = i.Unit,
+                    BaseQuantity = i.QuantityBase,
                     UnitValue = i.UnitValue,
                     TotalValue = i.TotalValue,
                     Notes = i.Notes
@@ -1365,6 +1443,14 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public string BaseUnit { get; set; } = string.Empty;
+        public int? BaseUnitId { get; set; }
+        public bool AllowsFractionalQuantity { get; set; }
+        public int? PurchaseUnitId { get; set; }
+        public string? PurchaseUnit { get; set; }
+        public decimal PurchaseFactorToBase { get; set; }
+        public int? SaleUnitId { get; set; }
+        public string? SaleUnit { get; set; }
+        public decimal SaleFactorToBase { get; set; }
         public decimal SalePrice { get; set; }
         public string IvaType { get; set; } = string.Empty;
         public decimal IvaRate { get; set; }
@@ -1387,13 +1473,69 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal CurrentCost { get; set; }
         public decimal SalePrice { get; set; }
-        public int MinimumStock { get; set; }
-        public int MaximumStock { get; set; }
+        public decimal MinimumStock { get; set; }
+        public decimal MaximumStock { get; set; }
+        public List<MchInventoryLocationBalanceDto> Locations { get; set; } = new();
         public string ProductStatus { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchUnitDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Symbol { get; set; } = string.Empty;
+        public bool AllowsDecimals { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime ModifiedAt { get; set; }
+    }
+
+    public class MchInventoryLocationBalanceDto
+    {
+        public int LocationId { get; set; }
+        public string LocationCode { get; set; } = string.Empty;
+        public string LocationName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+    }
+
+    public class MchInventoryMovementDto
+    {
+        public int Id { get; set; }
+        public int CompanyId { get; set; }
+        public int BranchId { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public string Warehouse { get; set; } = string.Empty;
+        public int? LocationId { get; set; }
+        public string? Location { get; set; }
+        public int? DestinationBranchId { get; set; }
+        public string? DestinationBranchName { get; set; }
+        public int? DestinationLocationId { get; set; }
+        public string? DestinationLocation { get; set; }
+        public int ProductId { get; set; }
+        public string Reference { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string MovementType { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public int UnitId { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal FactorToBase { get; set; }
+        public decimal BaseQuantity { get; set; }
+        public string? DocumentType { get; set; }
+        public int? DocumentId { get; set; }
+        public string? DocumentNumber { get; set; }
+        public string? Reason { get; set; }
+        public string? UserId { get; set; }
+        public DateTime OccurredAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
     }
@@ -1428,7 +1570,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string? Unit { get; set; }
+        public decimal BaseQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
@@ -1473,7 +1617,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string? Unit { get; set; }
+        public decimal BaseQuantity { get; set; }
         public decimal UnitCost { get; set; }
         public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
@@ -1521,7 +1667,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int? BrandId { get; set; }
         public string? Brand { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string Unit { get; set; } = string.Empty;
+        public decimal BaseQuantity { get; set; }
         public decimal UnitValue { get; set; }
         public decimal TotalValue { get; set; }
         public string? Notes { get; set; }
@@ -1609,7 +1757,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Reference { get; set; }
         public string? Description { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string? Unit { get; set; }
+        public decimal BaseQuantity { get; set; }
         public string LineType { get; set; } = string.Empty;
         public string Payer { get; set; } = string.Empty;
         public bool AddsToCustomerTotal { get; set; }
@@ -1702,7 +1852,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string Reference { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
+        public int? UnitId { get; set; }
         public string Unit { get; set; } = string.Empty;
+        public decimal BaseQuantity { get; set; }
         public decimal UnitValue { get; set; }
         public decimal TotalValue { get; set; }
     }

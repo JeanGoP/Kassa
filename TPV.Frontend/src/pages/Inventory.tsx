@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
-import { Package, AlertTriangle, Edit, Save, X, MapPin, Search } from 'lucide-react';
+import { Package, AlertTriangle, Edit, Save, X, MapPin, Search, Plus, History } from 'lucide-react';
 
 interface StockItem {
     id: number;
@@ -13,11 +13,38 @@ interface StockItem {
     branchId: number;
     branchName: string;
     cost: number;
+    baseUnitCode: string;
 }
 
 interface Branch {
     id: number;
     name: string;
+}
+
+interface InventoryLocation {
+    id: number;
+    branchId: number;
+    code: string;
+    name: string;
+    description?: string;
+    isDefault: boolean;
+    isActive: boolean;
+}
+
+interface InventoryMovement {
+    id: number;
+    productName: string;
+    productSku: string;
+    locationName?: string;
+    destinationBranchName?: string;
+    destinationLocationName?: string;
+    movementType: string;
+    quantity: number;
+    unitCode: string;
+    baseQuantity: number;
+    documentNumber?: string;
+    reason?: string;
+    occurredAt: string;
 }
 
 const Inventory = () => {
@@ -28,6 +55,10 @@ const Inventory = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
+    const [locations, setLocations] = useState<InventoryLocation[]>([]);
+    const [movements, setMovements] = useState<InventoryMovement[]>([]);
+    const [showLocationForm, setShowLocationForm] = useState(false);
+    const [locationForm, setLocationForm] = useState({ code: '', name: '', description: '', isDefault: false, isActive: true });
 
     useEffect(() => {
         const init = async () => {
@@ -48,12 +79,16 @@ const Inventory = () => {
 
     const fetchData = async (branchId: number) => {
         try {
-            const [stockRes, alertsRes] = await Promise.all([
+            const [stockRes, alertsRes, locationsRes, movementsRes] = await Promise.all([
                 api.get(`/inventory?branchId=${branchId}`),
-                api.get(`/inventory/alerts?branchId=${branchId}`)
+                api.get(`/inventory/alerts?branchId=${branchId}`),
+                api.get(`/inventory/locations?branchId=${branchId}`),
+                api.get(`/inventory/movements?branchId=${branchId}`)
             ]);
             setStock(stockRes.data);
             setAlerts(alertsRes.data);
+            setLocations(locationsRes.data);
+            setMovements(movementsRes.data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -89,7 +124,7 @@ const Inventory = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!editingItem) return;
         const { name, value } = e.target;
-        setEditingItem({ ...editingItem, [name]: parseInt(value) || 0 });
+        setEditingItem({ ...editingItem, [name]: Number(value) || 0 });
     };
 
     const handleBranchChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -105,6 +140,18 @@ const Inventory = () => {
         const sku = (item.sku || '').toLowerCase();
         return name.includes(q) || sku.includes(q);
     });
+
+    const saveLocation = async () => {
+        if (!selectedBranchId || !locationForm.code.trim() || !locationForm.name.trim()) return;
+        try {
+            await api.post('/inventory/locations', { ...locationForm, branchId: selectedBranchId });
+            setLocationForm({ code: '', name: '', description: '', isDefault: false, isActive: true });
+            setShowLocationForm(false);
+            await fetchData(selectedBranchId);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'NO FUE POSIBLE GUARDAR LA UBICACIÓN');
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -141,7 +188,7 @@ const Inventory = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                         {alerts.map((alert: any, idx: number) => (
                             <div key={idx} className="text-sm text-orange-800 bg-white p-2 rounded border border-orange-100">
-                                <strong>{alert.productName}</strong>: {alert.currentStock} (Min: {alert.minStockLevel})
+                                <strong>{alert.productName}</strong>: {alert.quantity} {alert.baseUnitCode} (MÍN: {alert.minStockLevel})
                             </div>
                         ))}
                     </div>
@@ -172,7 +219,7 @@ const Inventory = () => {
                                 <th className="p-4 border-b">Producto</th>
                                 <th className="p-4 border-b">SKU</th>
                                 <th className="p-4 border-b">Sucursal</th>
-                                <th className="p-4 border-b text-center">Cantidad</th>
+                                <th className="p-4 border-b text-center">CANTIDAD BASE</th>
                                 <th className="p-4 border-b text-center">Min</th>
                                 <th className="p-4 border-b text-center">Max</th>
                                 <th className="p-4 border-b text-center">Costo Promedio</th>
@@ -190,8 +237,9 @@ const Inventory = () => {
                                     {editingItem && editingItem.id === item.id ? (
                                         <>
                                             <td className="p-4 text-center">
-                                                <input 
+                                                <input
                                                     type="number" 
+                                                    step="0.0001"
                                                     name="quantity"
                                                     value={editingItem.quantity || ''} 
                                                     onChange={handleChange}
@@ -202,6 +250,7 @@ const Inventory = () => {
                                                 <input 
                                                     type="number" 
                                                     name="minStockLevel"
+                                                    step="0.0001"
                                                     value={editingItem.minStockLevel} 
                                                     onChange={handleChange}
                                                     className="w-20 p-1 border rounded text-center"
@@ -211,6 +260,7 @@ const Inventory = () => {
                                                 <input 
                                                     type="number" 
                                                     name="maxStockLevel"
+                                                    step="0.0001"
                                                     value={editingItem.maxStockLevel} 
                                                     onChange={handleChange}
                                                     className="w-20 p-1 border rounded text-center"
@@ -219,7 +269,7 @@ const Inventory = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <td className="p-4 text-center font-medium">{item.quantity}</td>
+                                            <td className="p-4 text-center font-medium">{item.quantity} {item.baseUnitCode}</td>
                                             <td className="p-4 text-center text-gray-500">{item.minStockLevel}</td>
                                             <td className="p-4 text-center text-gray-500">{item.maxStockLevel}</td>
                                         </>
@@ -258,6 +308,44 @@ const Inventory = () => {
                     </table>
                 </div>
             </div>
+
+            <section className="border-t border-slate-200 pt-6">
+                <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <MapPin size={20} className="text-slate-600" />
+                        <h3 className="text-lg font-bold text-slate-800">UBICACIONES DE LA BODEGA</h3>
+                    </div>
+                    <button type="button" onClick={() => setShowLocationForm(value => !value)} className="k-button-primary px-3 py-2 text-sm">
+                        {showLocationForm ? <X size={17} /> : <Plus size={17} />} {showLocationForm ? 'CANCELAR' : 'NUEVA UBICACIÓN'}
+                    </button>
+                </div>
+                {showLocationForm && (
+                    <div className="mb-4 grid grid-cols-1 gap-3 border-y border-slate-200 bg-slate-50 p-4 md:grid-cols-4">
+                        <div><label className="mb-1 block text-xs font-bold text-slate-600">CÓDIGO</label><input className="w-full rounded border p-2" value={locationForm.code} onChange={e => setLocationForm({...locationForm, code: e.target.value.toUpperCase()})} /></div>
+                        <div><label className="mb-1 block text-xs font-bold text-slate-600">NOMBRE</label><input className="w-full rounded border p-2" value={locationForm.name} onChange={e => setLocationForm({...locationForm, name: e.target.value.toUpperCase()})} /></div>
+                        <div><label className="mb-1 block text-xs font-bold text-slate-600">DESCRIPCIÓN</label><input className="w-full rounded border p-2" value={locationForm.description} onChange={e => setLocationForm({...locationForm, description: e.target.value.toUpperCase()})} /></div>
+                        <div className="flex items-end gap-3"><label className="flex items-center gap-2 pb-2 text-sm font-medium"><input type="checkbox" checked={locationForm.isDefault} onChange={e => setLocationForm({...locationForm, isDefault: e.target.checked})} /> PREDETERMINADA</label><button type="button" onClick={saveLocation} className="k-button-primary mb-0.5 p-2" title="GUARDAR UBICACIÓN"><Save size={18} /></button></div>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                    {locations.map(location => (
+                        <div key={location.id} className="border-b border-slate-200 bg-white px-3 py-3">
+                            <div className="flex items-center justify-between"><strong>{location.code} - {location.name}</strong>{location.isDefault && <span className="text-xs font-bold text-blue-700">PREDETERMINADA</span>}</div>
+                            <p className="mt-1 text-sm text-slate-500">{location.description || 'SIN DESCRIPCIÓN'}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="border-t border-slate-200 pt-6">
+                <div className="mb-4 flex items-center gap-2"><History size={20} className="text-slate-600" /><h3 className="text-lg font-bold text-slate-800">MOVIMIENTOS DE INVENTARIO</h3></div>
+                <div className="overflow-x-auto border-y border-slate-200">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-100 text-xs uppercase text-slate-600"><tr><th className="p-3">FECHA</th><th className="p-3">TIPO</th><th className="p-3">ARTÍCULO</th><th className="p-3">UBICACIÓN</th><th className="p-3">CANTIDAD</th><th className="p-3">DOCUMENTO</th><th className="p-3">MOTIVO</th></tr></thead>
+                        <tbody>{movements.map(movement => <tr key={movement.id} className="border-t border-slate-100"><td className="p-3 whitespace-nowrap">{new Date(movement.occurredAt).toLocaleString('es-CO')}</td><td className="p-3 font-semibold">{movement.movementType}</td><td className="p-3">{movement.productSku} - {movement.productName}</td><td className="p-3">{movement.locationName || 'GENERAL'}{movement.destinationBranchName ? ` → ${movement.destinationBranchName} / ${movement.destinationLocationName || 'GENERAL'}` : ''}</td><td className="p-3 whitespace-nowrap">{movement.quantity} {movement.unitCode}<div className="text-xs text-slate-500">{movement.baseQuantity} BASE</div></td><td className="p-3">{movement.documentNumber || '-'}</td><td className="p-3">{movement.reason || '-'}</td></tr>)}</tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     );
 };

@@ -114,6 +114,8 @@ namespace TPV.Application.DTOs
         public string Reference { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
+        public decimal QuantityBase { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal UnitValue { get; set; }
         public decimal TotalValue { get; set; }
@@ -125,6 +127,7 @@ namespace TPV.Application.DTOs
         public string Reference { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
         public string Unit { get; set; } = "UND";
         public decimal UnitValue { get; set; }
     }

@@ -12,6 +12,9 @@ namespace TPV.Domain.Entities
         public string Reference { get; set; }
         public string Description { get; set; }
         public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
+        public UnitOfMeasure? UnitOfMeasure { get; set; }
+        public decimal QuantityBase { get; set; }
         public string Unit { get; set; }
         public decimal UnitValue { get; set; }
         public decimal TotalValue { get; set; }

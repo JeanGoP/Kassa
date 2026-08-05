@@ -17,6 +17,8 @@ namespace TPV.Application.Services
         private readonly IRepository<Supplier> _supplierRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IUserService _userService;
+        private readonly IStockService _stockService;
+        private readonly IRepository<UnitOfMeasure> _unitRepository;
 
         public PurchaseService(
             IRepository<Purchase> purchaseRepository,
@@ -24,7 +26,9 @@ namespace TPV.Application.Services
             IRepository<Product> productRepository,
             IRepository<Supplier> supplierRepository,
             IRepository<Branch> branchRepository,
-            IUserService userService)
+            IUserService userService,
+            IStockService stockService,
+            IRepository<UnitOfMeasure> unitRepository)
         {
             _purchaseRepository = purchaseRepository;
             _stockRepository = stockRepository;
@@ -32,6 +36,8 @@ namespace TPV.Application.Services
             _supplierRepository = supplierRepository;
             _branchRepository = branchRepository;
             _userService = userService;
+            _stockService = stockService;
+            _unitRepository = unitRepository;
         }
 
         public async Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto, string? userId)
@@ -75,6 +81,7 @@ namespace TPV.Application.Services
 
             decimal itemsTaxAmount = 0;
             decimal totalItemsSubTotal = dto.Details.Sum(d => d.Quantity * d.UnitCost);
+            var receivedItems = new List<(int ProductId, decimal Quantity, int UnitId, decimal BaseQuantity, decimal PurchaseValue)>();
 
             foreach (var item in dto.Details)
             {
@@ -88,6 +95,17 @@ namespace TPV.Application.Services
                     throw new InvalidOperationException("El costo y el IVA de los articulos no pueden ser negativos.");
                 }
 
+                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null, "UnitConversions")).FirstOrDefault()
+                    ?? throw new InvalidOperationException("El producto de la compra no existe.");
+                var unitId = item.UnitOfMeasureId ?? product.PurchaseUnitId ?? product.BaseUnitId
+                    ?? throw new InvalidOperationException($"El producto '{product.Name}' no tiene unidad de compra configurada.");
+                var unit = await _unitRepository.GetByIdAsync(unitId)
+                    ?? throw new InvalidOperationException("La unidad de compra no existe.");
+                var factor = product.BaseUnitId == unitId ? 1m
+                    : product.UnitConversions.FirstOrDefault(c => c.UnitOfMeasureId == unitId)?.FactorToBase ?? 0m;
+                if (factor <= 0) throw new InvalidOperationException($"No existe conversión de {unit.Code} a la unidad base de '{product.Name}'.");
+                var baseQuantity = item.Quantity * factor;
+
                 var subTotal = item.Quantity * item.UnitCost;
                 var taxAmount = subTotal * (item.TaxRate / 100);
                 itemsTaxAmount += taxAmount;
@@ -96,6 +114,9 @@ namespace TPV.Application.Services
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
+                    UnitOfMeasureId = unit.Id,
+                    UnitCode = unit.Code,
+                    QuantityBase = baseQuantity,
                     UnitCost = item.UnitCost,
                     SubTotal = subTotal,
                     TaxRate = item.TaxRate,
@@ -104,13 +125,7 @@ namespace TPV.Application.Services
                 };
                 purchase.PurchaseDetails.Add(detail);
 
-                // Update Stock and Cost (Weighted Average per Branch)
-                var stocks = await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId);
-                var stock = stocks.FirstOrDefault();
-                
-                decimal purchaseQuantity = item.Quantity;
-                decimal purchaseUnitCost = item.UnitCost;
-                decimal newPurchaseValue = purchaseQuantity * purchaseUnitCost;
+                decimal newPurchaseValue = item.Quantity * item.UnitCost;
 
                 // Distribute Freight Cost
                 if (totalItemsSubTotal > 0 && dto.Freight > 0)
@@ -120,55 +135,26 @@ namespace TPV.Application.Services
                     newPurchaseValue += itemFreightShare;
                 }
 
-                if (stock == null)
-                {
-                    stock = new Stock
-                    {
-                        ProductId = item.ProductId,
-                        BranchId = dto.BranchId,
-                        Quantity = item.Quantity,
-                        Cost = purchaseQuantity > 0 ? newPurchaseValue / purchaseQuantity : item.UnitCost,
-                        IsActive = true
-                    };
-                    await _stockRepository.AddAsync(stock);
-                }
-                else
-                {
-                    decimal currentQuantity = stock.Quantity;
-                    decimal currentCost = stock.Cost;
-                    decimal currentTotalValue = currentQuantity * currentCost;
-                    
-                    // Avoid negative quantity logic issues if stock was somehow negative, treat as 0 value for simplicity or handle strictly
-                    if (currentQuantity < 0) currentQuantity = 0;
-                    if (currentTotalValue < 0) currentTotalValue = 0;
-
-                    decimal newTotalQuantity = currentQuantity + purchaseQuantity;
-                    
-                    if (newTotalQuantity > 0)
-                    {
-                        stock.Cost = (currentTotalValue + newPurchaseValue) / newTotalQuantity;
-                    }
-                    else
-                    {
-                        stock.Cost = item.UnitCost; // Fallback if net quantity is 0 or less
-                    }
-
-                    stock.Quantity += item.Quantity;
-                    await _stockRepository.UpdateAsync(stock);
-                }
-
-                // Update Product Cost (Optional: Keep global reference as last purchase price or average of all branches? 
-                // User said "Cost should not be in Product", but we might need it for fallback. 
-                // For now, let's NOT update Product.Cost to respect "Cost should be in Stock".
-                // But to avoid confusion, we might want to update it to the latest cost just in case.)
-                // Removing Product.Cost update logic as per user request to move logic to Stock.
-
+                receivedItems.Add((item.ProductId, item.Quantity, unit.Id, baseQuantity, newPurchaseValue));
             }
 
             purchase.ItemsSubTotal = totalItemsSubTotal;
             purchase.ItemsTaxAmount = itemsTaxAmount;
             purchase.TotalAmount = totalItemsSubTotal + itemsTaxAmount + purchase.Freight + purchase.FreightTaxAmount;
             var createdPurchase = await _purchaseRepository.AddAsync(purchase);
+
+            foreach (var item in receivedItems)
+            {
+                var existing = (await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId)).FirstOrDefault();
+                var currentQuantity = Math.Max(0m, existing?.Quantity ?? 0m);
+                var currentValue = currentQuantity * Math.Max(0m, existing?.Cost ?? 0m);
+                await _stockService.ApplyMovementAsync(item.ProductId, dto.BranchId, item.Quantity, item.UnitId, true,
+                    "COMPRA", "COMPRA", createdPurchase.Id, createdPurchase.ReferenceNumber, null, null, userId);
+                var updated = (await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId, disableTracking: false)).First();
+                var totalQuantity = currentQuantity + item.BaseQuantity;
+                updated.Cost = totalQuantity > 0 ? (currentValue + item.PurchaseValue) / totalQuantity : 0m;
+                await _stockRepository.UpdateAsync(updated);
+            }
 
             return await GetByIdAsync(createdPurchase.Id) ?? new PurchaseDto();
         }
@@ -219,9 +205,9 @@ namespace TPV.Application.Services
                         continue;
                     }
 
-                    var newQuantity = stock.Quantity - detail.Quantity;
-                    stock.Quantity = newQuantity < 0 ? 0 : newQuantity;
-                    await _stockRepository.UpdateAsync(stock);
+                    await _stockService.ApplyMovementAsync(detail.ProductId, purchase.BranchId, detail.Quantity,
+                        detail.UnitOfMeasureId, false, "REVERSO_COMPRA", "COMPRA", purchase.Id,
+                        purchase.ReferenceNumber, "Eliminación de entrada de mercancía", null, userId);
                 }
             }
             catch (Exception ex)
@@ -240,6 +226,9 @@ namespace TPV.Application.Services
                 ProductId = d.ProductId,
                 ProductName = d.Product?.Name ?? "Unknown",
                 Quantity = d.Quantity,
+                UnitOfMeasureId = d.UnitOfMeasureId,
+                UnitCode = d.UnitCode,
+                QuantityBase = d.QuantityBase,
                 UnitCost = d.UnitCost,
                 SubTotal = d.SubTotal,
                 TaxRate = d.TaxRate,

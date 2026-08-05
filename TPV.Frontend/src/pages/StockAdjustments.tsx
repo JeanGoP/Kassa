@@ -17,10 +17,13 @@ interface StockInfo {
     quantity: number;
     cost: number;
 }
+interface InventoryLocation { id: number; code: string; name: string; isDefault: boolean; }
 
 const StockAdjustments = () => {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+    const [locations, setLocations] = useState<InventoryLocation[]>([]);
+    const [locationId, setLocationId] = useState<number | null>(null);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
@@ -47,6 +50,15 @@ const StockAdjustments = () => {
         };
         fetchBranches();
     }, []);
+
+    useEffect(() => {
+        if (!selectedBranchId) return;
+        api.get(`/inventory/locations?branchId=${selectedBranchId}`).then(response => {
+            setLocations(response.data);
+            const location = response.data.find((item: InventoryLocation) => item.isDefault) || response.data[0];
+            setLocationId(location?.id || null);
+        }).catch(console.error);
+    }, [selectedBranchId]);
 
     useEffect(() => {
         if (searchTerm.length > 2 && selectedBranchId) {
@@ -109,7 +121,8 @@ const StockAdjustments = () => {
                 branchId: selectedBranchId,
                 quantity: newQuantity,
                 cost: newCost,
-                reason
+                reason,
+                locationId
             });
             setSuccess('Ajuste realizado correctamente');
             setCurrentStock({ quantity: newQuantity, cost: newCost });
@@ -150,6 +163,13 @@ const StockAdjustments = () => {
                                 ))}
                             </select>
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">UBICACIÓN FÍSICA</label>
+                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2" value={locationId ?? ''} onChange={e => setLocationId(Number(e.target.value))}>
+                            {locations.map(location => <option key={location.id} value={location.id}>{location.code} - {location.name}</option>)}
+                        </select>
                     </div>
 
                     <div>
@@ -208,6 +228,8 @@ const StockAdjustments = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Nueva Cantidad</label>
                                     <input
                                         type="number"
+                                        step="0.0001"
+                                        min="0"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={newQuantity || ''}
                                         onChange={(e) => setNewQuantity(Number(e.target.value))}

@@ -10,6 +10,12 @@ interface Product {
     description: string;
     type?: string;
     unitOfMeasure?: string;
+    baseUnitId?: number;
+    purchaseUnitId?: number;
+    purchaseFactorToBase?: number;
+    saleUnitId?: number;
+    saleFactorToBase?: number;
+    allowsFractionalQuantity?: boolean;
     price: number;
     profitabilityPercentage?: number;
     ivaType: string;
@@ -29,6 +35,7 @@ interface Category {
     isPrimary?: boolean;
 }
 interface Brand { id: number; name: string; }
+interface UnitOfMeasure { id: number; code: string; name: string; symbol: string; allowsDecimals: boolean; }
 
 interface CategoryNode extends Category {
     children: CategoryNode[];
@@ -39,6 +46,7 @@ const Products = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
+    const [units, setUnits] = useState<UnitOfMeasure[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -50,6 +58,12 @@ const Products = () => {
         description: '',
         type: 'Producto',
         unitOfMeasure: 'UND',
+        baseUnitId: 0,
+        purchaseUnitId: 0,
+        purchaseFactorToBase: 1,
+        saleUnitId: 0,
+        saleFactorToBase: 1,
+        allowsFractionalQuantity: false,
         price: 0,
         profitabilityPercentage: 0,
         ivaType: 'Excluido',
@@ -74,6 +88,18 @@ const Products = () => {
         fetchProducts();
         fetchCategories();
         api.get<Brand[]>('/vehiclecatalogs/brands').then(response => setBrands(response.data)).catch(console.error);
+        api.get<UnitOfMeasure[]>('/inventory/units').then(response => {
+            setUnits(response.data);
+            const defaultUnit = response.data.find(unit => unit.code === 'UND') || response.data[0];
+            if (defaultUnit) {
+                setFormData(prev => ({
+                    ...prev,
+                    baseUnitId: prev.baseUnitId || defaultUnit.id,
+                    purchaseUnitId: prev.purchaseUnitId || defaultUnit.id,
+                    saleUnitId: prev.saleUnitId || defaultUnit.id
+                }));
+            }
+        }).catch(console.error);
     }, []);
 
     // Build tree when categories change
@@ -234,9 +260,9 @@ const Products = () => {
         e.preventDefault();
         try {
             if (currentProduct) {
-                await api.put(`/products/${currentProduct.id}`, { ...formData, id: currentProduct.id });
+                await api.put(`/products/${currentProduct.id}`, { ...formData, id: currentProduct.id, unitOfMeasure: units.find(u => u.id === formData.baseUnitId)?.code || 'UND' });
             } else {
-                await api.post('/products', formData);
+                await api.post('/products', { ...formData, unitOfMeasure: units.find(u => u.id === formData.baseUnitId)?.code || 'UND' });
             }
             fetchProducts();
             handleCloseModal();
@@ -257,6 +283,12 @@ const Products = () => {
                 description: product.description || '',
                 type: product.type || 'Producto',
                 unitOfMeasure: product.unitOfMeasure || 'UND',
+                baseUnitId: product.baseUnitId || 0,
+                purchaseUnitId: product.purchaseUnitId || product.baseUnitId || 0,
+                purchaseFactorToBase: product.purchaseFactorToBase || 1,
+                saleUnitId: product.saleUnitId || product.baseUnitId || 0,
+                saleFactorToBase: product.saleFactorToBase || 1,
+                allowsFractionalQuantity: product.allowsFractionalQuantity || false,
                 price: product.price,
                 profitabilityPercentage: product.profitabilityPercentage || 0,
                 ivaType: product.ivaType || 'Excluido',
@@ -268,6 +300,7 @@ const Products = () => {
             });
         } else {
             setCurrentProduct(null);
+            const defaultUnitId = units.find(unit => unit.code === 'UND')?.id || units[0]?.id || 0;
             setFormData({
                 sku: '',
                 barcode: '',
@@ -275,6 +308,12 @@ const Products = () => {
                 description: '',
                 type: 'Producto',
                 unitOfMeasure: 'UND',
+                baseUnitId: defaultUnitId,
+                purchaseUnitId: defaultUnitId,
+                purchaseFactorToBase: 1,
+                saleUnitId: defaultUnitId,
+                saleFactorToBase: 1,
+                allowsFractionalQuantity: false,
                 price: 0,
                 profitabilityPercentage: 0,
                 ivaType: 'Excluido',
@@ -523,15 +562,42 @@ const Products = () => {
                                             </select>
                                         </div>
                                         <div className="md:col-span-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">UNIDAD BASE</label>
                                             <select
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                                value={formData.unitOfMeasure}
-                                                onChange={(e) => setFormData({...formData, unitOfMeasure: e.target.value})}
+                                                value={formData.baseUnitId}
+                                                onChange={(e) => {
+                                                    const id = Number(e.target.value);
+                                                    setFormData({...formData, baseUnitId: id, unitOfMeasure: units.find(unit => unit.id === id)?.code || 'UND'});
+                                                }}
                                             >
-                                                <option value="UND">UNIDAD (UND)</option>
+                                                {units.map(unit => <option key={unit.id} value={unit.id}>{unit.name} ({unit.code})</option>)}
                                             </select>
                                         </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">UNIDAD DE COMPRA</label>
+                                            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={formData.purchaseUnitId} onChange={(e) => setFormData({...formData, purchaseUnitId: Number(e.target.value)})}>
+                                                {units.map(unit => <option key={unit.id} value={unit.id}>{unit.name} ({unit.code})</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">UNIDADES BASE POR COMPRA</label>
+                                            <input type="number" min="0.000001" step="0.000001" className="w-full border border-gray-300 rounded-lg px-3 py-2" value={formData.purchaseFactorToBase} onChange={(e) => setFormData({...formData, purchaseFactorToBase: Number(e.target.value)})} />
+                                        </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">UNIDAD DE VENTA O CONSUMO</label>
+                                            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={formData.saleUnitId} onChange={(e) => setFormData({...formData, saleUnitId: Number(e.target.value)})}>
+                                                {units.map(unit => <option key={unit.id} value={unit.id}>{unit.name} ({unit.code})</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">UNIDADES BASE POR VENTA</label>
+                                            <input type="number" min="0.000001" step="0.000001" className="w-full border border-gray-300 rounded-lg px-3 py-2" value={formData.saleFactorToBase} onChange={(e) => setFormData({...formData, saleFactorToBase: Number(e.target.value)})} />
+                                        </div>
+                                        <label className="md:col-span-4 flex items-center gap-3 rounded border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">
+                                            <input type="checkbox" checked={formData.allowsFractionalQuantity} onChange={(e) => setFormData({...formData, allowsFractionalQuantity: e.target.checked})} />
+                                            ADMITE FRACCIONAMIENTO
+                                        </label>
                                     </div>
                                 )}
 

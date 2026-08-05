@@ -140,7 +140,10 @@ namespace TPV.Application.DTOs
         public int ProductId { get; set; }
         public string ProductName { get; set; }
         public string SKU { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
+        public string UnitCode { get; set; } = "UND";
+        public decimal QuantityBase { get; set; }
         public string LineType { get; set; } = string.Empty;
         public string Payer { get; set; } = string.Empty;
         public bool AddsToCustomerTotal { get; set; }
@@ -159,7 +162,8 @@ namespace TPV.Application.DTOs
     public class CreateServiceOrderPartItemDto
     {
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
         public string LineType { get; set; } = "REPUESTO";
         public string Payer { get; set; } = "CLIENTE";
         public bool AddsToCustomerTotal { get; set; } = true;

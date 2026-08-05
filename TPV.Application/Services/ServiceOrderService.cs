@@ -346,6 +346,9 @@ namespace TPV.Application.Services
                 ProductName = p.Product != null ? p.Product.Name : string.Empty,
                 SKU = p.Product != null ? p.Product.SKU : string.Empty,
                 Quantity = p.Quantity,
+                UnitOfMeasureId = p.UnitOfMeasureId,
+                UnitCode = p.UnitCode,
+                QuantityBase = p.QuantityBase,
                 LineType = p.LineType,
                 Payer = p.Payer,
                 AddsToCustomerTotal = p.AddsToCustomerTotal,
@@ -389,7 +392,8 @@ namespace TPV.Application.Services
                 Items = dto.Items.Select(i => new SaleItemCreateDto
                 {
                     ProductId = i.ProductId,
-                    Quantity = i.Quantity
+                    Quantity = i.Quantity,
+                    UnitOfMeasureId = i.UnitOfMeasureId
                 }).ToList()
             };
 
@@ -425,6 +429,9 @@ namespace TPV.Application.Services
                     ServiceOrderId = serviceOrderId,
                     ProductId = saleItem.ProductId,
                     Quantity = saleItem.Quantity,
+                    UnitOfMeasureId = saleItem.UnitOfMeasureId,
+                    UnitCode = saleItem.UnitCode,
+                    QuantityBase = saleItem.QuantityBase,
                     LineType = ValidateOption(requestItem.LineType, PartLineTypes, "tipo de linea"),
                     Payer = ValidateOption(requestItem.Payer, Payers, "pagador"),
                     AddsToCustomerTotal = requestItem.AddsToCustomerTotal,
@@ -452,6 +459,9 @@ namespace TPV.Application.Services
                 ProductName = string.Empty,
                 SKU = string.Empty,
                 Quantity = p.Quantity,
+                UnitOfMeasureId = p.UnitOfMeasureId,
+                UnitCode = p.UnitCode,
+                QuantityBase = p.QuantityBase,
                 LineType = p.LineType,
                 Payer = p.Payer,
                 AddsToCustomerTotal = p.AddsToCustomerTotal,
@@ -661,6 +671,9 @@ namespace TPV.Application.Services
                     SaleId = sale.Id,
                     ProductId = part.ProductId,
                     Quantity = part.Quantity,
+                    UnitOfMeasureId = part.UnitOfMeasureId,
+                    UnitCode = part.UnitCode,
+                    QuantityBase = part.QuantityBase,
                     UnitPrice = part.UnitPrice,
                     TaxRate = taxRate * 100, // Store as percentage
                     TaxAmount = taxAmount,

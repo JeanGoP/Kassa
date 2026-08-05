@@ -9,7 +9,7 @@ namespace TPV.Application.DTOs
         public string SearchTerm { get; set; } = string.Empty;
         public DateTime SearchedAt { get; set; }
         public bool FoundInStock { get; set; }
-        public int TotalQuantity { get; set; }
+        public decimal TotalQuantity { get; set; }
         public List<QuotationProductAvailabilityDto> Products { get; set; } = new();
     }
 
@@ -20,7 +20,7 @@ namespace TPV.Application.DTOs
         public string SKU { get; set; } = string.Empty;
         public string? Barcode { get; set; }
         public decimal Price { get; set; }
-        public int TotalQuantity { get; set; }
+        public decimal TotalQuantity { get; set; }
         public List<QuotationBranchAvailabilityDto> Branches { get; set; } = new();
     }
 
@@ -28,7 +28,7 @@ namespace TPV.Application.DTOs
     {
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
     }
 
     public class QuotationSearchHistoryDto
@@ -38,7 +38,7 @@ namespace TPV.Application.DTOs
         public string SearchTerm { get; set; } = string.Empty;
         public string? MatchedProductName { get; set; }
         public bool FoundInStock { get; set; }
-        public int TotalQuantity { get; set; }
+        public decimal TotalQuantity { get; set; }
     }
 
     public class CreateQuotationDto
@@ -78,7 +78,7 @@ namespace TPV.Application.DTOs
         public string SKU { get; set; } = string.Empty;
         public string? Barcode { get; set; }
         public int Quantity { get; set; }
-        public int AvailableQuantity { get; set; }
+        public decimal AvailableQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal SubTotal { get; set; }
     }

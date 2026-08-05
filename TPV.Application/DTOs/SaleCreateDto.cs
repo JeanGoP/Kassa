@@ -13,6 +13,7 @@ namespace TPV.Application.DTOs
     public class SaleItemCreateDto
     {
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
+        public int? UnitOfMeasureId { get; set; }
     }
 }

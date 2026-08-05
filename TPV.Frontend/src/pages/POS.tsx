@@ -14,6 +14,9 @@ interface Product {
     ivaRate: number;
     impoconsumoRate: number;
     priceIncludesIva: boolean;
+    saleUnitId?: number;
+    saleUnitCode?: string;
+    allowsFractionalQuantity?: boolean;
 }
 
 interface CartItem extends Product {
@@ -291,7 +294,8 @@ const POS = () => {
                 customerId: selectedCustomer?.id || null,
                 items: cart.map(item => ({
                     productId: item.id,
-                    quantity: item.quantity
+                    quantity: item.quantity,
+                    unitOfMeasureId: item.saleUnitId
                 })),
                 paymentMethod
             };
@@ -488,7 +492,17 @@ const POS = () => {
                                     
                                     <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                         <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-white rounded shadow-sm transition-all text-gray-600"><Minus size={14} /></button>
-                                        <span className="w-8 text-center text-sm font-bold text-gray-700">{item.quantity}</span>
+                                        <input
+                                            type="number"
+                                            min={item.allowsFractionalQuantity ? 0.0001 : 1}
+                                            step={item.allowsFractionalQuantity ? 0.0001 : 1}
+                                            value={item.quantity}
+                                            onChange={(event) => {
+                                                const value = Number(event.target.value);
+                                                if (value > 0) setCart(previous => previous.map(row => row.id === item.id ? {...row, quantity: value} : row));
+                                            }}
+                                            className="w-16 bg-transparent text-center text-sm font-bold text-gray-700 outline-none"
+                                        />
                                         <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-white rounded shadow-sm transition-all text-gray-600"><Plus size={14} /></button>
                                     </div>
                                     

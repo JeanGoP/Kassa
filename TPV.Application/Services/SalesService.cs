@@ -17,6 +17,8 @@ namespace TPV.Application.Services
         private readonly IRepository<Stock> _stockRepository;
         private readonly IElectronicInvoicingService _electronicInvoicingService;
         private readonly IUserService _userService;
+        private readonly IStockService _stockService;
+        private readonly IRepository<UnitOfMeasure> _unitRepository;
 
         public SalesService(
             IRepository<Sale> saleRepository,
@@ -24,7 +26,9 @@ namespace TPV.Application.Services
             IRepository<Product> productRepository,
             IRepository<Stock> stockRepository,
             IElectronicInvoicingService electronicInvoicingService,
-            IUserService userService)
+            IUserService userService,
+            IStockService stockService,
+            IRepository<UnitOfMeasure> unitRepository)
         {
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
@@ -32,6 +36,8 @@ namespace TPV.Application.Services
             _stockRepository = stockRepository;
             _electronicInvoicingService = electronicInvoicingService;
             _userService = userService;
+            _stockService = stockService;
+            _unitRepository = unitRepository;
         }
 
         public async Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId)
@@ -45,13 +51,25 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("No hay ítems en la venta.");
 
             // Validar stock disponible y obtener precios reales
-            var processedItems = new List<(int ProductId, int Quantity, decimal UnitPrice, string ProductName, decimal IvaRate, string IvaType, bool PriceIncludesIva)>();
+            var processedItems = new List<(int ProductId, decimal Quantity, int UnitId, string UnitCode, decimal BaseQuantity, decimal UnitPrice, string ProductName, decimal IvaRate, string IvaType, bool PriceIncludesIva)>();
 
             foreach (var item in dto.Items)
             {
-                var product = await _productRepository.GetByIdAsync(item.ProductId);
+                var product = (await _productRepository.GetAsync(p => p.Id == item.ProductId, null, "UnitConversions")).FirstOrDefault();
                 if (product == null)
                     throw new InvalidOperationException($"Producto con ID {item.ProductId} no encontrado.");
+                if (item.Quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor que cero.");
+
+                var unitId = item.UnitOfMeasureId ?? product.SaleUnitId ?? product.BaseUnitId
+                    ?? throw new InvalidOperationException($"El producto '{product.Name}' no tiene unidad de venta configurada.");
+                var unit = await _unitRepository.GetByIdAsync(unitId)
+                    ?? throw new InvalidOperationException("La unidad de venta no existe.");
+                if (!product.AllowsFractionalQuantity && item.Quantity != decimal.Truncate(item.Quantity))
+                    throw new InvalidOperationException($"El producto '{product.Name}' no admite cantidades fraccionadas.");
+                var factor = product.BaseUnitId == unitId ? 1m
+                    : product.UnitConversions.FirstOrDefault(c => c.UnitOfMeasureId == unitId)?.FactorToBase ?? 0m;
+                if (factor <= 0) throw new InvalidOperationException($"No existe conversión de {unit.Code} a la unidad base de '{product.Name}'.");
+                var baseQuantity = item.Quantity * factor;
 
                 var stockList = await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId);
                 var stock = stockList.FirstOrDefault();
@@ -59,7 +77,7 @@ namespace TPV.Application.Services
                 if (stock == null)
                     throw new InvalidOperationException($"No existe registro de stock para el producto '{product.Name}' en la sucursal {dto.BranchId}.");
 
-                if (stock.Quantity < item.Quantity)
+                if (stock.Quantity < baseQuantity)
                     throw new InvalidOperationException($"Stock insuficiente para '{product.Name}' en sucursal {dto.BranchId}. Disponible: {stock.Quantity}, Solicitado: {item.Quantity}.");
                 
                 decimal finalPrice = product.Price;
@@ -80,7 +98,7 @@ namespace TPV.Application.Services
                     finalPrice = System.Math.Round(finalPrice, 2);
                 }
 
-                processedItems.Add((item.ProductId, item.Quantity, finalPrice, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
+                processedItems.Add((item.ProductId, item.Quantity, unit.Id, unit.Code, baseQuantity, finalPrice, product.Name, product.IvaRate, product.IvaType, product.PriceIncludesIva));
             }
 
             var sale = new Sale
@@ -128,6 +146,9 @@ namespace TPV.Application.Services
                     SaleId = sale.Id,
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
+                    UnitOfMeasureId = item.UnitId,
+                    UnitCode = item.UnitCode,
+                    QuantityBase = item.BaseQuantity,
                     UnitPrice = item.UnitPrice, // Usar precio verificado
                     SubTotal = lineBase + lineTax,
                     TaxRate = item.IvaRate,
@@ -137,11 +158,8 @@ namespace TPV.Application.Services
 
                 total += lineBase + lineTax;
 
-                // Descontar del stock
-                var stockList = await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId);
-                var stock = stockList.First();
-                stock.Quantity -= item.Quantity;
-                await _stockRepository.UpdateAsync(stock);
+                await _stockService.ApplyMovementAsync(item.ProductId, dto.BranchId, item.Quantity, item.UnitId, false,
+                    "VENTA", "VENTA", sale.Id, sale.InvoiceNumber, null, null, userId);
             }
 
             sale.TotalAmount = total;
@@ -240,6 +258,9 @@ namespace TPV.Application.Services
                 {
                     ProductName = d.Product?.Name ?? "Unknown",
                     Quantity = d.Quantity,
+                    UnitOfMeasureId = d.UnitOfMeasureId,
+                    UnitCode = d.UnitCode,
+                    QuantityBase = d.QuantityBase,
                     UnitPrice = d.UnitPrice,
                     SubTotal = d.SubTotal
                 }).ToList()
@@ -272,6 +293,9 @@ namespace TPV.Application.Services
                     SKU = d.Product?.SKU,
                     UnitPrice = d.UnitPrice,
                     Quantity = d.Quantity,
+                    UnitOfMeasureId = d.UnitOfMeasureId,
+                    UnitCode = d.UnitCode,
+                    QuantityBase = d.QuantityBase,
                     SubTotal = d.SubTotal,
                     TaxRate = d.TaxRate,
                     TaxAmount = d.TaxAmount

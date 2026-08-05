@@ -623,6 +623,195 @@ namespace TPV.Infrastructure.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryLocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("TenantId", "BranchId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("InventoryLocations");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryLocationBalance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InventoryLocationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryLocationId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId", "ProductId", "InventoryLocationId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryLocationBalances");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryMovement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("BaseQuantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DestinationBranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DestinationLocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DocumentNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("DocumentType")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("FactorToBase")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int?>("InventoryLocationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MovementType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("DestinationBranchId");
+
+                    b.HasIndex("DestinationLocationId");
+
+                    b.HasIndex("InventoryLocationId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitOfMeasureId");
+
+                    b.HasIndex("TenantId", "OccurredAt");
+
+                    b.ToTable("InventoryMovements");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.MotorcycleService", b =>
                 {
                     b.Property<int>("Id")
@@ -825,6 +1014,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<string>("Reference")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -841,6 +1033,9 @@ namespace TPV.Infrastructure.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("UnitValue")
                         .HasColumnType("decimal(18,2)");
 
@@ -853,6 +1048,8 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
+                    b.HasIndex("UnitOfMeasureId");
+
                     b.ToTable("PreparationOrderItems");
                 });
 
@@ -864,8 +1061,14 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowsFractionalQuantity")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Barcode")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("BaseUnitId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("BrandId")
                         .HasColumnType("int");
@@ -906,9 +1109,15 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal?>("ProfitabilityPercentage")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("PurchaseUnitId")
+                        .HasColumnType("int");
+
                     b.Property<string>("SKU")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SaleUnitId")
+                        .HasColumnType("int");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
@@ -926,11 +1135,63 @@ namespace TPV.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BaseUnitId");
+
                     b.HasIndex("BrandId");
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("PurchaseUnitId");
+
+                    b.HasIndex("SaleUnitId");
+
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductUnitConversion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("FactorToBase")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UsageType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitOfMeasureId");
+
+                    b.HasIndex("TenantId", "ProductId", "UsageType")
+                        .IsUnique();
+
+                    b.ToTable("ProductUnitConversions");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Purchase", b =>
@@ -1036,8 +1297,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int>("PurchaseId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18,2)");
@@ -1048,8 +1312,16 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("TaxRate")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1059,6 +1331,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("PurchaseId");
+
+                    b.HasIndex("UnitOfMeasureId");
 
                     b.ToTable("PurchaseDetails");
                 });
@@ -1130,8 +1404,8 @@ namespace TPV.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AvailableQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("AvailableQuantity")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("Barcode")
                         .HasMaxLength(100)
@@ -1214,8 +1488,8 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TotalQuantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("TotalQuantity")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1323,8 +1597,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("SaleId")
                         .HasColumnType("int");
@@ -1338,6 +1615,14 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("TaxRate")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -1349,6 +1634,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SaleId");
+
+                    b.HasIndex("UnitOfMeasureId");
 
                     b.ToTable("SaleDetails");
                 });
@@ -1580,8 +1867,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("ServiceOrderId")
                         .HasColumnType("int");
@@ -1596,6 +1886,14 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<string>("Technician")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -1607,6 +1905,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ServiceOrderId");
+
+                    b.HasIndex("UnitOfMeasureId");
 
                     b.ToTable("ServiceOrderParts");
                 });
@@ -1746,17 +2046,17 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<int>("MaxStockLevel")
-                        .HasColumnType("int");
+                    b.Property<decimal>("MaxStockLevel")
+                        .HasColumnType("decimal(18,4)");
 
-                    b.Property<int>("MinStockLevel")
-                        .HasColumnType("int");
+                    b.Property<decimal>("MinStockLevel")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
@@ -1902,6 +2202,52 @@ namespace TPV.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tenants");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.UnitOfMeasure", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowsDecimals")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("UnitsOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
@@ -2352,6 +2698,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal>("QuantityBase")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<string>("Reference")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -2368,6 +2717,9 @@ namespace TPV.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int?>("UnitOfMeasureId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("UnitValue")
                         .HasColumnType("decimal(18,2)");
 
@@ -2380,6 +2732,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("UnitOfMeasureId");
 
                     b.HasIndex("WarrantyId");
 
@@ -2691,6 +3045,84 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryLocation", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany("InventoryLocations")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryLocationBalance", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.InventoryLocation", "InventoryLocation")
+                        .WithMany("Balances")
+                        .HasForeignKey("InventoryLocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryLocation");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryMovement", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.Branch", "DestinationBranch")
+                        .WithMany()
+                        .HasForeignKey("DestinationBranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.InventoryLocation", "DestinationLocation")
+                        .WithMany()
+                        .HasForeignKey("DestinationLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.InventoryLocation", "InventoryLocation")
+                        .WithMany()
+                        .HasForeignKey("InventoryLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("DestinationBranch");
+
+                    b.Navigation("DestinationLocation");
+
+                    b.Navigation("InventoryLocation");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("UnitOfMeasure");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.PreparationOrder", b =>
                 {
                     b.HasOne("TPV.Domain.Entities.Branch", "Branch")
@@ -2749,13 +3181,25 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("PreparationOrder");
 
                     b.Navigation("Product");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Product", b =>
                 {
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "BaseUnit")
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Brand", "Brand")
                         .WithMany()
                         .HasForeignKey("BrandId")
@@ -2767,9 +3211,44 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "PurchaseUnit")
+                        .WithMany()
+                        .HasForeignKey("PurchaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "SaleUnit")
+                        .WithMany()
+                        .HasForeignKey("SaleUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BaseUnit");
+
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
+
+                    b.Navigation("PurchaseUnit");
+
+                    b.Navigation("SaleUnit");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.ProductUnitConversion", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Product", "Product")
+                        .WithMany("UnitConversions")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany("ProductConversions")
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Purchase", b =>
@@ -2805,9 +3284,16 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Product");
 
                     b.Navigation("Purchase");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.QuotationDetail", b =>
@@ -2868,9 +3354,16 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Product");
 
                     b.Navigation("Sale");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrder", b =>
@@ -2926,9 +3419,16 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Product");
 
                     b.Navigation("ServiceOrder");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.ServiceOrderStatusHistory", b =>
@@ -3098,6 +3598,11 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("TPV.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Warranty", "Warranty")
                         .WithMany("ReplacementParts")
                         .HasForeignKey("WarrantyId")
@@ -3105,6 +3610,8 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+
+                    b.Navigation("UnitOfMeasure");
 
                     b.Navigation("Warranty");
                 });
@@ -3129,6 +3636,8 @@ namespace TPV.Infrastructure.Migrations
 
             modelBuilder.Entity("TPV.Domain.Entities.Branch", b =>
                 {
+                    b.Navigation("InventoryLocations");
+
                     b.Navigation("Sales");
 
                     b.Navigation("Stocks");
@@ -3151,6 +3660,11 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Sales");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.InventoryLocation", b =>
+                {
+                    b.Navigation("Balances");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.PreparationOrder", b =>
                 {
                     b.Navigation("Items");
@@ -3161,6 +3675,8 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("SaleDetails");
 
                     b.Navigation("Stocks");
+
+                    b.Navigation("UnitConversions");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Purchase", b =>
@@ -3184,6 +3700,11 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.UnitOfMeasure", b =>
+                {
+                    b.Navigation("ProductConversions");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Vehicle", b =>
