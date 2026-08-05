@@ -17,6 +17,8 @@ interface Purchase {
     id: number;
     supplierName: string;
     branchName: string;
+    inventoryLocationCode: string;
+    inventoryLocationName: string;
     date: string;
     supplierInvoiceDate?: string | null;
     referenceNumber: string;
@@ -117,6 +119,7 @@ const PurchasePrint = () => {
                     <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-gray-500">Movimiento</h2>
                     <div className="text-sm text-gray-600">Fecha entrada: {formatDate(purchase.date)}</div>
                     <div className="text-sm text-gray-600">Bodega: {purchase.branchName}</div>
+                    <div className="text-sm text-gray-600">Ubicación: {purchase.inventoryLocationCode} - {purchase.inventoryLocationName}</div>
                 </div>
             </div>
 

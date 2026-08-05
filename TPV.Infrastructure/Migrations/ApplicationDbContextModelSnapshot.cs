@@ -1236,6 +1236,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("FreightTaxRate")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("InventoryLocationId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -1271,6 +1274,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
+
+                    b.HasIndex("InventoryLocationId");
 
                     b.HasIndex("SupplierId");
 
@@ -3259,6 +3264,12 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.InventoryLocation", "InventoryLocation")
+                        .WithMany()
+                        .HasForeignKey("InventoryLocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("TPV.Domain.Entities.Supplier", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
@@ -3266,6 +3277,8 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Branch");
+
+                    b.Navigation("InventoryLocation");
 
                     b.Navigation("Supplier");
                 });

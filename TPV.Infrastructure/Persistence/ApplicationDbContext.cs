@@ -119,6 +119,12 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<Purchase>()
                 .Property(p => p.CreatedByUserId)
                 .HasMaxLength(450);
+
+            builder.Entity<Purchase>()
+                .HasOne(p => p.InventoryLocation)
+                .WithMany()
+                .HasForeignKey(p => p.InventoryLocationId)
+                .OnDelete(DeleteBehavior.Restrict);
             
             builder.Entity<PurchaseDetail>()
                 .Property(pd => pd.UnitCost)

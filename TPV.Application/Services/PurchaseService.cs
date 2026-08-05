@@ -19,6 +19,8 @@ namespace TPV.Application.Services
         private readonly IUserService _userService;
         private readonly IStockService _stockService;
         private readonly IRepository<UnitOfMeasure> _unitRepository;
+        private readonly IRepository<InventoryLocation> _locationRepository;
+        private readonly IRepository<InventoryLocationBalance> _locationBalanceRepository;
 
         public PurchaseService(
             IRepository<Purchase> purchaseRepository,
@@ -28,7 +30,9 @@ namespace TPV.Application.Services
             IRepository<Branch> branchRepository,
             IUserService userService,
             IStockService stockService,
-            IRepository<UnitOfMeasure> unitRepository)
+            IRepository<UnitOfMeasure> unitRepository,
+            IRepository<InventoryLocation> locationRepository,
+            IRepository<InventoryLocationBalance> locationBalanceRepository)
         {
             _purchaseRepository = purchaseRepository;
             _stockRepository = stockRepository;
@@ -38,6 +42,8 @@ namespace TPV.Application.Services
             _userService = userService;
             _stockService = stockService;
             _unitRepository = unitRepository;
+            _locationRepository = locationRepository;
+            _locationBalanceRepository = locationBalanceRepository;
         }
 
         public async Task<PurchaseDto> CreatePurchaseAsync(CreatePurchaseDto dto, string? userId)
@@ -62,10 +68,17 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("El flete y su IVA no pueden ser negativos.");
             }
 
+            var receptionLocation = await _locationRepository.GetByIdAsync(dto.InventoryLocationId);
+            if (receptionLocation == null || receptionLocation.BranchId != dto.BranchId || !receptionLocation.IsActive)
+            {
+                throw new InvalidOperationException("Seleccione una ubicación de recepción activa que pertenezca a la bodega de ingreso.");
+            }
+
             var purchase = new Purchase
             {
                 SupplierId = dto.SupplierId,
                 BranchId = dto.BranchId,
+                InventoryLocationId = receptionLocation.Id,
                 Date = dto.Date == default ? DateTime.Today : dto.Date,
                 SupplierInvoiceDate = dto.SupplierInvoiceDate,
                 ReferenceNumber = dto.ReferenceNumber?.Trim() ?? string.Empty,
@@ -149,7 +162,8 @@ namespace TPV.Application.Services
                 var currentQuantity = Math.Max(0m, existing?.Quantity ?? 0m);
                 var currentValue = currentQuantity * Math.Max(0m, existing?.Cost ?? 0m);
                 await _stockService.ApplyMovementAsync(item.ProductId, dto.BranchId, item.Quantity, item.UnitId, true,
-                    "COMPRA", "COMPRA", createdPurchase.Id, createdPurchase.ReferenceNumber, null, null, userId);
+                    "COMPRA", "COMPRA", createdPurchase.Id, createdPurchase.ReferenceNumber, null,
+                    createdPurchase.InventoryLocationId, userId);
                 var updated = (await _stockRepository.GetAsync(s => s.ProductId == item.ProductId && s.BranchId == dto.BranchId, disableTracking: false)).First();
                 var totalQuantity = currentQuantity + item.BaseQuantity;
                 updated.Cost = totalQuantity > 0 ? (currentValue + item.PurchaseValue) / totalQuantity : 0m;
@@ -166,7 +180,7 @@ namespace TPV.Application.Services
                      p.ReferenceNumber.Contains(search) ||
                      (p.Supplier != null && p.Supplier.Name.Contains(search)),
                 query => query.OrderByDescending(p => p.Id),
-                "Supplier,Branch");
+                "Supplier,Branch,InventoryLocation");
             return purchases.Select(MapToDto);
         }
 
@@ -174,7 +188,7 @@ namespace TPV.Application.Services
         {
             var purchases = await _purchaseRepository.GetAsync(
                 p => p.Id == id,
-                includeString: "Supplier,Branch,PurchaseDetails.Product");
+                includeString: "Supplier,Branch,InventoryLocation,PurchaseDetails.Product");
             var purchase = purchases.FirstOrDefault();
             return purchase == null ? null : MapToDto(purchase);
         }
@@ -183,7 +197,7 @@ namespace TPV.Application.Services
         {
             var purchases = await _purchaseRepository.GetAsync(
                 p => p.Id == id,
-                includeString: "PurchaseDetails");
+                includeString: "PurchaseDetails,InventoryLocation");
 
             var purchase = purchases.FirstOrDefault();
             if (purchase == null)
@@ -191,28 +205,32 @@ namespace TPV.Application.Services
                 return false;
             }
 
-            try
-            {
-                foreach (var detail in purchase.PurchaseDetails)
+            var requiredByProduct = purchase.PurchaseDetails
+                .GroupBy(detail => detail.ProductId)
+                .Select(group => new
                 {
-                    var stocks = await _stockRepository.GetAsync(s =>
-                        s.ProductId == detail.ProductId &&
-                        s.BranchId == purchase.BranchId);
+                    ProductId = group.Key,
+                    QuantityBase = group.Sum(detail => detail.QuantityBase)
+                })
+                .ToList();
 
-                    var stock = stocks.FirstOrDefault();
-                    if (stock == null)
-                    {
-                        continue;
-                    }
-
-                    await _stockService.ApplyMovementAsync(detail.ProductId, purchase.BranchId, detail.Quantity,
-                        detail.UnitOfMeasureId, false, "REVERSO_COMPRA", "COMPRA", purchase.Id,
-                        purchase.ReferenceNumber, "Eliminación de entrada de mercancía", null, userId);
-                }
-            }
-            catch (Exception ex)
+            foreach (var required in requiredByProduct)
             {
-                Console.WriteLine($"Error ajustando stock al eliminar compra {id}: {ex.Message}");
+                var balance = (await _locationBalanceRepository.GetAsync(item =>
+                    item.ProductId == required.ProductId &&
+                    item.InventoryLocationId == purchase.InventoryLocationId)).FirstOrDefault();
+                if (balance == null || balance.QuantityBase < required.QuantityBase)
+                    throw new InvalidOperationException(
+                        $"No se puede anular la entrada porque la ubicación {purchase.InventoryLocation.Code} - {purchase.InventoryLocation.Name} " +
+                        "ya no conserva todas las existencias recibidas. Reubique primero las cantidades necesarias hacia esa ubicación.");
+            }
+
+            foreach (var detail in purchase.PurchaseDetails)
+            {
+                await _stockService.ApplyMovementAsync(detail.ProductId, purchase.BranchId, detail.Quantity,
+                    detail.UnitOfMeasureId, false, "REVERSO_COMPRA", "COMPRA", purchase.Id,
+                    purchase.ReferenceNumber, "Eliminación de entrada de mercancía",
+                    purchase.InventoryLocationId, userId);
             }
 
             await _purchaseRepository.DeleteAsync(purchase);
@@ -244,6 +262,9 @@ namespace TPV.Application.Services
                 Id = p.Id,
                 SupplierName = p.Supplier?.Name ?? "Unknown",
                 BranchName = p.Branch?.Name ?? "Unknown",
+                InventoryLocationId = p.InventoryLocationId,
+                InventoryLocationCode = p.InventoryLocation?.Code ?? string.Empty,
+                InventoryLocationName = p.InventoryLocation?.Name ?? string.Empty,
                 Date = p.Date,
                 SupplierInvoiceDate = p.SupplierInvoiceDate,
                 ReferenceNumber = p.ReferenceNumber,

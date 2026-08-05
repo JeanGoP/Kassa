@@ -13,6 +13,9 @@ namespace TPV.Domain.Entities
         public int BranchId { get; set; }
         public Branch Branch { get; set; } = null!;
 
+        public int InventoryLocationId { get; set; }
+        public InventoryLocation InventoryLocation { get; set; } = null!;
+
         public DateTime Date { get; set; }
         public DateTime? SupplierInvoiceDate { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty; // Invoice number

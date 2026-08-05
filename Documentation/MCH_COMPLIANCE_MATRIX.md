@@ -22,7 +22,7 @@ Brechas principales:
 - Marca no esta modelada como dimension independiente en todos los hechos.
 - Vehiculo maestro por VIN/chasis y catalogos formales de marca/modelo implementados y relacionados.
 - Garantias de fabricante ya cubren el ciclo desde deteccion hasta factura y pago; los registros anteriores a la migracion se exponen como historicos incompletos sin suponer datos.
-- Unidades cerradas, conversiones compra/base/venta, cantidades decimales y kardex por sucursal/ubicacion ya estan implementados.
+- Unidades cerradas, conversiones compra/base/venta, cantidades decimales y kardex por sucursal/ubicacion ya estan implementados. Las entradas de mercancia seleccionan una ubicacion de recepcion explicita y la conservan para trazabilidad y reversos.
 - Las ordenes de taller ya preservan anulacion e historia de estados; falta extender esta politica a los demas documentos operativos.
 - Documentacion formal de endpoints, limites, rotacion y ambiente de pruebas esta pendiente.
 
@@ -58,7 +58,7 @@ Brechas principales:
 | Unidades de medida | Cumple | `GET /api/integrations/mch/units`; maestro interno de articulos | Lista cerrada por empresa con codigo, nombre, simbolo, fraccionamiento y estado. |
 | Inventario | Cumple | `GET /api/integrations/mch/inventory`; `GET /api/integrations/mch/inventory-movements`; modulo `Inventory` | La sucursal actua como bodega; expone unidad base, ubicaciones y saldos, costo, min/max y kardex con unidad, conversion, documento y usuario. |
 | Ventas | Parcial | `GET /api/integrations/mch/sales` | Cada linea expone marca formal; faltan clasificacion contable, anulaciones/notas credito y costo por linea. |
-| Compras | Parcial | `GET /api/integrations/mch/purchases` | Cada linea expone marca formal, cantidad decimal, unidad exacta de compra y cantidad base; faltan recepcion real, pedido asociado y tipo de proveedor. |
+| Compras | Parcial | `GET /api/integrations/mch/purchases` | Expone bodega y ubicacion de recepcion, y cada linea incluye marca formal, cantidad decimal, unidad exacta de compra y cantidad base; faltan recepcion efectiva separada del registro, pedido asociado y tipo de proveedor. |
 | Ordenes de taller | Cumple | `GET /api/integrations/mch/service-orders` | Expone numero visible, empresa/NIT historicos, sucursal, marca/vehiculo, cliente, recepcion, promesa y salida, tipo/origen, historial, anulacion, factura, totales y lineas con pagador, impacto, servicio, revision, tecnico y tiempos. La normalizacion decimal/unidades se atiende transversalmente en el punto 5. |
 | Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, marca/modelo formal, motor, placa, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. |
 | Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Al completar, los consumos con articulo descuentan inventario y generan movimiento documental. |

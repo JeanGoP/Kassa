@@ -7,6 +7,8 @@ interface Purchase {
     id: number;
     supplierName: string;
     branchName: string;
+    inventoryLocationCode: string;
+    inventoryLocationName: string;
     date: string;
     supplierInvoiceDate?: string | null;
     referenceNumber: string;
@@ -64,8 +66,9 @@ const Purchases = () => {
         try {
             setDeletingId(id);
             await api.delete(`/purchases/${id}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            alert(error.response?.data?.message || 'NO FUE POSIBLE ANULAR LA ENTRADA DE MERCANCÍA');
         } finally {
             setDeletingId(null);
             await fetchPurchases(searchTerm);
@@ -145,6 +148,9 @@ const Purchases = () => {
                                             <Building2 size={15} className="text-slate-400" />
                                             {item.branchName}
                                         </div>
+                                        <div className="mt-1 text-xs text-slate-500">
+                                            {item.inventoryLocationCode} - {item.inventoryLocationName}
+                                        </div>
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="font-extrabold text-slate-950">{money(item.totalAmount)}</div>
@@ -219,6 +225,7 @@ const Purchases = () => {
                                 <div>
                                     <div className="text-xs font-bold uppercase text-slate-400">Bodega</div>
                                     <div className="font-semibold text-slate-700">{item.branchName}</div>
+                                    <div className="text-xs text-slate-500">{item.inventoryLocationCode} - {item.inventoryLocationName}</div>
                                 </div>
                                 <div>
                                     <div className="text-xs font-bold uppercase text-slate-400">Total</div>

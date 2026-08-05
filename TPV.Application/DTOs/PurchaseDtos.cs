@@ -7,6 +7,7 @@ namespace TPV.Application.DTOs
     {
         public int SupplierId { get; set; }
         public int BranchId { get; set; }
+        public int InventoryLocationId { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public DateTime? SupplierInvoiceDate { get; set; }
@@ -29,6 +30,9 @@ namespace TPV.Application.DTOs
         public int Id { get; set; }
         public string SupplierName { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
+        public int InventoryLocationId { get; set; }
+        public string InventoryLocationCode { get; set; } = string.Empty;
+        public string InventoryLocationName { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public DateTime? SupplierInvoiceDate { get; set; }
         public string ReferenceNumber { get; set; } = string.Empty;

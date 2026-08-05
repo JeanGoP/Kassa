@@ -33,6 +33,10 @@ namespace TPV.Web.Controllers.Api
             {
                 return StatusCode(403, new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message, details = ex.InnerException?.Message });
@@ -72,7 +76,7 @@ namespace TPV.Web.Controllers.Api
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting purchase {id}: {ex.Message}");
+                return Conflict(new { message = ex.Message });
             }
 
             return NoContent();

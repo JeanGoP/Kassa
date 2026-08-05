@@ -23,6 +23,14 @@ interface Branch {
     name: string;
 }
 
+interface InventoryLocation {
+    id: number;
+    code: string;
+    name: string;
+    isDefault: boolean;
+    isActive: boolean;
+}
+
 interface StockItem {
     productId: number;
     cost: number;
@@ -53,6 +61,7 @@ const CreatePurchase = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
+    const [locations, setLocations] = useState<InventoryLocation[]>([]);
     const [stockItems, setStockItems] = useState<StockItem[]>([]);
     const [search, setSearch] = useState('');
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -68,6 +77,7 @@ const CreatePurchase = () => {
 
     const [supplierId, setSupplierId] = useState<number | ''>('');
     const [branchId, setBranchId] = useState<number | ''>('');
+    const [inventoryLocationId, setInventoryLocationId] = useState<number | ''>('');
     const [date, setDate] = useState(today());
     const [supplierInvoiceDate, setSupplierInvoiceDate] = useState(today());
     const [referenceNumber, setReferenceNumber] = useState('');
@@ -113,6 +123,36 @@ const CreatePurchase = () => {
         };
 
         loadStock();
+    }, [branchId]);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadLocations = async () => {
+            if (!branchId) {
+                setLocations([]);
+                setInventoryLocationId('');
+                return;
+            }
+
+            try {
+                const response = await api.get(`/inventory/locations?branchId=${branchId}`);
+                if (!active) return;
+                const activeLocations = (response.data as InventoryLocation[]).filter(location => location.isActive);
+                setLocations(activeLocations);
+                const defaultLocation = activeLocations.find(location => location.isDefault) ?? activeLocations[0];
+                setInventoryLocationId(defaultLocation?.id ?? '');
+            } catch (error) {
+                console.error(error);
+                if (active) {
+                    setLocations([]);
+                    setInventoryLocationId('');
+                }
+            }
+        };
+
+        loadLocations();
+        return () => { active = false; };
     }, [branchId]);
 
     useEffect(() => {
@@ -293,8 +333,8 @@ const CreatePurchase = () => {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (!supplierId || !branchId || details.length === 0) {
-            alert('Seleccione proveedor, bodega y al menos un articulo.');
+        if (!supplierId || !branchId || !inventoryLocationId || details.length === 0) {
+            alert('Seleccione proveedor, bodega, ubicación de recepción y al menos un artículo.');
             return;
         }
 
@@ -308,6 +348,7 @@ const CreatePurchase = () => {
             await api.post('/purchases', {
                 supplierId,
                 branchId,
+                inventoryLocationId,
                 date,
                 supplierInvoiceDate,
                 referenceNumber,
@@ -420,7 +461,7 @@ const CreatePurchase = () => {
                             </label>
 
                             <label className="space-y-1.5 md:col-span-2 xl:col-span-1">
-                                <span className="text-sm font-bold text-slate-700">Bodega de ingreso</span>
+                                <span className="text-sm font-bold text-slate-700">BODEGA DE INGRESO</span>
                                 <div className="relative">
                                     <MapPin className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
                                     <select
@@ -435,6 +476,27 @@ const CreatePurchase = () => {
                                     >
                                         {branches.map(branch => (
                                             <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </label>
+
+                            <label className="space-y-1.5 md:col-span-2 xl:col-span-1">
+                                <span className="text-sm font-bold text-slate-700">UBICACIÓN DE RECEPCIÓN</span>
+                                <div className="relative">
+                                    <MapPin className="pointer-events-none absolute left-3 top-3 text-slate-400" size={18} />
+                                    <select
+                                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pl-10 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        value={inventoryLocationId}
+                                        onChange={(event) => setInventoryLocationId(Number(event.target.value))}
+                                        disabled={!branchId || locations.length === 0}
+                                        required
+                                    >
+                                        <option value="">Seleccione ubicación</option>
+                                        {locations.map(location => (
+                                            <option key={location.id} value={location.id}>
+                                                {location.code} - {location.name}{location.isDefault ? ' (PREDETERMINADA)' : ''}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -777,7 +839,7 @@ const CreatePurchase = () => {
                         </div>
                         <button
                             type="submit"
-                            disabled={isSaving || details.length === 0 || !supplierId || !branchId}
+                            disabled={isSaving || details.length === 0 || !supplierId || !branchId || !inventoryLocationId}
                             className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-extrabold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <Save size={20} />

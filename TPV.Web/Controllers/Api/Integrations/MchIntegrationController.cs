@@ -514,6 +514,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .IgnoreQueryFilters()
                 .Include(p => p.Supplier)
                 .Include(p => p.Branch)
+                .Include(p => p.InventoryLocation)
                 .Include(p => p.PurchaseDetails)
                     .ThenInclude(d => d.Product)
                         .ThenInclude(p => p.Brand)
@@ -530,6 +531,9 @@ namespace TPV.Web.Controllers.Api.Integrations
                 CompanyId = p.TenantId,
                 BranchId = p.BranchId,
                 BranchName = p.Branch?.Name,
+                LocationId = p.InventoryLocationId,
+                LocationCode = p.InventoryLocation.Code,
+                LocationName = p.InventoryLocation.Name,
                 SupplierId = p.SupplierId,
                 SupplierName = p.Supplier?.Name,
                 DocumentType = "Purchase",
@@ -1586,6 +1590,9 @@ namespace TPV.Web.Controllers.Api.Integrations
         public int CompanyId { get; set; }
         public int BranchId { get; set; }
         public string? BranchName { get; set; }
+        public int LocationId { get; set; }
+        public string? LocationCode { get; set; }
+        public string? LocationName { get; set; }
         public int SupplierId { get; set; }
         public string? SupplierName { get; set; }
         public string DocumentType { get; set; } = string.Empty;
