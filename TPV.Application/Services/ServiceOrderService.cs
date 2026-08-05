@@ -11,16 +11,23 @@ namespace TPV.Application.Services
 {
     public class ServiceOrderService : IServiceOrderService
     {
+        private static readonly string[] OrderTypes = { "GARANTIA", "REVISION_GARANTIA", "MANTENIMIENTO_PROGRAMADO", "REPARACION", "RETORNO", "OTRO" };
+        private static readonly string[] Origins = { "TALLER", "GARANTIA", "OTRO" };
+        private static readonly string[] Payers = { "CLIENTE", "FABRICA", "INTERNO" };
+        private static readonly string[] ServiceTypes = { "PREVENTIVO", "CORRECTIVO", "GARANTIA", "RETRABAJO" };
+        private static readonly string[] PartLineTypes = { "REPUESTO", "INSUMO" };
         private readonly IRepository<ServiceOrder> _repository;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<ServiceOrderWork> _workRepository;
         private readonly IRepository<ServiceOrderPart> _partRepository;
+        private readonly IRepository<ServiceOrderStatusHistory> _statusHistoryRepository;
         private readonly ISalesService _salesService;
         private readonly IRepository<Sale> _saleRepository;
         private readonly IRepository<SaleDetail> _saleDetailRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<Tenant> _tenantRepository;
         private readonly IUserService _userService;
         private readonly IVehicleService _vehicleService;
 
@@ -29,12 +36,14 @@ namespace TPV.Application.Services
             IRepository<Customer> customerRepository,
             IRepository<ServiceOrderWork> workRepository,
             IRepository<ServiceOrderPart> partRepository,
+            IRepository<ServiceOrderStatusHistory> statusHistoryRepository,
             ISalesService salesService,
             IRepository<Sale> saleRepository,
             IRepository<SaleDetail> saleDetailRepository,
             IRepository<Product> productRepository,
             IRepository<Category> categoryRepository,
             IRepository<Branch> branchRepository,
+            IRepository<Tenant> tenantRepository,
             IUserService userService,
             IVehicleService vehicleService)
         {
@@ -42,12 +51,14 @@ namespace TPV.Application.Services
             _customerRepository = customerRepository;
             _workRepository = workRepository;
             _partRepository = partRepository;
+            _statusHistoryRepository = statusHistoryRepository;
             _salesService = salesService;
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _branchRepository = branchRepository;
+            _tenantRepository = tenantRepository;
             _userService = userService;
             _vehicleService = vehicleService;
         }
@@ -63,7 +74,7 @@ namespace TPV.Application.Services
                     o.Customer.FirstName.Contains(search) ||
                     o.Customer.LastName.Contains(search),
                 orderBy: q => q.OrderByDescending(o => o.IntakeDateTime),
-                includeString: "Customer"
+                includeString: "Customer,StatusHistory"
             );
 
             return orders.Select(o => MapToDto(o));
@@ -88,6 +99,14 @@ namespace TPV.Application.Services
             }
 
             var workshopManagerName = branch.WorkshopManager?.Name ?? branch.ManagerName;
+            var tenant = await _tenantRepository.GetByIdAsync(branch.TenantId)
+                ?? throw new InvalidOperationException("No se encontro la empresa de la sucursal asignada.");
+            var receivedByName = await _userService.GetUserDisplayNameAsync(userId);
+            var intakeDateTime = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime;
+            var orderType = ValidateOption(dto.OrderType, OrderTypes, "tipo de orden");
+            var origin = ValidateOption(dto.Origin, Origins, "origen de la orden");
+            if (dto.PromisedDeliveryDateTime.HasValue && dto.PromisedDeliveryDateTime.Value < intakeDateTime)
+                throw new InvalidOperationException("La entrega prometida no puede ser anterior al ingreso.");
             var visualEvidenceImages = NormalizeVisualEvidenceImages(dto.VisualEvidenceImages);
             var intakeSignature = NormalizeDataUrl(dto.IntakeCustomerSignatureDataUrl, "La firma del cliente", 700_000);
             if (string.IsNullOrWhiteSpace(intakeSignature))
@@ -109,12 +128,15 @@ namespace TPV.Application.Services
                 Model = dto.Model,
                 Year = dto.Year,
                 Mileage = dto.Mileage,
-                OperationDate = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime
+                OperationDate = intakeDateTime
             });
 
             var entity = new ServiceOrder
             {
                 TenantId = branch.TenantId,
+                CompanyName = tenant.Name,
+                CompanyNit = tenant.Nit,
+                OrderNumber = GenerateOrderNumber(branch.Id, intakeDateTime),
                 BranchId = branch.Id,
                 CustomerId = dto.CustomerId,
                 VehicleId = registeredVehicle.VehicleId,
@@ -130,7 +152,12 @@ namespace TPV.Application.Services
                 Year = dto.Year,
                 Mileage = dto.Mileage,
                 MaintenanceReviewMileage = dto.MaintenanceReviewMileage,
-                IntakeDateTime = dto.IntakeDateTime == default ? DateTime.Now : dto.IntakeDateTime,
+                IntakeDateTime = intakeDateTime,
+                PromisedDeliveryDateTime = dto.PromisedDeliveryDateTime,
+                OrderType = orderType,
+                Origin = origin,
+                ReceivedByUserId = userId,
+                ReceivedByName = receivedByName,
                 FuelLevel = dto.FuelLevel,
                 InitialObservations = dto.InitialObservations,
                 VisualCondition = dto.VisualCondition,
@@ -138,28 +165,26 @@ namespace TPV.Application.Services
                 IntakeCustomerSignatureDataUrl = intakeSignature,
                 Technician = string.Empty,
                 WorkshopManager = workshopManagerName,
-                Status = dto.Status
+                Status = "ABIERTA"
             };
 
             await _repository.AddAsync(entity);
+            await AddStatusHistoryAsync(entity, userId, receivedByName, "Orden creada");
 
-            // Fetch customer name for DTO
-            var customer = await _customerRepository.GetByIdAsync(entity.CustomerId);
-
-            return MapToDto(entity, customer);
+            return await GetByIdAsync(entity.Id);
         }
 
         public async Task<ServiceOrderDto> GetByIdAsync(int id)
         {
-            var entity = await _repository.GetByIdAsync(id);
+            var entity = (await _repository.GetAsync(
+                predicate: o => o.Id == id,
+                includeString: "Customer,StatusHistory")).FirstOrDefault();
             if (entity == null) return null;
 
-            var customer = await _customerRepository.GetByIdAsync(entity.CustomerId);
-
-            return MapToDto(entity, customer);
+            return MapToDto(entity, entity.Customer);
         }
 
-        public async Task<ServiceOrderDto> SetDiagnosisAsync(int id, ServiceOrderDiagnosisDto dto)
+        public async Task<ServiceOrderDto> SetDiagnosisAsync(int id, ServiceOrderDiagnosisDto dto, string userId)
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return null;
@@ -169,10 +194,12 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("No se puede modificar el diagnóstico de una orden finalizada o cerrada.");
             }
 
+            var previousStatus = entity.Status;
             entity.Status = "EN DIAGNOSTICO";
             // TODO: Save diagnosis fields if they exist in entity
             
             await _repository.UpdateAsync(entity);
+            await RecordStatusChangeAsync(entity, previousStatus, userId, "Diagnostico registrado");
 
             var customer = await _customerRepository.GetByIdAsync(entity.CustomerId);
 
@@ -191,7 +218,12 @@ namespace TPV.Application.Services
                 Description = w.Description,
                 Technician = w.Technician,
                 EstimatedTimeHours = w.EstimatedTimeHours,
+                ActualTimeHours = w.ActualTimeHours,
                 LaborCost = w.LaborCost,
+                Payer = w.Payer,
+                AddsToCustomerTotal = w.AddsToCustomerTotal,
+                ServiceType = w.ServiceType,
+                MaintenanceReviewMileage = w.MaintenanceReviewMileage,
                 Status = w.Status
             });
         }
@@ -200,6 +232,7 @@ namespace TPV.Application.Services
         {
             var order = await _repository.GetByIdAsync(serviceOrderId);
             if (order == null) return null;
+            ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
 
             var entity = new ServiceOrderWork
             {
@@ -208,7 +241,12 @@ namespace TPV.Application.Services
                 Description = dto.Description,
                 Technician = dto.Technician,
                 EstimatedTimeHours = dto.EstimatedTimeHours,
+                ActualTimeHours = dto.ActualTimeHours,
                 LaborCost = dto.LaborCost,
+                Payer = ValidateOption(dto.Payer, Payers, "pagador"),
+                AddsToCustomerTotal = dto.AddsToCustomerTotal,
+                ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio"),
+                MaintenanceReviewMileage = dto.MaintenanceReviewMileage,
                 Status = dto.Status
             };
 
@@ -222,7 +260,12 @@ namespace TPV.Application.Services
                 Description = entity.Description,
                 Technician = entity.Technician,
                 EstimatedTimeHours = entity.EstimatedTimeHours,
+                ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                Payer = entity.Payer,
+                AddsToCustomerTotal = entity.AddsToCustomerTotal,
+                ServiceType = entity.ServiceType,
+                MaintenanceReviewMileage = entity.MaintenanceReviewMileage,
                 Status = entity.Status
             };
         }
@@ -231,12 +274,18 @@ namespace TPV.Application.Services
         {
             var entity = await _workRepository.GetByIdAsync(workId);
             if (entity == null || entity.ServiceOrderId != serviceOrderId) return null;
+            ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
 
             entity.ProductId = dto.ProductId;
             entity.Description = dto.Description;
             entity.Technician = dto.Technician;
             entity.EstimatedTimeHours = dto.EstimatedTimeHours;
+            entity.ActualTimeHours = dto.ActualTimeHours;
             entity.LaborCost = dto.LaborCost;
+            entity.Payer = ValidateOption(dto.Payer, Payers, "pagador");
+            entity.AddsToCustomerTotal = dto.AddsToCustomerTotal;
+            entity.ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio");
+            entity.MaintenanceReviewMileage = dto.MaintenanceReviewMileage;
             entity.Status = dto.Status;
 
             await _workRepository.UpdateAsync(entity);
@@ -249,7 +298,12 @@ namespace TPV.Application.Services
                 Description = entity.Description,
                 Technician = entity.Technician,
                 EstimatedTimeHours = entity.EstimatedTimeHours,
+                ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                Payer = entity.Payer,
+                AddsToCustomerTotal = entity.AddsToCustomerTotal,
+                ServiceType = entity.ServiceType,
+                MaintenanceReviewMileage = entity.MaintenanceReviewMileage,
                 Status = entity.Status
             };
         }
@@ -266,10 +320,16 @@ namespace TPV.Application.Services
             {
                 Id = entity.Id,
                 ServiceOrderId = entity.ServiceOrderId,
+                ProductId = entity.ProductId,
                 Description = entity.Description,
                 Technician = entity.Technician,
                 EstimatedTimeHours = entity.EstimatedTimeHours,
+                ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                Payer = entity.Payer,
+                AddsToCustomerTotal = entity.AddsToCustomerTotal,
+                ServiceType = entity.ServiceType,
+                MaintenanceReviewMileage = entity.MaintenanceReviewMileage,
                 Status = entity.Status
             };
         }
@@ -286,6 +346,14 @@ namespace TPV.Application.Services
                 ProductName = p.Product != null ? p.Product.Name : string.Empty,
                 SKU = p.Product != null ? p.Product.SKU : string.Empty,
                 Quantity = p.Quantity,
+                LineType = p.LineType,
+                Payer = p.Payer,
+                AddsToCustomerTotal = p.AddsToCustomerTotal,
+                ServiceType = p.ServiceType,
+                MaintenanceReviewMileage = p.MaintenanceReviewMileage,
+                Technician = p.Technician,
+                EstimatedTimeHours = p.EstimatedTimeHours,
+                ActualTimeHours = p.ActualTimeHours,
                 UnitPrice = p.UnitPrice,
                 DiscountType = p.DiscountType,
                 DiscountValue = p.DiscountValue,
@@ -300,6 +368,11 @@ namespace TPV.Application.Services
             if (order == null) return null;
 
             if (dto.Items == null || dto.Items.Count == 0) return null;
+            foreach (var item in dto.Items)
+            {
+                ValidateLineData(item.Payer, item.ServiceType, item.MaintenanceReviewMileage, item.EstimatedTimeHours, item.ActualTimeHours);
+                ValidateOption(item.LineType, PartLineTypes, "tipo de linea");
+            }
 
             // Obtener la sucursal del usuario
             var userBranchId = await _userService.GetUserBranchIdAsync(userId);
@@ -352,6 +425,14 @@ namespace TPV.Application.Services
                     ServiceOrderId = serviceOrderId,
                     ProductId = saleItem.ProductId,
                     Quantity = saleItem.Quantity,
+                    LineType = ValidateOption(requestItem.LineType, PartLineTypes, "tipo de linea"),
+                    Payer = ValidateOption(requestItem.Payer, Payers, "pagador"),
+                    AddsToCustomerTotal = requestItem.AddsToCustomerTotal,
+                    ServiceType = ValidateOption(requestItem.ServiceType, ServiceTypes, "tipo de servicio"),
+                    MaintenanceReviewMileage = requestItem.MaintenanceReviewMileage,
+                    Technician = Clean(requestItem.Technician),
+                    EstimatedTimeHours = requestItem.EstimatedTimeHours,
+                    ActualTimeHours = requestItem.ActualTimeHours,
                     UnitPrice = saleItem.UnitPrice,
                     DiscountType = requestItem.DiscountType,
                     DiscountValue = requestItem.DiscountValue,
@@ -371,6 +452,14 @@ namespace TPV.Application.Services
                 ProductName = string.Empty,
                 SKU = string.Empty,
                 Quantity = p.Quantity,
+                LineType = p.LineType,
+                Payer = p.Payer,
+                AddsToCustomerTotal = p.AddsToCustomerTotal,
+                ServiceType = p.ServiceType,
+                MaintenanceReviewMileage = p.MaintenanceReviewMileage,
+                Technician = p.Technician,
+                EstimatedTimeHours = p.EstimatedTimeHours,
+                ActualTimeHours = p.ActualTimeHours,
                 UnitPrice = p.UnitPrice,
                 DiscountType = p.DiscountType,
                 DiscountValue = p.DiscountValue,
@@ -378,7 +467,7 @@ namespace TPV.Application.Services
                 SubTotal = p.SubTotal
             }).ToList();
 
-            var total = partsDtos.Sum(p => p.SubTotal);
+            var total = partsDtos.Where(p => p.AddsToCustomerTotal).Sum(p => p.SubTotal);
 
             var result = new ServiceOrderPartsResultDto
             {
@@ -392,7 +481,7 @@ namespace TPV.Application.Services
             return result;
         }
 
-        public async Task<ServiceOrderDto> CloseOrderAsync(int serviceOrderId, CloseServiceOrderDto dto)
+        public async Task<ServiceOrderDto> CloseOrderAsync(int serviceOrderId, CloseServiceOrderDto dto, string userId)
         {
             var entity = await _repository.GetByIdAsync(serviceOrderId);
             if (entity == null) return null;
@@ -412,6 +501,7 @@ namespace TPV.Application.Services
                 return null;
             }
 
+            var previousStatus = entity.Status;
             entity.Status = "FINALIZADA";
             entity.ExitDateTime = dto.ExitDateTime;
             entity.DeliveryNotes = dto.DeliveryNotes;
@@ -421,16 +511,43 @@ namespace TPV.Application.Services
             entity.SpecialCloseSupervisorName = dto.SpecialCloseSupervisorName;
 
             await _repository.UpdateAsync(entity);
+            await RecordStatusChangeAsync(entity, previousStatus, userId, "Orden finalizada");
 
             var customer = await _customerRepository.GetByIdAsync(entity.CustomerId);
 
             return MapToDto(entity, customer);
         }
 
+        public async Task<ServiceOrderDto> CancelOrderAsync(int serviceOrderId, CancelServiceOrderDto dto, string userId)
+        {
+            var entity = await _repository.GetByIdAsync(serviceOrderId);
+            if (entity == null) return null;
+            if (entity.Status == "CERRADA") throw new InvalidOperationException("Una orden facturada no puede anularse.");
+            if (entity.Status == "CANCELADA" || entity.Status == "ANULADA") return await GetByIdAsync(entity.Id);
+
+            var reason = string.IsNullOrWhiteSpace(dto.Reason)
+                ? throw new InvalidOperationException("El motivo de anulacion es obligatorio.")
+                : dto.Reason.Trim();
+            var changedByName = await _userService.GetUserDisplayNameAsync(userId);
+            var previousStatus = entity.Status;
+            entity.Status = "CANCELADA";
+            entity.CancelledAt = DateTime.UtcNow;
+            entity.CancellationReason = reason;
+            entity.CancelledByUserId = userId;
+            entity.CancelledByName = changedByName;
+            entity.IsActive = false;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateAsync(entity);
+            await AddStatusHistoryAsync(entity, userId, changedByName, $"Anulada desde {previousStatus}: {reason}");
+            return await GetByIdAsync(entity.Id);
+        }
+
         public async Task<SaleResultDto> GenerateInvoiceAsync(int serviceOrderId, GenerateInvoiceDto dto, string userId)
         {
             var serviceOrder = await _repository.GetByIdAsync(serviceOrderId);
             if (serviceOrder == null) throw new KeyNotFoundException($"Orden de servicio {serviceOrderId} no encontrada.");
+            if (serviceOrder.Status == "CANCELADA" || serviceOrder.Status == "ANULADA")
+                throw new InvalidOperationException("Una orden cancelada no puede facturarse.");
 
             // Check if already invoiced
             var existingSales = await _saleRepository.GetAsync(s => s.ServiceOrderId == serviceOrderId);
@@ -440,8 +557,10 @@ namespace TPV.Application.Services
                 // Ensure status is updated if for some reason it wasn't
                 if (serviceOrder.Status != "CERRADA")
                 {
+                    var previousStatus = serviceOrder.Status;
                     serviceOrder.Status = "CERRADA";
                     await _repository.UpdateAsync(serviceOrder);
+                    await RecordStatusChangeAsync(serviceOrder, previousStatus, userId, "Factura existente vinculada");
                 }
                 return await _salesService.GetSaleAsync(existingSale.Id);
             }
@@ -482,6 +601,10 @@ namespace TPV.Application.Services
             var parts = await _partRepository.GetAsync(
                 predicate: p => p.ServiceOrderId == serviceOrderId,
                 includeString: "Product");
+            var works = await _workRepository.GetAsync(w => w.ServiceOrderId == serviceOrderId);
+            var billableLaborCost = works.Any()
+                ? works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost)
+                : dto.LaborCost;
 
             // Find Branch
             var branches = await _branchRepository.GetAsync(b => b.TenantId == serviceOrder.TenantId);
@@ -507,6 +630,7 @@ namespace TPV.Application.Services
             // Add Sale Details (Parts)
             foreach (var part in parts)
             {
+                if (!part.AddsToCustomerTotal) continue;
                 // Calculate Taxes for Part
                 decimal taxRate = 0;
                 decimal taxAmount = 0;
@@ -550,7 +674,7 @@ namespace TPV.Application.Services
             {
                 // Calculate Taxes for Labor
                 decimal taxRate = (laborProduct.IvaRate + laborProduct.ImpoconsumoRate) / 100m;
-                decimal subTotal = dto.LaborCost;
+                decimal subTotal = billableLaborCost;
                 decimal taxAmount = 0;
 
                 if (laborProduct.PriceIncludesIva)
@@ -569,7 +693,7 @@ namespace TPV.Application.Services
                     SaleId = sale.Id,
                     ProductId = laborProduct.Id,
                     Quantity = 1,
-                    UnitPrice = dto.LaborCost,
+                    UnitPrice = billableLaborCost,
                     TaxRate = taxRate * 100,
                     TaxAmount = taxAmount,
                     SubTotal = subTotal
@@ -583,11 +707,13 @@ namespace TPV.Application.Services
             await _saleRepository.UpdateAsync(sale);
 
             // Update Service Order
+            var statusBeforeInvoice = serviceOrder.Status;
             serviceOrder.Status = "CERRADA";
-            serviceOrder.LaborCost = dto.LaborCost;
+            serviceOrder.LaborCost = billableLaborCost;
             // serviceOrder.Sale = sale; // Not needed, relation is set via ServiceOrderId on Sale
             
             await _repository.UpdateAsync(serviceOrder);
+            await RecordStatusChangeAsync(serviceOrder, statusBeforeInvoice, userId, $"Factura {sale.InvoiceNumber} generada");
 
             return await _salesService.GetSaleAsync(sale.Id);
         }
@@ -602,6 +728,9 @@ namespace TPV.Application.Services
             return new ServiceOrderDto
             {
                 Id = entity.Id,
+                CompanyName = entity.CompanyName,
+                CompanyNit = entity.CompanyNit,
+                OrderNumber = entity.OrderNumber,
                 BranchId = entity.BranchId,
                 CustomerId = entity.CustomerId,
                 CustomerName = customerName,
@@ -617,6 +746,11 @@ namespace TPV.Application.Services
                 Mileage = entity.Mileage,
                 MaintenanceReviewMileage = entity.MaintenanceReviewMileage,
                 IntakeDateTime = entity.IntakeDateTime,
+                PromisedDeliveryDateTime = entity.PromisedDeliveryDateTime,
+                OrderType = entity.OrderType,
+                Origin = entity.Origin,
+                ReceivedByUserId = entity.ReceivedByUserId,
+                ReceivedByName = entity.ReceivedByName,
                 FuelLevel = entity.FuelLevel,
                 InitialObservations = entity.InitialObservations,
                 VisualCondition = entity.VisualCondition,
@@ -625,13 +759,71 @@ namespace TPV.Application.Services
                 Technician = entity.Technician,
                 WorkshopManager = entity.WorkshopManager,
                 Status = entity.Status,
+                CancelledAt = entity.CancelledAt,
+                CancellationReason = entity.CancellationReason,
+                CancelledByUserId = entity.CancelledByUserId,
+                CancelledByName = entity.CancelledByName,
                 ExitDateTime = entity.ExitDateTime,
                 DeliveryNotes = entity.DeliveryNotes,
                 CloseType = entity.CloseType,
                 CloseReason = entity.CloseReason,
-                CustomerSignatureName = entity.CustomerSignatureName
+                CustomerSignatureName = entity.CustomerSignatureName,
+                StatusHistory = entity.StatusHistory?.OrderBy(h => h.ChangedAt).Select(h => new ServiceOrderStatusHistoryDto
+                {
+                    Id = h.Id,
+                    Status = h.Status,
+                    ChangedAt = h.ChangedAt,
+                    ChangedByUserId = h.ChangedByUserId,
+                    ChangedByName = h.ChangedByName,
+                    Notes = h.Notes
+                }).ToList() ?? new List<ServiceOrderStatusHistoryDto>()
             };
         }
+
+        private async Task RecordStatusChangeAsync(ServiceOrder order, string previousStatus, string userId, string notes)
+        {
+            if (string.Equals(previousStatus, order.Status, StringComparison.OrdinalIgnoreCase)) return;
+            await AddStatusHistoryAsync(order, userId, await _userService.GetUserDisplayNameAsync(userId), notes);
+        }
+
+        private async Task AddStatusHistoryAsync(ServiceOrder order, string? userId, string? userName, string? notes)
+        {
+            await _statusHistoryRepository.AddAsync(new ServiceOrderStatusHistory
+            {
+                TenantId = order.TenantId,
+                ServiceOrderId = order.Id,
+                Status = order.Status,
+                ChangedAt = DateTime.UtcNow,
+                ChangedByUserId = userId,
+                ChangedByName = userName,
+                Notes = notes
+            });
+        }
+
+        private static void ValidateLineData(string payer, string serviceType, int? reviewMileage, decimal? estimatedHours, decimal? actualHours)
+        {
+            ValidateOption(payer, Payers, "pagador");
+            var normalizedServiceType = ValidateOption(serviceType, ServiceTypes, "tipo de servicio");
+            if (normalizedServiceType == "PREVENTIVO" && !reviewMileage.HasValue)
+                throw new InvalidOperationException("La revision asociada es obligatoria para mantenimiento preventivo.");
+            if (reviewMileage.HasValue && reviewMileage.Value <= 0)
+                throw new InvalidOperationException("La revision asociada debe ser mayor a cero.");
+            if ((estimatedHours.HasValue && estimatedHours.Value < 0) || (actualHours.HasValue && actualHours.Value < 0))
+                throw new InvalidOperationException("Los tiempos estimado y real no pueden ser negativos.");
+        }
+
+        private static string ValidateOption(string? value, IEnumerable<string> allowed, string fieldName)
+        {
+            var normalized = string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToUpperInvariant();
+            if (!allowed.Contains(normalized))
+                throw new InvalidOperationException($"El {fieldName} no pertenece a la lista permitida.");
+            return normalized;
+        }
+
+        private static string GenerateOrderNumber(int branchId, DateTime intakeDateTime) =>
+            $"OT-{intakeDateTime:yyyyMMddHHmmss}-{branchId}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+
+        private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         private static List<string> NormalizeVisualEvidenceImages(IEnumerable<string> images)
         {

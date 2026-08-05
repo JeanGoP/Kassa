@@ -41,5 +41,13 @@ namespace TPV.Infrastructure.Services
              var roles = await _userManager.GetRolesAsync(user);
              return roles.Contains("Admin") || roles.Contains("Supervisor");
         }
+
+        public async Task<string?> GetUserDisplayNameAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return null;
+            var fullName = $"{user.FirstName} {user.LastName}".Trim();
+            return string.IsNullOrWhiteSpace(fullName) ? user.Email : fullName;
+        }
     }
 }

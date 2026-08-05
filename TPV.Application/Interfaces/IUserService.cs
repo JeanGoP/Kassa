@@ -7,5 +7,6 @@ namespace TPV.Application.Interfaces
         Task<int?> GetUserBranchIdAsync(string userId);
         Task<bool> IsUserInBranchAsync(string userId, int branchId);
         Task<bool> HasPermissionToTransferAsync(string userId);
+        Task<string?> GetUserDisplayNameAsync(string userId);
     }
 }

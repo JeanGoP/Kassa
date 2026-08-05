@@ -16,7 +16,12 @@ const ServiceOrderWorks = () => {
     const [description, setDescription] = useState('');
     const [technician, setTechnician] = useState('');
     const [estimatedTime, setEstimatedTime] = useState('');
+    const [actualTime, setActualTime] = useState('');
     const [laborCost, setLaborCost] = useState('');
+    const [payer, setPayer] = useState('CLIENTE');
+    const [addsToCustomerTotal, setAddsToCustomerTotal] = useState(true);
+    const [serviceType, setServiceType] = useState('CORRECTIVO');
+    const [maintenanceReviewMileage, setMaintenanceReviewMileage] = useState('');
     const [status, setStatus] = useState<'PENDIENTE' | 'REALIZADO'>('PENDIENTE');
     const [submitting, setSubmitting] = useState(false);
     const [works, setWorks] = useState<any[]>([]);
@@ -60,7 +65,12 @@ const ServiceOrderWorks = () => {
             setDescription(selectedWork.description);
             setTechnician(selectedWork.technician);
             setEstimatedTime(selectedWork.estimatedTimeHours ? selectedWork.estimatedTimeHours.toString() : '');
+            setActualTime(selectedWork.actualTimeHours ? selectedWork.actualTimeHours.toString() : '');
             setLaborCost(selectedWork.laborCost ? selectedWork.laborCost.toString() : '');
+            setPayer(selectedWork.payer || 'CLIENTE');
+            setAddsToCustomerTotal(selectedWork.addsToCustomerTotal ?? true);
+            setServiceType(selectedWork.serviceType || 'CORRECTIVO');
+            setMaintenanceReviewMileage(selectedWork.maintenanceReviewMileage?.toString() || '');
             setStatus(selectedWork.status);
         } else {
             setProductId(null);
@@ -68,7 +78,12 @@ const ServiceOrderWorks = () => {
             setDescription('');
             setTechnician('');
             setEstimatedTime('');
+            setActualTime('');
             setLaborCost('');
+            setPayer('CLIENTE');
+            setAddsToCustomerTotal(true);
+            setServiceType('CORRECTIVO');
+            setMaintenanceReviewMileage('');
             setStatus('PENDIENTE');
         }
     }, [selectedWork, services]); // Add services to dependency to resolve name if loaded later
@@ -140,7 +155,12 @@ const ServiceOrderWorks = () => {
             description,
             technician,
             estimatedTimeHours: estimatedTime ? parseFloat(estimatedTime) : null,
+            actualTimeHours: actualTime ? parseFloat(actualTime) : null,
             laborCost: laborCost ? parseFloat(laborCost) : 0,
+            payer,
+            addsToCustomerTotal,
+            serviceType,
+            maintenanceReviewMileage: maintenanceReviewMileage ? Number(maintenanceReviewMileage) : null,
             status
         };
 
@@ -417,6 +437,13 @@ const ServiceOrderWorks = () => {
                                             />
                                         </div>
                                     </div>
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">TIEMPO REAL (HORAS)</label><input type="number" min="0" step="0.25" value={actualTime} onChange={(e) => setActualTime(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">QUIÉN PAGA</label><select value={payer} onChange={(e) => setPayer(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"><option value="CLIENTE">CLIENTE</option><option value="FABRICA">FÁBRICA</option><option value="INTERNO">ASUMIDO INTERNAMENTE</option></select></div>
+                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">TIPO DE SERVICIO</label><select value={serviceType} onChange={(e) => { setServiceType(e.target.value); if (e.target.value !== 'PREVENTIVO') setMaintenanceReviewMileage(''); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"><option value="PREVENTIVO">MANTENIMIENTO PREVENTIVO</option><option value="CORRECTIVO">CORRECTIVO</option><option value="GARANTIA">GARANTÍA</option><option value="RETRABAJO">RETRABAJO</option></select></div>
+                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">REVISIÓN ASOCIADA (KM)</label><input type="number" min="1" required={serviceType === 'PREVENTIVO'} disabled={serviceType !== 'PREVENTIVO'} value={maintenanceReviewMileage} onChange={(e) => setMaintenanceReviewMileage(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-100" /></div>
+                                    </div>
+                                    <label className="flex items-center gap-3 text-sm font-medium text-gray-700"><input type="checkbox" checked={addsToCustomerTotal} onChange={(e) => setAddsToCustomerTotal(e.target.checked)} className="h-5 w-5 rounded text-blue-600" /> SUMA AL TOTAL FACTURADO AL CLIENTE</label>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Estado
@@ -464,13 +491,13 @@ const ServiceOrderWorks = () => {
                                         {works.map((work) => (
                                             <tr key={work.id} className="hover:bg-gray-50">
                                                 <td className="px-4 py-2 text-gray-700">
-                                                    {work.description}
+                                                    <div>{work.description}</div><div className="text-xs text-gray-500">{work.serviceType} · {work.payer} · {work.addsToCustomerTotal ? 'FACTURA' : 'NO FACTURA'}</div>
                                                 </td>
                                                 <td className="px-4 py-2 text-gray-700">
                                                     {work.technician}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
-                                                    {work.estimatedTimeHours ?? '-'}
+                                                    {work.estimatedTimeHours ?? '-'} / {work.actualTimeHours ?? '-'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-gray-700">
                                                 {work.laborCost?.toFixed ? work.laborCost.toFixed(2) : work.laborCost}

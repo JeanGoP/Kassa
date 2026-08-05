@@ -95,6 +95,9 @@ const VehicleIntake = () => {
         year: '',
         mileage: '',
         maintenanceReviewMileage: '',
+        promisedDeliveryDateTime: '',
+        orderType: 'REPARACION',
+        origin: 'TALLER',
         intakeDateTime: formatDateTimeLocal(),
         fuelLevel: '',
         initialObservations: '',
@@ -458,6 +461,9 @@ const VehicleIntake = () => {
                 year: '',
                 mileage: '',
                 maintenanceReviewMileage: '',
+                promisedDeliveryDateTime: '',
+                orderType: 'REPARACION',
+                origin: 'TALLER',
                 intakeDateTime: formatDateTimeLocal(),
                 fuelLevel: '',
                 initialObservations: '',
@@ -1274,7 +1280,7 @@ const VehicleIntake = () => {
                     </div>
                     <div>
                         <div className="mb-1 flex items-center justify-between gap-2">
-                            <label className="block text-sm font-medium text-gray-700">Fecha y hora de ingreso</label>
+                            <label className="block text-sm font-medium text-gray-700">FECHA Y HORA DE INGRESO</label>
                             <button
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, intakeDateTime: formatDateTimeLocal() }))}
@@ -1291,6 +1297,22 @@ const VehicleIntake = () => {
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             required
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ENTREGA PROMETIDA</label>
+                        <input type="datetime-local" name="promisedDeliveryDateTime" value={formData.promisedDeliveryDateTime} onChange={handleChange} min={formData.intakeDateTime} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">TIPO DE ORDEN</label>
+                        <select name="orderType" value={formData.orderType} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="GARANTIA">GARANTÍA</option><option value="REVISION_GARANTIA">REVISIÓN DE GARANTÍA</option><option value="MANTENIMIENTO_PROGRAMADO">MANTENIMIENTO PROGRAMADO</option><option value="REPARACION">REPARACIÓN</option><option value="RETORNO">RETORNO</option><option value="OTRO">OTRO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ORIGEN</label>
+                        <select name="origin" value={formData.origin} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="TALLER">TALLER</option><option value="GARANTIA">GARANTÍA</option><option value="OTRO">OTRO CANAL</option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nivel de combustible</label>

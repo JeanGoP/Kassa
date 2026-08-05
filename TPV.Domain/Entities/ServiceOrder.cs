@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
@@ -6,6 +7,9 @@ namespace TPV.Domain.Entities
     public class ServiceOrder : BaseEntity, IMustHaveTenant
     {
         public int TenantId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string? CompanyNit { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
         public int? BranchId { get; set; }
         public Branch? Branch { get; set; }
         public int CustomerId { get; set; }
@@ -25,6 +29,11 @@ namespace TPV.Domain.Entities
         public decimal Mileage { get; set; }
         public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
+        public DateTime? PromisedDeliveryDateTime { get; set; }
+        public string OrderType { get; set; } = "REPARACION";
+        public string Origin { get; set; } = "TALLER";
+        public string? ReceivedByUserId { get; set; }
+        public string? ReceivedByName { get; set; }
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
@@ -33,6 +42,10 @@ namespace TPV.Domain.Entities
         public string Technician { get; set; }
         public string? WorkshopManager { get; set; }
         public string Status { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public string? CancellationReason { get; set; }
+        public string? CancelledByUserId { get; set; }
+        public string? CancelledByName { get; set; }
         public DateTime? ExitDateTime { get; set; }
         public string? DeliveryNotes { get; set; }
         public string? CloseType { get; set; }
@@ -43,5 +56,6 @@ namespace TPV.Domain.Entities
         // Invoicing
         public decimal LaborCost { get; set; }
         public Sale Sale { get; set; }
+        public ICollection<ServiceOrderStatusHistory> StatusHistory { get; set; } = new List<ServiceOrderStatusHistory>();
     }
 }

@@ -24,7 +24,7 @@ Brechas principales:
 - Garantias no tienen ciclo completo contra fabricante.
 - Unidades de medida son texto libre y no hay conversiones compra/base/venta.
 - Cantidades de algunas entidades siguen siendo enteras donde MCH exige decimales.
-- Anulaciones/historial de estados no estan completas.
+- Las ordenes de taller ya preservan anulacion e historia de estados; falta extender esta politica a los demas documentos operativos.
 - Documentacion formal de endpoints, limites, rotacion y ambiente de pruebas esta pendiente.
 
 ## Requisitos Transversales
@@ -41,7 +41,7 @@ Brechas principales:
 | MCH-T08 | Paginacion obligatoria | Cumple | `PageSize`, `ContinuationToken`, `NextContinuationToken`. |
 | MCH-T09 | Identificadores estables | Parcial | Usa IDs internos estables; falta documentar politica de estabilidad. |
 | MCH-T10 | creado_en y modificado_en con zona horaria | Parcial | Expone `CreatedAt`/`ModifiedAt`, pero sin zona horaria explicita. |
-| MCH-T11 | Anulaciones/eliminados siguen consultables | Parcial | `IsActive` se mapea a estado, pero no todos los flujos preservan anulaciones con fecha/motivo. |
+| MCH-T11 | Anulaciones/eliminados siguen consultables | Parcial | Las ordenes de taller anuladas conservan fecha, motivo, responsable e historial y siguen disponibles en MCH; falta completar el mismo patron en ventas, compras y otros documentos. |
 | MCH-T12 | Valores monetarios indican IVA | Parcial | Ventas/compras exponen impuestos en lineas; no todos los recursos indican si incluyen IVA. |
 | MCH-T13 | Todo recurso trae empresa, marca y sucursal | Cumple | Empresa y sucursal se exponen por hecho; la marca se toma del vehiculo o de cada articulo/linea y nunca se infiere desde la sucursal. |
 | MCH-T14 | Cantidades numericas decimales | Parcial | Entidades como compras/ventas/partes usan cantidades que parecen enteras en varios puntos. |
@@ -59,7 +59,7 @@ Brechas principales:
 | Inventario | Parcial | `GET /api/integrations/mch/inventory` | Ya expone marca del articulo, existencia, costo y precio; faltan bodegas reales, ubicaciones, movimientos y unidad del registro. |
 | Ventas | Parcial | `GET /api/integrations/mch/sales` | Cada linea expone marca formal; faltan clasificacion contable, anulaciones/notas credito y costo por linea. |
 | Compras | Parcial | `GET /api/integrations/mch/purchases` | Cada linea expone marca formal; falta recepcion real, pedido asociado y unidad estricta de compra. |
-| Ordenes de taller | Parcial | `GET /api/integrations/mch/service-orders` | Ya conserva VIN/chasis, motor, vehiculo, sucursal y revision programada. Faltan tipo de orden, historia de estados, quien paga, suma al total y tiempos reales. |
+| Ordenes de taller | Cumple | `GET /api/integrations/mch/service-orders` | Expone numero visible, empresa/NIT historicos, sucursal, marca/vehiculo, cliente, recepcion, promesa y salida, tipo/origen, historial, anulacion, factura, totales y lineas con pagador, impacto, servicio, revision, tecnico y tiempos. La normalizacion decimal/unidades se atiende transversalmente en el punto 5. |
 | Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, marca/modelo formal, motor, placa, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. |
 | Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Pendiente definir si los consumos descuentan inventario automaticamente. |
 | Garantias fabricante | No cumple | Entidad `Warranty` basica | Falta ciclo completo: deteccion, causa, pieza causante, autorizacion, radicacion, respuesta, facturacion y pago fabricante. |

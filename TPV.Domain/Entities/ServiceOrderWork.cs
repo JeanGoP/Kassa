@@ -11,7 +11,12 @@ namespace TPV.Domain.Entities
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public string Payer { get; set; } = "CLIENTE";
+        public bool AddsToCustomerTotal { get; set; } = true;
+        public string ServiceType { get; set; } = "CORRECTIVO";
+        public int? MaintenanceReviewMileage { get; set; }
         public string Status { get; set; }
     }
 }

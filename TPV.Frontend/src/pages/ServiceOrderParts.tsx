@@ -30,6 +30,14 @@ interface PartItem {
     discountValue: number;
     discountAmount: number;
     lineTotal: number;
+    lineType: 'REPUESTO' | 'INSUMO';
+    payer: 'CLIENTE' | 'FABRICA' | 'INTERNO';
+    addsToCustomerTotal: boolean;
+    serviceType: 'PREVENTIVO' | 'CORRECTIVO' | 'GARANTIA' | 'RETRABAJO';
+    maintenanceReviewMileage: string;
+    technician: string;
+    estimatedTimeHours: string;
+    actualTimeHours: string;
 }
 
 const ServiceOrderParts = () => {
@@ -129,7 +137,15 @@ const ServiceOrderParts = () => {
                 discountType: 'NONE',
                 discountValue: 0,
                 discountAmount: 0,
-                lineTotal: product.price
+                lineTotal: product.price,
+                lineType: 'REPUESTO',
+                payer: 'CLIENTE',
+                addsToCustomerTotal: true,
+                serviceType: 'CORRECTIVO',
+                maintenanceReviewMileage: '',
+                technician: '',
+                estimatedTimeHours: '',
+                actualTimeHours: ''
             };
 
             return [...prev, newItem];
@@ -206,12 +222,16 @@ const ServiceOrderParts = () => {
         setItems(prev => prev.filter((_, i) => i !== index));
     };
 
+    const updateItemMetadata = (index: number, changes: Partial<PartItem>) => {
+        setItems(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes } : item));
+    };
+
     const totalBeforeDiscount = items.reduce(
         (sum, item) => sum + item.unitPrice * item.quantity,
         0
     );
     const totalDiscount = items.reduce((sum, item) => sum + item.discountAmount, 0);
-    const totalAfterDiscount = items.reduce((sum, item) => sum + item.lineTotal, 0);
+    const totalAfterDiscount = items.filter(item => item.addsToCustomerTotal).reduce((sum, item) => sum + item.lineTotal, 0);
 
     const handleConfirmParts = () => {
         if (!selectedOrder) {
@@ -237,7 +257,15 @@ const ServiceOrderParts = () => {
                     productId: i.productId,
                     quantity: i.quantity,
                     discountType: i.discountType,
-                    discountValue: i.discountValue
+                    discountValue: i.discountValue,
+                    lineType: i.lineType,
+                    payer: i.payer,
+                    addsToCustomerTotal: i.addsToCustomerTotal,
+                    serviceType: i.serviceType,
+                    maintenanceReviewMileage: i.maintenanceReviewMileage ? Number(i.maintenanceReviewMileage) : null,
+                    technician: i.technician || null,
+                    estimatedTimeHours: i.estimatedTimeHours ? Number(i.estimatedTimeHours) : null,
+                    actualTimeHours: i.actualTimeHours ? Number(i.actualTimeHours) : null
                 }))
             };
 
@@ -539,6 +567,21 @@ const ServiceOrderParts = () => {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {items.length > 0 && <div className="space-y-3 border-t border-slate-200 pt-4">
+                                <h3 className="text-xs font-bold uppercase text-slate-600">DATOS MCH POR LÍNEA</h3>
+                                {items.map((item, index) => <div key={`metadata-${item.productId}-${index}`} className="grid gap-3 border-b border-slate-100 pb-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div className="sm:col-span-2 lg:col-span-4 text-sm font-semibold text-slate-800">{item.sku} · {item.productName}</div>
+                                    <label className="text-xs font-semibold text-slate-600">TIPO DE LÍNEA<select value={item.lineType} onChange={e => updateItemMetadata(index, { lineType: e.target.value as PartItem['lineType'] })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2"><option value="REPUESTO">REPUESTO</option><option value="INSUMO">INSUMO</option></select></label>
+                                    <label className="text-xs font-semibold text-slate-600">QUIÉN PAGA<select value={item.payer} onChange={e => updateItemMetadata(index, { payer: e.target.value as PartItem['payer'] })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2"><option value="CLIENTE">CLIENTE</option><option value="FABRICA">FÁBRICA</option><option value="INTERNO">INTERNO</option></select></label>
+                                    <label className="text-xs font-semibold text-slate-600">TIPO DE SERVICIO<select value={item.serviceType} onChange={e => updateItemMetadata(index, { serviceType: e.target.value as PartItem['serviceType'], maintenanceReviewMileage: e.target.value === 'PREVENTIVO' ? item.maintenanceReviewMileage : '' })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2"><option value="PREVENTIVO">PREVENTIVO</option><option value="CORRECTIVO">CORRECTIVO</option><option value="GARANTIA">GARANTÍA</option><option value="RETRABAJO">RETRABAJO</option></select></label>
+                                    <label className="text-xs font-semibold text-slate-600">REVISIÓN (KM)<input type="number" min="1" required={item.serviceType === 'PREVENTIVO'} disabled={item.serviceType !== 'PREVENTIVO'} value={item.maintenanceReviewMileage} onChange={e => updateItemMetadata(index, { maintenanceReviewMileage: e.target.value })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2 disabled:bg-slate-100" /></label>
+                                    <label className="text-xs font-semibold text-slate-600">TÉCNICO<input value={item.technician} onChange={e => updateItemMetadata(index, { technician: e.target.value })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2" /></label>
+                                    <label className="text-xs font-semibold text-slate-600">TIEMPO ESTIMADO<input type="number" min="0" step="0.25" value={item.estimatedTimeHours} onChange={e => updateItemMetadata(index, { estimatedTimeHours: e.target.value })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2" /></label>
+                                    <label className="text-xs font-semibold text-slate-600">TIEMPO REAL<input type="number" min="0" step="0.25" value={item.actualTimeHours} onChange={e => updateItemMetadata(index, { actualTimeHours: e.target.value })} className="mt-1 w-full rounded border border-slate-300 px-2 py-2" /></label>
+                                    <label className="flex items-center gap-2 self-end pb-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={item.addsToCustomerTotal} onChange={e => updateItemMetadata(index, { addsToCustomerTotal: e.target.checked })} className="h-5 w-5 rounded text-blue-600" /> SUMA A FACTURA</label>
+                                </div>)}
+                            </div>}
 
                             <div className="flex flex-col md:flex-row md:justify-end gap-4 mt-4">
                                 <div className="md:text-right text-sm space-y-1">

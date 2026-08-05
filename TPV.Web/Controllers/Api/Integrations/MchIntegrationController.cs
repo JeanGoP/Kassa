@@ -544,13 +544,22 @@ namespace TPV.Web.Controllers.Api.Integrations
                     .Where(p => orderIds.Contains(p.ServiceOrderId))
                     .ToListAsync();
 
+                var statusHistory = await _dbContext.ServiceOrderStatusHistories
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(h => orderIds.Contains(h.ServiceOrderId))
+                    .OrderBy(h => h.ChangedAt)
+                    .ToListAsync();
+
                 return orders.Select(o => new MchServiceOrderDto
                 {
                     Id = o.Id,
                     CompanyId = o.TenantId,
+                    CompanyName = o.CompanyName,
+                    CompanyNit = o.CompanyNit,
                     BranchId = o.BranchId ?? o.Sale?.BranchId,
                     BranchName = o.Branch?.Name ?? o.Sale?.Branch?.Name,
-                    Number = o.Id.ToString(),
+                    Number = o.OrderNumber,
                     VehicleId = o.VehicleId,
                     ChassisNumber = o.ChassisNumber,
                     EngineNumber = o.EngineNumber,
@@ -563,12 +572,24 @@ namespace TPV.Web.Controllers.Api.Integrations
                     Mileage = o.Mileage,
                     MaintenanceReviewMileage = o.MaintenanceReviewMileage,
                     IntakeDateTime = o.IntakeDateTime,
+                    PromisedDeliveryDateTime = o.PromisedDeliveryDateTime,
                     ExitDateTime = o.ExitDateTime,
+                    OrderType = o.OrderType,
+                    Origin = o.Origin,
+                    ReceivedByUserId = o.ReceivedByUserId,
+                    ReceivedByName = o.ReceivedByName,
                     CustomerId = o.CustomerId,
+                    CustomerIdentification = o.Customer?.TaxId,
                     CustomerName = o.Customer != null ? $"{o.Customer.FirstName} {o.Customer.LastName}".Trim() : null,
+                    CustomerPhone = o.Customer?.Phone,
+                    CustomerEmail = o.Customer?.Email,
                     Technician = o.Technician,
                     WorkshopManager = o.WorkshopManager,
                     Status = o.Status,
+                    CancelledAt = o.CancelledAt,
+                    CancellationReason = o.CancellationReason,
+                    CancelledByUserId = o.CancelledByUserId,
+                    CancelledByName = o.CancelledByName,
                     FuelLevel = o.FuelLevel,
                     InitialObservations = o.InitialObservations,
                     VisualCondition = o.VisualCondition,
@@ -576,6 +597,11 @@ namespace TPV.Web.Controllers.Api.Integrations
                     CloseType = o.CloseType,
                     CloseReason = o.CloseReason,
                     LaborCost = o.LaborCost,
+                    LaborTotal = works.Where(w => w.ServiceOrderId == o.Id).Sum(w => w.LaborCost),
+                    PartsTotal = parts.Where(p => p.ServiceOrderId == o.Id && p.LineType == "REPUESTO").Sum(p => p.SubTotal),
+                    ConsumablesTotal = parts.Where(p => p.ServiceOrderId == o.Id && p.LineType == "INSUMO").Sum(p => p.SubTotal),
+                    CustomerInvoiceTotal = works.Where(w => w.ServiceOrderId == o.Id && w.AddsToCustomerTotal).Sum(w => w.LaborCost)
+                        + parts.Where(p => p.ServiceOrderId == o.Id && p.AddsToCustomerTotal).Sum(p => p.SubTotal),
                     InvoiceNumber = o.Sale?.InvoiceNumber,
                     InvoiceDate = o.Sale?.Date,
                     CreatedAt = o.CreatedAt,
@@ -589,7 +615,12 @@ namespace TPV.Web.Controllers.Api.Integrations
                             Description = w.Description,
                             Technician = w.Technician,
                             EstimatedTimeHours = w.EstimatedTimeHours,
+                            ActualTimeHours = w.ActualTimeHours,
                             LaborCost = w.LaborCost,
+                            Payer = w.Payer,
+                            AddsToCustomerTotal = w.AddsToCustomerTotal,
+                            ServiceType = w.ServiceType,
+                            MaintenanceReviewMileage = w.MaintenanceReviewMileage,
                             Status = w.Status
                         })
                         .ToList(),
@@ -603,11 +634,31 @@ namespace TPV.Web.Controllers.Api.Integrations
                             Description = p.Product?.Name,
                             Quantity = p.Quantity,
                             Unit = p.Product?.UnitOfMeasure,
+                            LineType = p.LineType,
+                            Payer = p.Payer,
+                            AddsToCustomerTotal = p.AddsToCustomerTotal,
+                            ServiceType = p.ServiceType,
+                            MaintenanceReviewMileage = p.MaintenanceReviewMileage,
+                            Technician = p.Technician,
+                            EstimatedTimeHours = p.EstimatedTimeHours,
+                            ActualTimeHours = p.ActualTimeHours,
                             UnitPrice = p.UnitPrice,
                             DiscountType = p.DiscountType,
                             DiscountValue = p.DiscountValue,
                             DiscountAmount = p.DiscountAmount,
                             SubTotal = p.SubTotal
+                        })
+                        .ToList(),
+                    StatusHistory = statusHistory
+                        .Where(h => h.ServiceOrderId == o.Id)
+                        .Select(h => new MchServiceOrderStatusHistoryDto
+                        {
+                            Id = h.Id,
+                            Status = h.Status,
+                            ChangedAt = h.ChangedAt,
+                            ChangedByUserId = h.ChangedByUserId,
+                            ChangedByName = h.ChangedByName,
+                            Notes = h.Notes
                         })
                         .ToList()
                 }).ToList();
@@ -1342,6 +1393,8 @@ namespace TPV.Web.Controllers.Api.Integrations
     {
         public int Id { get; set; }
         public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string? CompanyNit { get; set; }
         public int? BranchId { get; set; }
         public string? BranchName { get; set; }
         public string Number { get; set; } = string.Empty;
@@ -1357,12 +1410,24 @@ namespace TPV.Web.Controllers.Api.Integrations
         public decimal Mileage { get; set; }
         public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
+        public DateTime? PromisedDeliveryDateTime { get; set; }
         public DateTime? ExitDateTime { get; set; }
+        public string OrderType { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string? ReceivedByUserId { get; set; }
+        public string? ReceivedByName { get; set; }
         public int CustomerId { get; set; }
+        public string? CustomerIdentification { get; set; }
         public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
+        public string? CustomerEmail { get; set; }
         public string Technician { get; set; } = string.Empty;
         public string? WorkshopManager { get; set; }
         public string Status { get; set; } = string.Empty;
+        public DateTime? CancelledAt { get; set; }
+        public string? CancellationReason { get; set; }
+        public string? CancelledByUserId { get; set; }
+        public string? CancelledByName { get; set; }
         public string FuelLevel { get; set; } = string.Empty;
         public string InitialObservations { get; set; } = string.Empty;
         public string VisualCondition { get; set; } = string.Empty;
@@ -1370,12 +1435,17 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? CloseType { get; set; }
         public string? CloseReason { get; set; }
         public decimal LaborCost { get; set; }
+        public decimal LaborTotal { get; set; }
+        public decimal PartsTotal { get; set; }
+        public decimal ConsumablesTotal { get; set; }
+        public decimal CustomerInvoiceTotal { get; set; }
         public string? InvoiceNumber { get; set; }
         public DateTime? InvoiceDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
         public List<MchServiceOrderWorkDto> Works { get; set; } = new();
         public List<MchServiceOrderPartDto> Parts { get; set; } = new();
+        public List<MchServiceOrderStatusHistoryDto> StatusHistory { get; set; } = new();
     }
 
     public class MchServiceOrderWorkDto
@@ -1385,7 +1455,12 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string Description { get; set; } = string.Empty;
         public string Technician { get; set; } = string.Empty;
         public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public string Payer { get; set; } = string.Empty;
+        public bool AddsToCustomerTotal { get; set; }
+        public string ServiceType { get; set; } = string.Empty;
+        public int? MaintenanceReviewMileage { get; set; }
         public string Status { get; set; } = string.Empty;
     }
 
@@ -1397,11 +1472,29 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? Description { get; set; }
         public decimal Quantity { get; set; }
         public string? Unit { get; set; }
+        public string LineType { get; set; } = string.Empty;
+        public string Payer { get; set; } = string.Empty;
+        public bool AddsToCustomerTotal { get; set; }
+        public string ServiceType { get; set; } = string.Empty;
+        public int? MaintenanceReviewMileage { get; set; }
+        public string? Technician { get; set; }
+        public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal UnitPrice { get; set; }
         public string DiscountType { get; set; } = string.Empty;
         public decimal DiscountValue { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal SubTotal { get; set; }
+    }
+
+    public class MchServiceOrderStatusHistoryDto
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime ChangedAt { get; set; }
+        public string? ChangedByUserId { get; set; }
+        public string? ChangedByName { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class MchVehicleDto

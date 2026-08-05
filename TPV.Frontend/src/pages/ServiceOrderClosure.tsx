@@ -36,6 +36,8 @@ const ServiceOrderClosure = () => {
     const [closeType, setCloseType] = useState('NORMAL');
     const [closeReason, setCloseReason] = useState('');
     const [specialCloseSupervisorName, setSpecialCloseSupervisorName] = useState('');
+    const [cancellationReason, setCancellationReason] = useState('');
+    const [cancelling, setCancelling] = useState(false);
 
     const [submitting, setSubmitting] = useState(false);
     const [laborCost, setLaborCost] = useState('');
@@ -69,11 +71,6 @@ const ServiceOrderClosure = () => {
     };
 
     const handleSelectOrder = async (order: any) => {
-        if (order.status === 'CERRADA') {
-            alert('Esta orden ya se encuentra cerrada y facturada.');
-            return;
-        }
-        setSelectedOrder(order);
         setAllServicesCompleted(false);
         setMaterialsProcessed(false);
         setNoPendingTechnicalNotes(false);
@@ -82,10 +79,13 @@ const ServiceOrderClosure = () => {
         setCloseType('NORMAL');
         setCloseReason('');
         setSpecialCloseSupervisorName('');
+        setCancellationReason('');
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         setExitDateTime(now.toISOString().slice(0, 16));
         try {
+            const detailResponse = await api.get(`/ServiceOrders/${order.id}`);
+            setSelectedOrder(detailResponse.data);
             const worksResponse = await api.get(`/ServiceOrders/${order.id}/works`);
             const works = worksResponse.data || [];
             const totalLabor = works
@@ -93,7 +93,34 @@ const ServiceOrderClosure = () => {
                 .reduce((sum: number, w: any) => sum + (w.laborCost || 0), 0);
             setLaborCost(totalLabor > 0 ? totalLabor.toFixed(2) : '0');
         } catch {
+            setSelectedOrder(order);
             setLaborCost('0');
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        if (!selectedOrder || !cancellationReason.trim()) {
+            alert('Debe ingresar el motivo de anulacion.');
+            return;
+        }
+
+        if (!window.confirm('¿Confirma la anulacion de esta orden de taller?')) return;
+
+        setCancelling(true);
+        try {
+            const response = await api.put(`/ServiceOrders/${selectedOrder.id}/cancel`, {
+                reason: cancellationReason.trim()
+            });
+            setSelectedOrder(response.data);
+            setOrderResults(prev => prev.map(o => o.id === response.data.id ? response.data : o));
+            alert('Orden anulada correctamente.');
+        } catch (error: any) {
+            const backendMessage = typeof error.response?.data === 'string'
+                ? error.response.data
+                : error.response?.data?.message || '';
+            alert('Error al anular la orden. ' + backendMessage);
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -552,24 +579,48 @@ const ServiceOrderClosure = () => {
                 <form onSubmit={handleSubmit} className="space-y-6 border-t pt-6">
                     
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
-                        <h3 className="font-semibold text-slate-800 mb-2">Orden #{selectedOrder.id} - {selectedOrder.customerName}</h3>
+                        <h3 className="font-semibold text-slate-800 mb-2">ORDEN {selectedOrder.orderNumber || `#${selectedOrder.id}`} - {selectedOrder.customerName}</h3>
                         <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 md:grid-cols-4">
                             <div>
-                                <span className="text-gray-500 block">Placa</span>
+                                <span className="text-gray-500 block">PLACA</span>
                                 <span className="font-medium">{selectedOrder.plate}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block">Estado Actual</span>
+                                <span className="text-gray-500 block">ESTADO ACTUAL</span>
                                 <span className="font-medium">{selectedOrder.status}</span>
                             </div>
                             <div>
-                                <span className="text-gray-500 block">Fecha Ingreso</span>
+                                <span className="text-gray-500 block">FECHA DE INGRESO</span>
                                 <span className="font-medium">{new Date(selectedOrder.intakeDateTime).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
 
-                    {selectedOrder.status === 'CERRADA' ? (
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">HISTORIAL DE ESTADOS</div>
+                        <div className="divide-y divide-slate-100">
+                            {(selectedOrder.statusHistory || []).length === 0 ? (
+                                <div className="px-4 py-3 text-sm text-slate-500">SIN MOVIMIENTOS REGISTRADOS</div>
+                            ) : selectedOrder.statusHistory.map((history: any) => (
+                                <div key={history.id} className="grid gap-1 px-4 py-3 text-sm md:grid-cols-4">
+                                    <span className="font-semibold text-slate-800">{history.status}</span>
+                                    <span className="text-slate-600">{new Date(history.changedAt).toLocaleString()}</span>
+                                    <span className="text-slate-600">{history.changedByName || 'SISTEMA'}</span>
+                                    <span className="text-slate-500">{history.notes || '-'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {selectedOrder.status === 'CANCELADA' || selectedOrder.status === 'ANULADA' ? (
+                        <div className="p-5 bg-red-50 border border-red-200 rounded-lg">
+                            <h3 className="font-semibold text-red-800">ORDEN ANULADA</h3>
+                            <p className="mt-2 text-sm text-red-700">MOTIVO: {selectedOrder.cancellationReason}</p>
+                            <p className="mt-1 text-sm text-red-700">
+                                FECHA: {selectedOrder.cancelledAt ? new Date(selectedOrder.cancelledAt).toLocaleString() : '-'} | RESPONSABLE: {selectedOrder.cancelledByName || '-'}
+                            </p>
+                        </div>
+                    ) : selectedOrder.status === 'CERRADA' ? (
                         <div className="p-6 bg-green-50 border border-green-200 rounded-lg text-center">
                             <h3 className="text-lg font-semibold text-green-800 mb-2">Orden Cerrada y Facturada</h3>
                             <p className="text-green-700">
@@ -631,6 +682,29 @@ const ServiceOrderClosure = () => {
                         </div>
                     ) : (
                         <>
+                            <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
+                                <h3 className="font-semibold text-red-900">ANULACION DE LA ORDEN</h3>
+                                <div className="mt-3 flex flex-col gap-3 md:flex-row">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-red-800 mb-1">MOTIVO DE ANULACION</label>
+                                        <input
+                                            type="text"
+                                            value={cancellationReason}
+                                            onChange={(e) => setCancellationReason(e.target.value)}
+                                            className="w-full border border-red-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-red-500"
+                                            placeholder="Motivo obligatorio"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelOrder}
+                                        disabled={cancelling || !cancellationReason.trim()}
+                                        className="self-end px-4 py-2 rounded-lg bg-red-700 text-white font-semibold hover:bg-red-800 disabled:opacity-50"
+                                    >
+                                        {cancelling ? 'ANULANDO...' : 'ANULAR ORDEN'}
+                                    </button>
+                                </div>
+                            </div>
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                                     <span>📋</span> Checklist Obligatorio

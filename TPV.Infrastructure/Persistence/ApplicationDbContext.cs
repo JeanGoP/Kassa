@@ -39,6 +39,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
         public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
+        public DbSet<ServiceOrderStatusHistory> ServiceOrderStatusHistories { get; set; }
         public DbSet<Technician> Technicians { get; set; }
         public DbSet<WorkshopManager> WorkshopManagers { get; set; }
         public DbSet<Warranty> Warranties { get; set; }
@@ -647,6 +648,30 @@ namespace TPV.Infrastructure.Persistence
                 .HasColumnType("decimal(18,2)");
 
             builder.Entity<ServiceOrder>()
+                .HasIndex(so => new { so.TenantId, so.OrderNumber })
+                .IsUnique();
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.CompanyName)
+                .HasMaxLength(200);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.CompanyNit)
+                .HasMaxLength(50);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.OrderNumber)
+                .HasMaxLength(40);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.OrderType)
+                .HasMaxLength(40);
+
+            builder.Entity<ServiceOrder>()
+                .Property(so => so.Origin)
+                .HasMaxLength(30);
+
+            builder.Entity<ServiceOrder>()
                 .Property(so => so.ChassisNumber)
                 .HasMaxLength(17);
 
@@ -680,6 +705,9 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<ServiceOrderWork>()
                 .Property(w => w.EstimatedTimeHours)
                 .HasColumnType("decimal(9,2)");
+            builder.Entity<ServiceOrderWork>()
+                .Property(w => w.ActualTimeHours)
+                .HasColumnType("decimal(9,2)");
 
             builder.Entity<ServiceOrderPart>()
                 .Property(p => p.UnitPrice)
@@ -696,6 +724,21 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<ServiceOrderPart>()
                 .Property(p => p.SubTotal)
                 .HasColumnType("decimal(18,2)");
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.EstimatedTimeHours)
+                .HasColumnType("decimal(9,2)");
+            builder.Entity<ServiceOrderPart>()
+                .Property(p => p.ActualTimeHours)
+                .HasColumnType("decimal(9,2)");
+
+            builder.Entity<ServiceOrderStatusHistory>()
+                .HasOne(h => h.ServiceOrder)
+                .WithMany(o => o.StatusHistory)
+                .HasForeignKey(h => h.ServiceOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ServiceOrderStatusHistory>()
+                .HasIndex(h => new { h.TenantId, h.ServiceOrderId, h.ChangedAt });
 
             // Relaciones obligatorias
             builder.Entity<Product>()

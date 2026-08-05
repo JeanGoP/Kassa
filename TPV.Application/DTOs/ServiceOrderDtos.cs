@@ -6,6 +6,9 @@ namespace TPV.Application.DTOs
     public class ServiceOrderDto
     {
         public int Id { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string? CompanyNit { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
         public int? BranchId { get; set; }
         public int CustomerId { get; set; }
         public string CustomerName { get; set; }
@@ -21,6 +24,11 @@ namespace TPV.Application.DTOs
         public decimal Mileage { get; set; }
         public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
+        public DateTime? PromisedDeliveryDateTime { get; set; }
+        public string OrderType { get; set; } = string.Empty;
+        public string Origin { get; set; } = string.Empty;
+        public string? ReceivedByUserId { get; set; }
+        public string? ReceivedByName { get; set; }
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
@@ -29,11 +37,16 @@ namespace TPV.Application.DTOs
         public string Technician { get; set; }
         public string? WorkshopManager { get; set; }
         public string Status { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public string? CancellationReason { get; set; }
+        public string? CancelledByUserId { get; set; }
+        public string? CancelledByName { get; set; }
         public DateTime? ExitDateTime { get; set; }
         public string? DeliveryNotes { get; set; }
         public string? CloseType { get; set; }
         public string? CloseReason { get; set; }
         public string? CustomerSignatureName { get; set; }
+        public List<ServiceOrderStatusHistoryDto> StatusHistory { get; set; } = new();
     }
 
     public class CreateServiceOrderDto
@@ -50,6 +63,9 @@ namespace TPV.Application.DTOs
         public decimal Mileage { get; set; }
         public int? MaintenanceReviewMileage { get; set; }
         public DateTime IntakeDateTime { get; set; }
+        public DateTime? PromisedDeliveryDateTime { get; set; }
+        public string OrderType { get; set; } = "REPARACION";
+        public string Origin { get; set; } = "TALLER";
         public string FuelLevel { get; set; }
         public string InitialObservations { get; set; }
         public string VisualCondition { get; set; }
@@ -75,7 +91,12 @@ namespace TPV.Application.DTOs
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public string Payer { get; set; } = string.Empty;
+        public bool AddsToCustomerTotal { get; set; }
+        public string ServiceType { get; set; } = string.Empty;
+        public int? MaintenanceReviewMileage { get; set; }
         public string Status { get; set; }
     }
 
@@ -85,7 +106,12 @@ namespace TPV.Application.DTOs
         public string Description { get; set; }
         public string Technician { get; set; }
         public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public string Payer { get; set; } = "CLIENTE";
+        public bool AddsToCustomerTotal { get; set; } = true;
+        public string ServiceType { get; set; } = "CORRECTIVO";
+        public int? MaintenanceReviewMileage { get; set; }
         public string Status { get; set; }
     }
 
@@ -115,6 +141,14 @@ namespace TPV.Application.DTOs
         public string ProductName { get; set; }
         public string SKU { get; set; }
         public int Quantity { get; set; }
+        public string LineType { get; set; } = string.Empty;
+        public string Payer { get; set; } = string.Empty;
+        public bool AddsToCustomerTotal { get; set; }
+        public string ServiceType { get; set; } = string.Empty;
+        public int? MaintenanceReviewMileage { get; set; }
+        public string? Technician { get; set; }
+        public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public decimal UnitPrice { get; set; }
         public string DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
@@ -126,6 +160,14 @@ namespace TPV.Application.DTOs
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; }
+        public string LineType { get; set; } = "REPUESTO";
+        public string Payer { get; set; } = "CLIENTE";
+        public bool AddsToCustomerTotal { get; set; } = true;
+        public string ServiceType { get; set; } = "CORRECTIVO";
+        public int? MaintenanceReviewMileage { get; set; }
+        public string? Technician { get; set; }
+        public decimal? EstimatedTimeHours { get; set; }
+        public decimal? ActualTimeHours { get; set; }
         public string DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
     }
@@ -148,5 +190,20 @@ namespace TPV.Application.DTOs
     {
         public decimal LaborCost { get; set; }
         public string PaymentMethod { get; set; }
+    }
+
+    public class CancelServiceOrderDto
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    public class ServiceOrderStatusHistoryDto
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime ChangedAt { get; set; }
+        public string? ChangedByUserId { get; set; }
+        public string? ChangedByName { get; set; }
+        public string? Notes { get; set; }
     }
 }

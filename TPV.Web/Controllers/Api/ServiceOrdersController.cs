@@ -55,7 +55,9 @@ namespace TPV.Web.Controllers.Api
         [HttpPut("{id}/diagnosis")]
         public async Task<ActionResult<ServiceOrderDto>> SetDiagnosis(int id, ServiceOrderDiagnosisDto dto)
         {
-            var result = await _service.SetDiagnosisAsync(id, dto);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var result = await _service.SetDiagnosisAsync(id, dto, userId);
             if (result == null) return NotFound();
             return Ok(result);
         }
@@ -127,9 +129,27 @@ namespace TPV.Web.Controllers.Api
         [HttpPut("{id}/close")]
         public async Task<ActionResult<ServiceOrderDto>> CloseOrder(int id, CloseServiceOrderDto dto)
         {
-            var result = await _service.CloseOrderAsync(id, dto);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var result = await _service.CloseOrderAsync(id, dto, userId);
             if (result == null) return BadRequest("No se pudo cerrar la orden. Verifique el estado y el checklist.");
             return Ok(result);
+        }
+
+        [HttpPut("{id}/cancel")]
+        public async Task<ActionResult<ServiceOrderDto>> CancelOrder(int id, CancelServiceOrderDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            try
+            {
+                var result = await _service.CancelOrderAsync(id, dto, userId);
+                return result == null ? NotFound() : Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("{id}/invoice")]
