@@ -182,6 +182,9 @@ const ServiceOrders = () => {
 
     const [serviceCatalog, setServiceCatalog] = useState<MotorcycleService[]>([]);
     const [serviceSearch, setServiceSearch] = useState('');
+    const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+    const [serviceOptionsOpen, setServiceOptionsOpen] = useState(false);
+    const [serviceCatalogError, setServiceCatalogError] = useState('');
     const [workTechnician, setWorkTechnician] = useState('');
     const [workEstimatedHours, setWorkEstimatedHours] = useState('');
     const [workReviewMileage, setWorkReviewMileage] = useState('');
@@ -241,8 +244,14 @@ const ServiceOrders = () => {
 
     useEffect(() => {
         api.get('/MotorcycleServices')
-            .then(response => setServiceCatalog(response.data || []))
-            .catch(() => setServiceCatalog([]));
+            .then(response => {
+                setServiceCatalog(response.data || []);
+                setServiceCatalogError('');
+            })
+            .catch(() => {
+                setServiceCatalog([]);
+                setServiceCatalogError('No se pudo cargar el catálogo de servicios.');
+            });
     }, []);
 
     useEffect(() => {
@@ -269,15 +278,16 @@ const ServiceOrders = () => {
 
     const filteredServices = useMemo(() => {
         const term = serviceSearch.trim().toLocaleLowerCase();
-        if (term.length < 2) return [];
         return serviceCatalog
-            .filter(service => `${service.name} ${service.description || ''}`.toLocaleLowerCase().includes(term))
+            .filter(service => selectedServiceId !== null || !term || `${service.name} ${service.description || ''}`.toLocaleLowerCase().includes(term))
             .slice(0, 8);
-    }, [serviceCatalog, serviceSearch]);
+    }, [selectedServiceId, serviceCatalog, serviceSearch]);
 
     const selectService = (service: MotorcycleService) => {
+        setSelectedServiceId(service.id);
         setServiceSearch(service.name);
-        if (service.estimatedMinutes) setWorkEstimatedHours((service.estimatedMinutes / 60).toFixed(2));
+        setServiceOptionsOpen(false);
+        setWorkEstimatedHours(service.estimatedMinutes ? (service.estimatedMinutes / 60).toFixed(2) : '');
     };
 
     const saveDiagnosis = async (event: React.FormEvent) => {
@@ -304,6 +314,12 @@ const ServiceOrders = () => {
     const saveWork = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!workspace) return;
+        const selectedService = serviceCatalog.find(service => service.id === selectedServiceId);
+        if (!selectedService || selectedService.name !== serviceSearch) {
+            setServiceOptionsOpen(true);
+            await Swal.fire('Selecciona un servicio', 'El trabajo debe corresponder a un servicio activo del catálogo.', 'warning');
+            return;
+        }
         setSavingWork(true);
         try {
             await api.post(`/ServiceOrders/${workspace.order.id}/works`, {
@@ -319,6 +335,7 @@ const ServiceOrders = () => {
                 maintenanceReviewMileage: workType === 'PREVENTIVO' && workReviewMileage ? Number(workReviewMileage) : null,
                 status: 'PENDIENTE'
             });
+            setSelectedServiceId(null);
             setServiceSearch('');
             setWorkTechnician('');
             setWorkEstimatedHours('');
@@ -687,7 +704,59 @@ const ServiceOrders = () => {
                                             <form onSubmit={saveWork} className="space-y-4 border-b border-slate-200 pb-6">
                                                 <div><h3 className="text-lg font-extrabold text-slate-950">Trabajos y servicios</h3><p className="text-sm text-slate-500">Selecciona el servicio, asigna técnico, tiempo y valor.</p></div>
                                                 <fieldset disabled={!workspace.canEdit} className="grid gap-3 lg:grid-cols-12 disabled:opacity-70">
-                                                    <label className="relative space-y-1 lg:col-span-4"><span className="text-xs font-bold uppercase text-slate-600">Servicio</span><input required value={serviceSearch} onChange={event => setServiceSearch(event.target.value)} placeholder="Buscar servicio..." className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" />{filteredServices.length > 0 && <div className="absolute z-20 mt-1 w-full rounded-md border border-slate-200 bg-white p-1 shadow-xl">{filteredServices.map(service => <button type="button" key={service.id} onClick={() => selectService(service)} className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-blue-50"><span className="font-semibold">{service.name}</span>{service.estimatedMinutes ? <span className="ml-2 text-xs text-slate-500">{service.estimatedMinutes} min</span> : null}</button>)}</div>}</label>
+                                                    <div className="relative space-y-1 lg:col-span-4">
+                                                        <label htmlFor="service-order-work-service" className="block text-xs font-bold uppercase text-slate-600">Servicio del catálogo</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                id="service-order-work-service"
+                                                                required
+                                                                autoComplete="off"
+                                                                value={serviceSearch}
+                                                                onFocus={() => setServiceOptionsOpen(true)}
+                                                                onBlur={() => window.setTimeout(() => setServiceOptionsOpen(false), 150)}
+                                                                onChange={event => {
+                                                                    setServiceSearch(event.target.value);
+                                                                    setSelectedServiceId(null);
+                                                                    setServiceOptionsOpen(true);
+                                                                }}
+                                                                onKeyDown={event => {
+                                                                    if (event.key === 'Escape') setServiceOptionsOpen(false);
+                                                                    if (event.key === 'Enter' && serviceOptionsOpen && filteredServices.length > 0) {
+                                                                        event.preventDefault();
+                                                                        selectService(filteredServices[0]);
+                                                                    }
+                                                                }}
+                                                                placeholder="Buscar y seleccionar servicio..."
+                                                                className={`h-11 w-full rounded-lg border px-3 pr-10 text-sm outline-none focus:ring-2 ${selectedServiceId ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
+                                                            />
+                                                            {selectedServiceId && <Check size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600" />}
+                                                        </div>
+                                                        {serviceCatalogError && <span className="block text-xs font-semibold text-red-600">{serviceCatalogError}</span>}
+                                                        {serviceOptionsOpen && (
+                                                            <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-xl">
+                                                                {filteredServices.map(service => (
+                                                                    <button
+                                                                        type="button"
+                                                                        key={service.id}
+                                                                        onMouseDown={event => event.preventDefault()}
+                                                                        onClick={() => selectService(service)}
+                                                                        className="flex w-full items-start justify-between gap-3 rounded px-3 py-2 text-left text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                                                                    >
+                                                                        <span className="min-w-0">
+                                                                            <span className="block font-semibold text-slate-900">{service.name}</span>
+                                                                            {service.description && <span className="mt-0.5 block truncate text-xs text-slate-500">{service.description}</span>}
+                                                                        </span>
+                                                                        {service.estimatedMinutes ? <span className="shrink-0 text-xs font-semibold text-slate-500">{service.estimatedMinutes} min</span> : null}
+                                                                    </button>
+                                                                ))}
+                                                                {filteredServices.length === 0 && (
+                                                                    <div className="px-3 py-4 text-center text-sm text-slate-500">
+                                                                        {serviceCatalogError || 'No hay servicios del catálogo que coincidan.'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Técnico</span><input value={workTechnician} onChange={event => setWorkTechnician(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Tiempo estimado</span><input type="number" min="0" step="0.25" value={workEstimatedHours} onChange={event => setWorkEstimatedHours(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Valor</span><input type="number" min="0" value={workCost} onChange={event => setWorkCost(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
