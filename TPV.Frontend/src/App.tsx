@@ -26,11 +26,6 @@ import Branches from './pages/Branches';
 import ServiceOrders from './pages/ServiceOrders';
 import PreparationOrders from './pages/PreparationOrders';
 import Vehicles from './pages/Vehicles';
-import VehicleIntake from './pages/VehicleIntake';
-import ServiceOrderDiagnosis from './pages/ServiceOrderDiagnosis';
-import ServiceOrderWorks from './pages/ServiceOrderWorks';
-import ServiceOrderParts from './pages/ServiceOrderParts';
-import ServiceOrderClosure from './pages/ServiceOrderClosure';
 import Technicians from './pages/Technicians';
 import WorkshopManagers from './pages/WorkshopManagers';
 import Roles from './pages/Roles';
@@ -86,11 +81,11 @@ const AppRoutes = () => {
                 <Route path="preparation-orders" element={<PreparationOrders />} />
                 <Route path="vehicles" element={<Vehicles />} />
                 <Route path="service-orders/dashboard" element={<WorkshopDashboard />} />
-                <Route path="service-orders/ingreso-vehiculo" element={<VehicleIntake />} />
-                <Route path="service-orders/diagnostico" element={<ServiceOrderDiagnosis />} />
-                <Route path="service-orders/trabajos" element={<ServiceOrderWorks />} />
-                <Route path="service-orders/repuestos" element={<ServiceOrderParts />} />
-                <Route path="service-orders/cierre" element={<ServiceOrderClosure />} />
+                <Route path="service-orders/ingreso-vehiculo" element={<Navigate to="/service-orders" replace />} />
+                <Route path="service-orders/diagnostico" element={<Navigate to="/service-orders" replace />} />
+                <Route path="service-orders/trabajos" element={<Navigate to="/service-orders" replace />} />
+                <Route path="service-orders/repuestos" element={<Navigate to="/service-orders" replace />} />
+                <Route path="service-orders/cierre" element={<Navigate to="/service-orders" replace />} />
                 <Route path="warranties" element={<Warranties />} />
                 <Route path="cash" element={<Cash />} />
                 <Route path="branches" element={<Branches />} />

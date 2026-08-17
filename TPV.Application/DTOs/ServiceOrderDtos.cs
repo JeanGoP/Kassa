@@ -34,6 +34,13 @@ namespace TPV.Application.DTOs
         public string VisualCondition { get; set; }
         public List<string> VisualEvidenceImages { get; set; } = new List<string>();
         public string? IntakeCustomerSignatureDataUrl { get; set; }
+        public string? ProblemDescription { get; set; }
+        public string? TechnicalDiagnosis { get; set; }
+        public bool? CustomerApprovedDiagnosis { get; set; }
+        public DateTime? DiagnosisApprovalDate { get; set; }
+        public DateTime? DiagnosedAt { get; set; }
+        public string? DiagnosedByUserId { get; set; }
+        public string? DiagnosedByName { get; set; }
         public string Technician { get; set; }
         public string? WorkshopManager { get; set; }
         public string Status { get; set; }
@@ -118,6 +125,7 @@ namespace TPV.Application.DTOs
     public class ServiceOrderWorkStatusDto
     {
         public string Status { get; set; }
+        public decimal? ActualTimeHours { get; set; }
     }
 
     public class CloseServiceOrderDto
@@ -184,10 +192,27 @@ namespace TPV.Application.DTOs
     public class ServiceOrderPartsResultDto
     {
         public int ServiceOrderId { get; set; }
-        public int SaleId { get; set; }
-        public string InvoiceNumber { get; set; }
+        public int? SaleId { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public string DocumentNumber { get; set; } = string.Empty;
         public decimal Total { get; set; }
         public List<ServiceOrderPartDto> Parts { get; set; } = new List<ServiceOrderPartDto>();
+    }
+
+    public class ServiceOrderWorkspaceDto
+    {
+        public ServiceOrderDto Order { get; set; } = new();
+        public List<ServiceOrderWorkDto> Works { get; set; } = new();
+        public List<ServiceOrderPartDto> Parts { get; set; } = new();
+        public SaleResultDto? Invoice { get; set; }
+        public decimal BillableLaborTotal { get; set; }
+        public decimal BillablePartsTotal { get; set; }
+        public decimal EstimatedCustomerTotal { get; set; }
+        public bool HasDiagnosis { get; set; }
+        public bool AllWorksCompleted { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanClose { get; set; }
+        public bool CanInvoice { get; set; }
     }
 
     public class GenerateInvoiceDto

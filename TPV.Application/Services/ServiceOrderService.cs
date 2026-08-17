@@ -16,6 +16,7 @@ namespace TPV.Application.Services
         private static readonly string[] Payers = { "CLIENTE", "FABRICA", "INTERNO" };
         private static readonly string[] ServiceTypes = { "PREVENTIVO", "CORRECTIVO", "GARANTIA", "RETRABAJO" };
         private static readonly string[] PartLineTypes = { "REPUESTO", "INSUMO" };
+        private static readonly string[] WorkStatuses = { "PENDIENTE", "EN_PROCESO", "REALIZADO", "CANCELADO" };
         private readonly IRepository<ServiceOrder> _repository;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<ServiceOrderWork> _workRepository;
@@ -29,8 +30,11 @@ namespace TPV.Application.Services
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Tenant> _tenantRepository;
         private readonly IRepository<Stock> _stockRepository;
+        private readonly IRepository<UnitOfMeasure> _unitRepository;
         private readonly IUserService _userService;
         private readonly IVehicleService _vehicleService;
+        private readonly IStockService _stockService;
+        private readonly IApplicationTransaction _transaction;
 
         public ServiceOrderService(
             IRepository<ServiceOrder> repository,
@@ -46,8 +50,11 @@ namespace TPV.Application.Services
             IRepository<Branch> branchRepository,
             IRepository<Tenant> tenantRepository,
             IRepository<Stock> stockRepository,
+            IRepository<UnitOfMeasure> unitRepository,
             IUserService userService,
-            IVehicleService vehicleService)
+            IVehicleService vehicleService,
+            IStockService stockService,
+            IApplicationTransaction transaction)
         {
             _repository = repository;
             _customerRepository = customerRepository;
@@ -62,8 +69,11 @@ namespace TPV.Application.Services
             _branchRepository = branchRepository;
             _tenantRepository = tenantRepository;
             _stockRepository = stockRepository;
+            _unitRepository = unitRepository;
             _userService = userService;
             _vehicleService = vehicleService;
+            _stockService = stockService;
+            _transaction = transaction;
         }
 
         public async Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search)
@@ -187,6 +197,38 @@ namespace TPV.Application.Services
             return MapToDto(entity, entity.Customer);
         }
 
+        public async Task<ServiceOrderWorkspaceDto> GetWorkspaceAsync(int id)
+        {
+            var order = await GetByIdAsync(id);
+            if (order == null) return null;
+
+            var works = (await GetWorksByOrderAsync(id)).ToList();
+            var parts = (await GetPartsByOrderAsync(id)).ToList();
+            var linkedSale = (await _saleRepository.GetAsync(s => s.ServiceOrderId == id)).FirstOrDefault();
+            var invoice = linkedSale == null ? null : await _salesService.GetSaleAsync(linkedSale.Id);
+            var billableLabor = works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost);
+            var billableParts = parts.Where(p => p.AddsToCustomerTotal).Sum(p => p.SubTotal);
+            var closed = order.Status is "FINALIZADA" or "CERRADA" or "CANCELADA" or "ANULADA";
+            var allWorksCompleted = works.Count == 0 || works.All(w => w.Status == "REALIZADO");
+            var hasDiagnosis = !string.IsNullOrWhiteSpace(order.TechnicalDiagnosis);
+
+            return new ServiceOrderWorkspaceDto
+            {
+                Order = order,
+                Works = works,
+                Parts = parts,
+                Invoice = invoice,
+                BillableLaborTotal = billableLabor,
+                BillablePartsTotal = billableParts,
+                EstimatedCustomerTotal = billableLabor + billableParts,
+                HasDiagnosis = hasDiagnosis,
+                AllWorksCompleted = allWorksCompleted,
+                CanEdit = !closed,
+                CanClose = !closed && hasDiagnosis && allWorksCompleted,
+                CanInvoice = order.Status == "FINALIZADA" && invoice == null
+            };
+        }
+
         public async Task<ServiceOrderDto> SetDiagnosisAsync(int id, ServiceOrderDiagnosisDto dto, string userId)
         {
             var entity = await _repository.GetByIdAsync(id);
@@ -199,7 +241,19 @@ namespace TPV.Application.Services
 
             var previousStatus = entity.Status;
             entity.Status = "EN DIAGNOSTICO";
-            // TODO: Save diagnosis fields if they exist in entity
+            entity.ProblemDescription = Clean(dto.ProblemDescription);
+            entity.TechnicalDiagnosis = Clean(dto.TechnicalDiagnosis);
+            if (string.IsNullOrWhiteSpace(entity.ProblemDescription) || string.IsNullOrWhiteSpace(entity.TechnicalDiagnosis))
+            {
+                throw new InvalidOperationException("La descripcion del problema y el diagnostico tecnico son obligatorios.");
+            }
+            entity.CustomerApprovedDiagnosis = dto.CustomerApproved;
+            entity.DiagnosisApprovalDate = dto.CustomerApproved == true
+                ? dto.ApprovalDate ?? DateTime.Now
+                : dto.ApprovalDate;
+            entity.DiagnosedAt = DateTime.UtcNow;
+            entity.DiagnosedByUserId = userId;
+            entity.DiagnosedByName = await _userService.GetUserDisplayNameAsync(userId);
             
             await _repository.UpdateAsync(entity);
             await RecordStatusChangeAsync(entity, previousStatus, userId, "Diagnostico registrado");
@@ -235,14 +289,18 @@ namespace TPV.Application.Services
         {
             var order = await _repository.GetByIdAsync(serviceOrderId);
             if (order == null) return null;
+            EnsureOrderCanBeEdited(order);
             ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
+            var description = Clean(dto.Description)
+                ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
+            if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
 
             var entity = new ServiceOrderWork
             {
                 ServiceOrderId = serviceOrderId,
                 ProductId = dto.ProductId,
-                Description = dto.Description,
-                Technician = dto.Technician,
+                Description = description,
+                Technician = Clean(dto.Technician) ?? string.Empty,
                 EstimatedTimeHours = dto.EstimatedTimeHours,
                 ActualTimeHours = dto.ActualTimeHours,
                 LaborCost = dto.LaborCost,
@@ -250,7 +308,7 @@ namespace TPV.Application.Services
                 AddsToCustomerTotal = dto.AddsToCustomerTotal,
                 ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio"),
                 MaintenanceReviewMileage = dto.MaintenanceReviewMileage,
-                Status = dto.Status
+                Status = ValidateOption(dto.Status, WorkStatuses, "estado del trabajo")
             };
 
             await _workRepository.AddAsync(entity);
@@ -275,13 +333,19 @@ namespace TPV.Application.Services
 
         public async Task<ServiceOrderWorkDto> UpdateWorkAsync(int serviceOrderId, int workId, CreateServiceOrderWorkDto dto)
         {
+            var order = await _repository.GetByIdAsync(serviceOrderId);
+            if (order == null) return null;
+            EnsureOrderCanBeEdited(order);
             var entity = await _workRepository.GetByIdAsync(workId);
             if (entity == null || entity.ServiceOrderId != serviceOrderId) return null;
             ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
+            var description = Clean(dto.Description)
+                ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
+            if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
 
             entity.ProductId = dto.ProductId;
-            entity.Description = dto.Description;
-            entity.Technician = dto.Technician;
+            entity.Description = description;
+            entity.Technician = Clean(dto.Technician) ?? string.Empty;
             entity.EstimatedTimeHours = dto.EstimatedTimeHours;
             entity.ActualTimeHours = dto.ActualTimeHours;
             entity.LaborCost = dto.LaborCost;
@@ -289,7 +353,7 @@ namespace TPV.Application.Services
             entity.AddsToCustomerTotal = dto.AddsToCustomerTotal;
             entity.ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio");
             entity.MaintenanceReviewMileage = dto.MaintenanceReviewMileage;
-            entity.Status = dto.Status;
+            entity.Status = ValidateOption(dto.Status, WorkStatuses, "estado del trabajo");
 
             await _workRepository.UpdateAsync(entity);
 
@@ -313,10 +377,25 @@ namespace TPV.Application.Services
 
         public async Task<ServiceOrderWorkDto> UpdateWorkStatusAsync(int serviceOrderId, int workId, ServiceOrderWorkStatusDto dto)
         {
+            var order = await _repository.GetByIdAsync(serviceOrderId);
+            if (order == null) return null;
+            EnsureOrderCanBeEdited(order);
             var entity = await _workRepository.GetByIdAsync(workId);
             if (entity == null || entity.ServiceOrderId != serviceOrderId) return null;
 
-            entity.Status = dto.Status;
+            entity.Status = ValidateOption(dto.Status, WorkStatuses, "estado del trabajo");
+            if (entity.Status == "REALIZADO")
+            {
+                entity.ActualTimeHours = dto.ActualTimeHours ?? entity.ActualTimeHours ?? entity.EstimatedTimeHours;
+                if (!entity.ActualTimeHours.HasValue || entity.ActualTimeHours.Value <= 0)
+                    throw new InvalidOperationException("Registre el tiempo real para finalizar el trabajo.");
+            }
+            else if (dto.ActualTimeHours.HasValue)
+            {
+                if (dto.ActualTimeHours.Value < 0)
+                    throw new InvalidOperationException("El tiempo real no puede ser negativo.");
+                entity.ActualTimeHours = dto.ActualTimeHours;
+            }
             await _workRepository.UpdateAsync(entity);
 
             return new ServiceOrderWorkDto
@@ -372,128 +451,143 @@ namespace TPV.Application.Services
         {
             var order = await _repository.GetByIdAsync(serviceOrderId);
             if (order == null) return null;
-
+            if (order.Status is "FINALIZADA" or "CERRADA" or "CANCELADA" or "ANULADA")
+                throw new InvalidOperationException("No se pueden registrar consumos en una orden cerrada o anulada.");
+            if (!order.BranchId.HasValue)
+                throw new InvalidOperationException("La orden no tiene una sucursal asociada.");
+            if (!await _userService.IsUserInBranchAsync(userId, order.BranchId.Value))
+                throw new UnauthorizedAccessException("El usuario no tiene permiso para consumir inventario de esta sucursal.");
             if (dto.Items == null || dto.Items.Count == 0) return null;
             foreach (var item in dto.Items)
             {
                 ValidateLineData(item.Payer, item.ServiceType, item.MaintenanceReviewMileage, item.EstimatedTimeHours, item.ActualTimeHours);
                 ValidateOption(item.LineType, PartLineTypes, "tipo de linea");
+                if (item.Quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor que cero.");
             }
 
-            // Obtener la sucursal del usuario
-            var userBranchId = await _userService.GetUserBranchIdAsync(userId);
-            if (!userBranchId.HasValue)
+            return await _transaction.ExecuteAsync(async () =>
             {
-                throw new InvalidOperationException("El usuario no tiene una sucursal asignada para realizar la venta de repuestos.");
-            }
-
-            var saleCreate = new SaleCreateDto
-            {
-                BranchId = userBranchId.Value,
-                CustomerId = order.CustomerId,
-                PaymentMethod = "ORDEN_SERVICIO",
-                Items = dto.Items.Select(i => new SaleItemCreateDto
+                var createdParts = new List<(ServiceOrderPart Part, Product Product)>();
+                foreach (var requestItem in dto.Items)
                 {
-                    ProductId = i.ProductId,
-                    Quantity = i.Quantity,
-                    UnitOfMeasureId = i.UnitOfMeasureId,
-                    DiscountType = i.DiscountType,
-                    DiscountValue = i.DiscountValue
-                }).ToList()
-            };
+                    var product = (await _productRepository.GetAsync(
+                        p => p.Id == requestItem.ProductId,
+                        includeString: "UnitConversions")).FirstOrDefault()
+                        ?? throw new InvalidOperationException($"Producto {requestItem.ProductId} no encontrado.");
+                    if (product.TenantId != order.TenantId)
+                        throw new InvalidOperationException("El producto no pertenece a la empresa de la orden.");
 
-            var saleResult = await _salesService.CreateSaleAsync(saleCreate, userId);
+                    var unitId = requestItem.UnitOfMeasureId ?? product.SaleUnitId ?? product.BaseUnitId
+                        ?? throw new InvalidOperationException($"El producto '{product.Name}' no tiene unidad de salida configurada.");
+                    var unit = await _unitRepository.GetByIdAsync(unitId)
+                        ?? throw new InvalidOperationException("La unidad seleccionada no existe.");
+                    var factor = product.BaseUnitId == unitId
+                        ? 1m
+                        : product.UnitConversions.FirstOrDefault(c => c.UnitOfMeasureId == unitId)?.FactorToBase ?? 0m;
+                    if (factor <= 0)
+                        throw new InvalidOperationException($"No existe conversion de {unit.Code} a la unidad base de '{product.Name}'.");
+                    if (!product.AllowsFractionalQuantity && requestItem.Quantity != decimal.Truncate(requestItem.Quantity))
+                        throw new InvalidOperationException($"El producto '{product.Name}' no admite cantidades fraccionadas.");
 
-            var createdParts = new List<ServiceOrderPart>();
+                    var stock = (await _stockRepository.GetAsync(
+                        s => s.ProductId == product.Id && s.BranchId == order.BranchId.Value)).FirstOrDefault();
+                    var baseQuantity = requestItem.Quantity * factor;
+                    if (stock == null || stock.Quantity < baseQuantity)
+                        throw new InvalidOperationException($"Stock insuficiente para '{product.Name}'. Disponible: {stock?.Quantity ?? 0} en unidad base.");
 
-            for (var i = 0; i < saleResult.Items.Count && i < dto.Items.Count; i++)
-            {
-                var saleItem = saleResult.Items[i];
-                var requestItem = dto.Items[i];
+                    var unitPrice = product.Price;
+                    if (stock.Cost > 0 && (product.ProfitabilityPercentage ?? 0) > 0)
+                    {
+                        unitPrice = stock.Cost * factor * (1 + product.ProfitabilityPercentage.Value / 100m);
+                        if (product.PriceIncludesIva && product.IvaRate > 0)
+                            unitPrice *= 1 + product.IvaRate / 100m;
+                        unitPrice = decimal.Round(unitPrice, 2);
+                    }
 
-                var originalLineTotal = saleItem.UnitPrice * saleItem.Quantity;
-                decimal discountAmount;
+                    var discountType = string.IsNullOrWhiteSpace(requestItem.DiscountType)
+                        ? "NONE"
+                        : requestItem.DiscountType.Trim().ToUpperInvariant();
+                    if (discountType is not ("NONE" or "PERCENT" or "FIXED"))
+                        throw new InvalidOperationException("El tipo de descuento no es valido.");
+                    var listedAmount = unitPrice * requestItem.Quantity;
+                    var discountAmount = discountType == "PERCENT"
+                        ? decimal.Round(listedAmount * Math.Min(requestItem.DiscountValue, 100m) / 100m, 2)
+                        : discountType == "FIXED" ? Math.Min(requestItem.DiscountValue, listedAmount) : 0m;
 
-                if (requestItem.DiscountType == "PERCENT" && requestItem.DiscountValue > 0)
-                {
-                    discountAmount = decimal.Round(originalLineTotal * requestItem.DiscountValue / 100m, 2);
+                    var part = new ServiceOrderPart
+                    {
+                        ServiceOrderId = serviceOrderId,
+                        ProductId = product.Id,
+                        Quantity = requestItem.Quantity,
+                        UnitOfMeasureId = unit.Id,
+                        UnitCode = unit.Code,
+                        QuantityBase = baseQuantity,
+                        LineType = ValidateOption(requestItem.LineType, PartLineTypes, "tipo de linea"),
+                        Payer = ValidateOption(requestItem.Payer, Payers, "pagador"),
+                        AddsToCustomerTotal = requestItem.AddsToCustomerTotal,
+                        ServiceType = ValidateOption(requestItem.ServiceType, ServiceTypes, "tipo de servicio"),
+                        MaintenanceReviewMileage = requestItem.MaintenanceReviewMileage,
+                        Technician = Clean(requestItem.Technician),
+                        EstimatedTimeHours = requestItem.EstimatedTimeHours,
+                        ActualTimeHours = requestItem.ActualTimeHours,
+                        UnitPrice = unitPrice,
+                        DiscountType = discountType,
+                        DiscountValue = requestItem.DiscountValue,
+                        DiscountAmount = discountAmount,
+                        SubTotal = listedAmount - discountAmount
+                    };
+
+                    await _partRepository.AddAsync(part);
+                    await _stockService.ApplyMovementAsync(
+                        product.Id,
+                        order.BranchId.Value,
+                        requestItem.Quantity,
+                        unit.Id,
+                        false,
+                        "CONSUMO_TALLER",
+                        "ORDEN_SERVICIO",
+                        order.Id,
+                        order.OrderNumber,
+                        $"Consumo en orden {order.OrderNumber}",
+                        null,
+                        userId);
+                    createdParts.Add((part, product));
                 }
-                else if (requestItem.DiscountType == "FIXED" && requestItem.DiscountValue > 0)
-                {
-                    discountAmount = requestItem.DiscountValue;
-                }
-                else
-                {
-                    discountAmount = 0;
-                }
 
-                var finalSubTotal = originalLineTotal - discountAmount;
+                var partsDtos = createdParts.Select(row => new ServiceOrderPartDto
+                {
+                    Id = row.Part.Id,
+                    ServiceOrderId = row.Part.ServiceOrderId,
+                    ProductId = row.Part.ProductId,
+                    ProductName = row.Product.Name,
+                    SKU = row.Product.SKU,
+                    Quantity = row.Part.Quantity,
+                    UnitOfMeasureId = row.Part.UnitOfMeasureId,
+                    UnitCode = row.Part.UnitCode,
+                    QuantityBase = row.Part.QuantityBase,
+                    LineType = row.Part.LineType,
+                    Payer = row.Part.Payer,
+                    AddsToCustomerTotal = row.Part.AddsToCustomerTotal,
+                    ServiceType = row.Part.ServiceType,
+                    MaintenanceReviewMileage = row.Part.MaintenanceReviewMileage,
+                    Technician = row.Part.Technician,
+                    EstimatedTimeHours = row.Part.EstimatedTimeHours,
+                    ActualTimeHours = row.Part.ActualTimeHours,
+                    UnitPrice = row.Part.UnitPrice,
+                    DiscountType = row.Part.DiscountType,
+                    DiscountValue = row.Part.DiscountValue,
+                    DiscountAmount = row.Part.DiscountAmount,
+                    SubTotal = row.Part.SubTotal
+                }).ToList();
 
-                var part = new ServiceOrderPart
+                return new ServiceOrderPartsResultDto
                 {
                     ServiceOrderId = serviceOrderId,
-                    ProductId = saleItem.ProductId,
-                    Quantity = saleItem.Quantity,
-                    UnitOfMeasureId = saleItem.UnitOfMeasureId,
-                    UnitCode = saleItem.UnitCode,
-                    QuantityBase = saleItem.QuantityBase,
-                    LineType = ValidateOption(requestItem.LineType, PartLineTypes, "tipo de linea"),
-                    Payer = ValidateOption(requestItem.Payer, Payers, "pagador"),
-                    AddsToCustomerTotal = requestItem.AddsToCustomerTotal,
-                    ServiceType = ValidateOption(requestItem.ServiceType, ServiceTypes, "tipo de servicio"),
-                    MaintenanceReviewMileage = requestItem.MaintenanceReviewMileage,
-                    Technician = Clean(requestItem.Technician),
-                    EstimatedTimeHours = requestItem.EstimatedTimeHours,
-                    ActualTimeHours = requestItem.ActualTimeHours,
-                    UnitPrice = saleItem.UnitPrice,
-                    DiscountType = requestItem.DiscountType,
-                    DiscountValue = requestItem.DiscountValue,
-                    DiscountAmount = discountAmount,
-                    SubTotal = finalSubTotal
+                    DocumentNumber = order.OrderNumber,
+                    Total = partsDtos.Where(p => p.AddsToCustomerTotal).Sum(p => p.SubTotal),
+                    Parts = partsDtos
                 };
-
-                await _partRepository.AddAsync(part);
-                createdParts.Add(part);
-            }
-
-            var partsDtos = createdParts.Select(p => new ServiceOrderPartDto
-            {
-                Id = p.Id,
-                ServiceOrderId = p.ServiceOrderId,
-                ProductId = p.ProductId,
-                ProductName = string.Empty,
-                SKU = string.Empty,
-                Quantity = p.Quantity,
-                UnitOfMeasureId = p.UnitOfMeasureId,
-                UnitCode = p.UnitCode,
-                QuantityBase = p.QuantityBase,
-                LineType = p.LineType,
-                Payer = p.Payer,
-                AddsToCustomerTotal = p.AddsToCustomerTotal,
-                ServiceType = p.ServiceType,
-                MaintenanceReviewMileage = p.MaintenanceReviewMileage,
-                Technician = p.Technician,
-                EstimatedTimeHours = p.EstimatedTimeHours,
-                ActualTimeHours = p.ActualTimeHours,
-                UnitPrice = p.UnitPrice,
-                DiscountType = p.DiscountType,
-                DiscountValue = p.DiscountValue,
-                DiscountAmount = p.DiscountAmount,
-                SubTotal = p.SubTotal
-            }).ToList();
-
-            var total = partsDtos.Where(p => p.AddsToCustomerTotal).Sum(p => p.SubTotal);
-
-            var result = new ServiceOrderPartsResultDto
-            {
-                ServiceOrderId = serviceOrderId,
-                SaleId = saleResult.SaleId,
-                InvoiceNumber = saleResult.InvoiceNumber,
-                Total = total,
-                Parts = partsDtos
-            };
-
-            return result;
+            });
         }
 
         public async Task<ServiceOrderDto> CloseOrderAsync(int serviceOrderId, CloseServiceOrderDto dto, string userId)
@@ -510,6 +604,12 @@ namespace TPV.Application.Services
             {
                 return null;
             }
+
+            if (string.IsNullOrWhiteSpace(entity.TechnicalDiagnosis))
+                throw new InvalidOperationException("Debe registrar el diagnostico antes de finalizar la orden.");
+            var pendingWorks = await _workRepository.GetAsync(w => w.ServiceOrderId == serviceOrderId && w.Status != "REALIZADO");
+            if (pendingWorks.Any())
+                throw new InvalidOperationException("Todos los trabajos deben estar realizados antes del cierre.");
 
             if (dto.CloseType == "ESPECIAL" && string.IsNullOrWhiteSpace(dto.SpecialCloseSupervisorName))
             {
@@ -559,10 +659,21 @@ namespace TPV.Application.Services
 
         public async Task<SaleResultDto> GenerateInvoiceAsync(int serviceOrderId, GenerateInvoiceDto dto, string userId)
         {
+            return await _transaction.ExecuteAsync(() => GenerateInvoiceCoreAsync(serviceOrderId, dto, userId));
+        }
+
+        private async Task<SaleResultDto> GenerateInvoiceCoreAsync(int serviceOrderId, GenerateInvoiceDto dto, string userId)
+        {
             var serviceOrder = await _repository.GetByIdAsync(serviceOrderId);
             if (serviceOrder == null) throw new KeyNotFoundException($"Orden de servicio {serviceOrderId} no encontrada.");
             if (serviceOrder.Status == "CANCELADA" || serviceOrder.Status == "ANULADA")
                 throw new InvalidOperationException("Una orden cancelada no puede facturarse.");
+            if (serviceOrder.Status != "FINALIZADA" && serviceOrder.Status != "CERRADA")
+                throw new InvalidOperationException("La orden debe finalizarse antes de generar la factura.");
+            if (!serviceOrder.BranchId.HasValue)
+                throw new InvalidOperationException("La orden no tiene una sucursal asociada.");
+            if (!await _userService.IsUserInBranchAsync(userId, serviceOrder.BranchId.Value))
+                throw new UnauthorizedAccessException("El usuario no tiene permiso para facturar en esta sucursal.");
 
             // Check if already invoiced
             var existingSales = await _saleRepository.GetAsync(s => s.ServiceOrderId == serviceOrderId);
@@ -581,12 +692,13 @@ namespace TPV.Application.Services
             }
 
             // Find Labor Product
-            var laborProduct = (await _productRepository.GetAsync(p => p.SKU == "MANO_OBRA" || p.Name == "Mano de Obra")).FirstOrDefault();
+            var laborProduct = (await _productRepository.GetAsync(
+                p => p.TenantId == serviceOrder.TenantId && (p.SKU == "MANO_OBRA" || p.Name == "Mano de Obra"))).FirstOrDefault();
             if (laborProduct == null)
             {
                 // Create MANO_OBRA product if not exists
                 // 1. Find or create category
-                var categories = await _categoryRepository.GetAllAsync();
+                var categories = await _categoryRepository.GetAsync(c => c.TenantId == serviceOrder.TenantId);
                 var category = categories.FirstOrDefault(c => c.Name.Equals("Servicios", StringComparison.OrdinalIgnoreCase)) 
                             ?? categories.FirstOrDefault();
                 
@@ -617,13 +729,9 @@ namespace TPV.Application.Services
                 predicate: p => p.ServiceOrderId == serviceOrderId,
                 includeString: "Product.Brand,Product.Category,Product.Category.Parent,Product.Category.Parent.Parent");
             var works = await _workRepository.GetAsync(w => w.ServiceOrderId == serviceOrderId);
-            var billableLaborCost = works.Any()
-                ? works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost)
-                : dto.LaborCost;
+            var billableLaborCost = works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost);
 
-            // Find Branch
-            var branches = await _branchRepository.GetAsync(b => b.TenantId == serviceOrder.TenantId);
-            var branchId = branches.FirstOrDefault()?.Id ?? 1;
+            var branchId = serviceOrder.BranchId.Value;
 
             // Create Sale
             var sale = new Sale
@@ -697,6 +805,7 @@ namespace TPV.Application.Services
             }
 
             // Add Sale Detail (Labor)
+            if (billableLaborCost > 0)
             {
                 // Calculate Taxes for Labor
                 decimal taxRate = (laborProduct.IvaRate + laborProduct.ImpoconsumoRate) / 100m;
@@ -799,6 +908,13 @@ namespace TPV.Application.Services
                 VisualCondition = entity.VisualCondition,
                 VisualEvidenceImages = DeserializeVisualEvidenceImages(entity.VisualEvidenceImagesJson),
                 IntakeCustomerSignatureDataUrl = entity.IntakeCustomerSignatureDataUrl,
+                ProblemDescription = entity.ProblemDescription,
+                TechnicalDiagnosis = entity.TechnicalDiagnosis,
+                CustomerApprovedDiagnosis = entity.CustomerApprovedDiagnosis,
+                DiagnosisApprovalDate = entity.DiagnosisApprovalDate,
+                DiagnosedAt = entity.DiagnosedAt,
+                DiagnosedByUserId = entity.DiagnosedByUserId,
+                DiagnosedByName = entity.DiagnosedByName,
                 Technician = entity.Technician,
                 WorkshopManager = entity.WorkshopManager,
                 Status = entity.Status,
@@ -853,6 +969,12 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("La revision asociada debe ser mayor a cero.");
             if ((estimatedHours.HasValue && estimatedHours.Value < 0) || (actualHours.HasValue && actualHours.Value < 0))
                 throw new InvalidOperationException("Los tiempos estimado y real no pueden ser negativos.");
+        }
+
+        private static void EnsureOrderCanBeEdited(ServiceOrder order)
+        {
+            if (order.Status is "FINALIZADA" or "CERRADA" or "CANCELADA" or "ANULADA")
+                throw new InvalidOperationException("No se puede modificar una orden finalizada, cerrada o anulada.");
         }
 
         private static string ValidateOption(string? value, IEnumerable<string> allowed, string fieldName)

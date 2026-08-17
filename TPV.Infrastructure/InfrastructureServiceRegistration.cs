@@ -60,6 +60,7 @@ namespace TPV.Infrastructure
 
             services.AddScoped<ICurrentTenantService, CurrentTenantService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IApplicationTransaction, ApplicationTransaction>();
 
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

@@ -123,24 +123,28 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS y CIERRE Y FACTURA.
 
-1. VEHÍCULOS UIO: cree o actualice el vehículo, propietario e historial.
-2. INGRESO: reciba, documente kilometraje, tipo, origen, evidencia y firma.
-3. DIAGNÓSTICO: registre hallazgos, recomendaciones y revisión asociada.
-4. TRABAJOS: asigne servicios, técnico, pagador, facturación y tiempos.
-5. REPUESTOS: cargue cantidades, unidades, pagador y efecto en factura.
-6. CIERRE: verifique, facture, entregue y registre fecha real.
+### CREAR Y COMPLETAR UN EXPEDIENTE
 
-![Ingreso de vehículos](assets/10_ingreso_vehiculos.png)
+1. Seleccione NUEVO INGRESO y registre cliente, vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
+2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
+3. En TRABAJOS busque un servicio del catálogo, asigne técnico, tiempo estimado, valor, pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+4. En REPUESTOS busque los artículos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
+5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos y el total estimado. Complete el checklist, registre la entrega y finalice la orden.
+6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
 
-![Diagnóstico](assets/11_diagnostico.png)
+Las órdenes finalizadas, cerradas o anuladas quedan en modo consulta. La trazabilidad al final del expediente muestra cada cambio de estado, fecha, responsable y nota.
 
-![Trabajos](assets/12_trabajos_servicios.png)
+![Pestaña de ingreso](assets/10_ingreso_vehiculos.png)
 
-![Repuestos](assets/13_repuestos_insumos.png)
+![Pestaña de diagnóstico](assets/11_diagnostico.png)
 
-![Cierre](assets/14_cierre_entrega.png)
+![Pestaña de trabajos](assets/12_trabajos_servicios.png)
+
+![Pestaña de repuestos](assets/13_repuestos_insumos.png)
+
+![Pestaña de cierre y factura](assets/14_cierre_entrega.png)
 
 ## 9. ALISTAMIENTOS
 

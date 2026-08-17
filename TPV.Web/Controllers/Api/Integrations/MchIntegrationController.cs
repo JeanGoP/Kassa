@@ -994,6 +994,13 @@ namespace TPV.Web.Controllers.Api.Integrations
                     FuelLevel = o.FuelLevel,
                     InitialObservations = o.InitialObservations,
                     VisualCondition = o.VisualCondition,
+                    ProblemDescription = o.ProblemDescription,
+                    TechnicalDiagnosis = o.TechnicalDiagnosis,
+                    CustomerApprovedDiagnosis = o.CustomerApprovedDiagnosis,
+                    DiagnosisApprovalDate = o.DiagnosisApprovalDate,
+                    DiagnosedAt = o.DiagnosedAt,
+                    DiagnosedByUserId = o.DiagnosedByUserId,
+                    DiagnosedByName = o.DiagnosedByName,
                     DeliveryNotes = o.DeliveryNotes,
                     CloseType = o.CloseType,
                     CloseReason = o.CloseReason,
@@ -2260,6 +2267,13 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string FuelLevel { get; set; } = string.Empty;
         public string InitialObservations { get; set; } = string.Empty;
         public string VisualCondition { get; set; } = string.Empty;
+        public string? ProblemDescription { get; set; }
+        public string? TechnicalDiagnosis { get; set; }
+        public bool? CustomerApprovedDiagnosis { get; set; }
+        public DateTime? DiagnosisApprovalDate { get; set; }
+        public DateTime? DiagnosedAt { get; set; }
+        public string? DiagnosedByUserId { get; set; }
+        public string? DiagnosedByName { get; set; }
         public string? DeliveryNotes { get; set; }
         public string? CloseType { get; set; }
         public string? CloseReason { get; set; }

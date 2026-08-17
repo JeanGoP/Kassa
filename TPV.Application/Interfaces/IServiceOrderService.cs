@@ -8,6 +8,7 @@ namespace TPV.Application.Interfaces
     {
         Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto, string userId);
         Task<ServiceOrderDto> GetByIdAsync(int id);
+        Task<ServiceOrderWorkspaceDto> GetWorkspaceAsync(int id);
         Task<IEnumerable<ServiceOrderDto>> GetAllAsync(string search);
         Task<ServiceOrderDto> SetDiagnosisAsync(int id, ServiceOrderDiagnosisDto dto, string userId);
         Task<IEnumerable<ServiceOrderWorkDto>> GetWorksByOrderAsync(int serviceOrderId);

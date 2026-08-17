@@ -268,7 +268,7 @@ def build_docx() -> None:
     add_title(doc, "Mapa del sistema", 2)
     for item in (
         "OPERACIONES: punto de venta, agenda, cotizaciones, historial de ventas y entradas de mercancía.",
-        "ÓRDENES DE SERVICIO: tablero de taller, alistamientos, vehículos, ingreso, diagnóstico, trabajos, repuestos, cierre y garantías.",
+        "ÓRDENES DE SERVICIO: tablero de taller, expediente unificado, alistamientos, vehículos y garantías.",
         "CATÁLOGOS: productos, categorías, marcas/modelos, clientes, proveedores, servicios, técnicos, jefes de taller y sucursales.",
         "MOVIMIENTOS: inventario por ubicación, ajustes y traslados.",
         "SEGURIDAD Y REPORTES: empresas, usuarios, roles, permisos e informes.",
@@ -482,7 +482,7 @@ def build_docx() -> None:
         "Al prestar el servicio, márquela FINALIZADA; use CANCELADA cuando no se realizará.",
     ])
 
-    add_section_break(doc, "8. Vehículos y taller", "La operación de taller se ejecuta por etapas. El VIN o chasis de 17 caracteres conecta vehículo, propietario, historial, trabajos, repuestos y garantías.")
+    add_section_break(doc, "8. Vehículos y taller", "El expediente de taller reúne ingreso, diagnóstico, trabajos, repuestos, cierre y factura en una sola pantalla. El VIN o chasis de 17 caracteres conecta vehículo, propietario, historial y garantías.")
     add_figure(doc, "09_vehiculos.png", "Figura 24. Maestro de vehículos UIO.")
     add_procedure(doc, "Crear o actualizar un vehículo", [
         "Abra ÓRDENES DE SERVICIO > VEHÍCULOS UIO.",
@@ -495,48 +495,47 @@ def build_docx() -> None:
     add_procedure(doc, "Controlar el trabajo del taller", [
         "Abra DASHBOARD TALLER.",
         "Revise órdenes por estado, carga de técnicos, entregas pendientes y alertas.",
-        "Abra la etapa que requiera atención: INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS o CIERRE.",
+        "Abra EXPEDIENTE DE TALLER, seleccione la orden y use sus pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS o CIERRE Y FACTURA.",
         "Priorice órdenes vencidas o con fecha prometida próxima.",
     ])
-    add_figure(doc, "10_ingreso_vehiculos.png", "Figura 26. Recepción e ingreso del vehículo.")
+    add_figure(doc, "10_ingreso_vehiculos.png", "Figura 26. Pestaña de ingreso del expediente.")
     add_procedure(doc, "Etapa 1: recibir el vehículo", [
-        "Abra INGRESO DE VEHÍCULOS y seleccione NUEVA ORDEN.",
+        "Abra EXPEDIENTE DE TALLER y seleccione NUEVO INGRESO.",
         "Busque o registre cliente y vehículo; confirme VIN, placa, motor, marca, modelo y año.",
         "Registre TIPO DE ORDEN, ORIGEN, kilometraje, fecha de recepción y fecha prometida.",
         "Documente el estado visual y adjunte fotografías de recepción.",
         "Registre observaciones y obtenga la firma del cliente.",
-        "Guarde la orden para enviarla a diagnóstico.",
+        "Guarde la orden. El expediente se abrirá en la misma pantalla para continuar.",
     ])
-    add_figure(doc, "11_diagnostico.png", "Figura 27. Diagnóstico de la orden.")
+    add_figure(doc, "11_diagnostico.png", "Figura 27. Pestaña de diagnóstico del expediente.")
     add_procedure(doc, "Etapa 2: diagnosticar", [
-        "Abra DIAGNÓSTICO y busque la orden.",
-        "Registre síntomas, diagnóstico, hallazgos y recomendaciones.",
-        "Asocie la revisión de mantenimiento cuando corresponda.",
-        "Defina trabajos sugeridos y tiempos estimados.",
-        "Guarde el diagnóstico y continúe con la autorización interna o del cliente.",
+        "En el expediente seleccionado, abra DIAGNÓSTICO.",
+        "Registre el problema informado y la conclusión técnica.",
+        "Indique si el cliente aprobó el diagnóstico y la fecha de aprobación.",
+        "Guarde. El sistema conserva la fecha y el responsable del diagnóstico.",
     ])
-    add_figure(doc, "12_trabajos_servicios.png", "Figura 28. Trabajos y servicios de la orden.")
+    add_figure(doc, "12_trabajos_servicios.png", "Figura 28. Pestaña de trabajos y servicios.")
     add_procedure(doc, "Etapa 3: asignar trabajos", [
-        "Abra TRABAJOS Y SERVICIOS y localice la orden.",
-        "Agregue los servicios aprobados.",
+        "En el mismo expediente, abra TRABAJOS.",
+        "Busque y agregue los servicios aprobados desde el catálogo.",
         "Asigne técnico, responsable de pago y si la línea suma a la factura.",
-        "Registre tiempo estimado; al finalizar, complete tiempo real y estado.",
-        "Guarde cada cambio para conservar el historial de la orden.",
+        "Registre el tiempo estimado y el valor de mano de obra.",
+        "Cambie cada trabajo a REALIZADO cuando termine y registre el tiempo real solicitado.",
     ])
-    add_figure(doc, "13_repuestos_insumos.png", "Figura 29. Repuestos e insumos consumidos.")
+    add_figure(doc, "13_repuestos_insumos.png", "Figura 29. Pestaña de repuestos e insumos.")
     add_procedure(doc, "Etapa 4: cargar repuestos e insumos", [
-        "Abra REPUESTOS E INSUMOS y busque la orden.",
-        "Busque cada artículo y confirme existencia, ubicación y unidad.",
-        "Registre cantidad, responsable de pago y si suma a la factura.",
-        "Guarde. Compruebe que el consumo quede trazado en inventario y en la orden.",
+        "En el mismo expediente, abra REPUESTOS.",
+        "Busque cada artículo y confirme su existencia disponible.",
+        "Registre cantidad, tipo de línea y responsable de pago.",
+        "Confirme el consumo. El sistema descuenta inventario y lo vincula a la orden sin generar todavía la factura.",
     ])
-    add_figure(doc, "14_cierre_entrega.png", "Figura 30. Cierre y entrega de la orden.")
+    add_figure(doc, "14_cierre_entrega.png", "Figura 30. Pestaña de cierre, entrega y factura.")
     add_procedure(doc, "Etapa 5: cerrar y entregar", [
-        "Abra CIERRE Y ENTREGA y seleccione la orden.",
-        "Compruebe que trabajos, repuestos, tiempos y autorizaciones estén completos.",
-        "Registre pruebas finales, observaciones y estado de entrega.",
-        "Asocie la factura cuando corresponda.",
-        "Registre fecha y hora real de entrega y cierre la orden.",
+        "En el mismo expediente, abra CIERRE Y FACTURA.",
+        "Compruebe que el diagnóstico esté completo y todos los trabajos estén REALIZADOS.",
+        "Complete el checklist y registre fecha, persona que recibe y notas de entrega.",
+        "Finalice la orden, seleccione el medio de pago y genere la factura una sola vez.",
+        "Compruebe que la orden quede CERRADA y revise la trazabilidad.",
     ], "Una orden anulada debe conservar fecha, motivo y usuario responsable. No elimine el historial operativo.")
 
     add_section_break(doc, "9. Órdenes de alistamiento", "El alistamiento documenta la preparación del vehículo, sus hallazgos y los consumos realizados antes de la entrega o apertura de garantía.")
@@ -625,7 +624,7 @@ def build_docx() -> None:
             ["Venta", "Abrir caja > Seleccionar cliente > Agregar artículos > Cobrar > Entregar comprobante > Cerrar caja."],
             ["Compra", "Crear proveedor > Registrar entrada > Seleccionar sucursal y ubicación > Verificar inventario."],
             ["Ubicación", "Crear ubicación > Entrada directa o traslado > Verificar movimiento y saldo."],
-            ["Taller", "Vehículo UIO > Ingreso > Diagnóstico > Trabajos > Repuestos > Cierre y entrega."],
+            ["Taller", "Vehículo UIO > Expediente de taller > Ingreso > Diagnóstico > Trabajos > Repuestos > Cierre y factura."],
             ["Garantía", "Detectar > Diagnosticar > Autorizar > Radicar > Aprobar/Rechazar > Facturar > Registrar pago."],
         ],
         [1.35, 5.15],
@@ -767,24 +766,28 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS y CIERRE Y FACTURA.
 
-1. VEHÍCULOS UIO: cree o actualice el vehículo, propietario e historial.
-2. INGRESO: reciba, documente kilometraje, tipo, origen, evidencia y firma.
-3. DIAGNÓSTICO: registre hallazgos, recomendaciones y revisión asociada.
-4. TRABAJOS: asigne servicios, técnico, pagador, facturación y tiempos.
-5. REPUESTOS: cargue cantidades, unidades, pagador y efecto en factura.
-6. CIERRE: verifique, facture, entregue y registre fecha real.
+### CREAR Y COMPLETAR UN EXPEDIENTE
 
-![Ingreso de vehículos](assets/10_ingreso_vehiculos.png)
+1. Seleccione NUEVO INGRESO y registre cliente, vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
+2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
+3. En TRABAJOS busque un servicio del catálogo, asigne técnico, tiempo estimado, valor, pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+4. En REPUESTOS busque los artículos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
+5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos y el total estimado. Complete el checklist, registre la entrega y finalice la orden.
+6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
 
-![Diagnóstico](assets/11_diagnostico.png)
+Las órdenes finalizadas, cerradas o anuladas quedan en modo consulta. La trazabilidad al final del expediente muestra cada cambio de estado, fecha, responsable y nota.
 
-![Trabajos](assets/12_trabajos_servicios.png)
+![Pestaña de ingreso](assets/10_ingreso_vehiculos.png)
 
-![Repuestos](assets/13_repuestos_insumos.png)
+![Pestaña de diagnóstico](assets/11_diagnostico.png)
 
-![Cierre](assets/14_cierre_entrega.png)
+![Pestaña de trabajos](assets/12_trabajos_servicios.png)
+
+![Pestaña de repuestos](assets/13_repuestos_insumos.png)
+
+![Pestaña de cierre y factura](assets/14_cierre_entrega.png)
 
 ## 9. ALISTAMIENTOS
 

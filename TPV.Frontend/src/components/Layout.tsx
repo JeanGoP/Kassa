@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, Stethoscope, UserCog, UserCheck, Activity, Shield, CheckCircle, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, UserCog, UserCheck, Activity, Shield, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText, CalendarDays } from 'lucide-react';
 import { clsx } from 'clsx';
 import logo from '../assets/Logo.png';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -43,11 +43,7 @@ const Layout = () => {
                 { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity, permission: 'Menus.Workshop.View' },
                 { path: '/preparation-orders', label: 'Alistamientos', icon: ClipboardList, permission: 'Menus.Workshop.View' },
                 { path: '/vehicles', label: 'Vehículos UIO', icon: Car, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders/ingreso-vehiculo', label: 'Ingreso de Vehículos', icon: Car, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders/diagnostico', label: 'Diagnóstico', icon: Stethoscope, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders/trabajos', label: 'Trabajos / Servicios', icon: ClipboardList, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders/repuestos', label: 'Repuestos e Insumos', icon: Boxes, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders/cierre', label: 'Cierre, Entrega y Facturación', icon: CheckCircle, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders', label: 'Expediente de Taller', icon: ClipboardList, permission: 'Menus.Workshop.View' },
                 { path: '/warranties', label: 'Garantías', icon: Shield, permission: 'Menus.Workshop.View' },
             ]
         },

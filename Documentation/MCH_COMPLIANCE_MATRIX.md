@@ -4,7 +4,7 @@ Fuente normativa: `Documentation/specs/Especificacion_API_Posventa_MCH_v6.docx`.
 
 Extraccion auxiliar: `Documentation/specs/Especificacion_API_Posventa_MCH_v6.extracted.md`.
 
-Ultima revision: 2026-08-05.
+Ultima revision: 2026-08-17.
 
 Estados:
 
@@ -59,7 +59,7 @@ Brechas principales:
 | Inventario | Cumple | `GET /api/integrations/mch/inventory`; `GET /api/integrations/mch/inventory-movements`; modulo `Inventory` | La sucursal actua como bodega; expone unidad base, ubicaciones y saldos, costo, min/max y kardex con unidad, conversion, documento y usuario. |
 | Ventas | Cumple | `GET /api/integrations/mch/sales`; POS e historial de ventas | Cada linea preserva referencia, marca, cantidad/unidad, precio, descuento, impuestos, total, costo y clasificacion. Las devoluciones y notas credito son documentos trazables contra la factura original; controlan cantidades parciales y distinguen si reintegran inventario. Los costos anteriores a la migracion del punto 7 permanecen en cero porque no existe una fuente historica confiable para reconstruirlos. |
 | Compras | Cumple | `GET /api/integrations/mch/purchases`; entradas de mercancia | Expone factura y fecha del proveedor, recepcion efectiva, bodega/ubicacion, pedido y fecha asociados, proveedor oficial/tercero y marca representada. Cada linea conserva marca, cantidad decimal, unidad exacta, cantidad base, costo unitario y total. |
-| Ordenes de taller | Cumple | `GET /api/integrations/mch/service-orders` | Expone numero visible, empresa/NIT historicos, sucursal, marca/vehiculo, cliente, recepcion, promesa y salida, tipo/origen, historial, anulacion, factura, totales y lineas con pagador, impacto, servicio, revision, tecnico y tiempos. La normalizacion decimal/unidades se atiende transversalmente en el punto 5. |
+| Ordenes de taller | Cumple | `GET /api/integrations/mch/service-orders`; modulo interno `ServiceOrders` | El expediente unificado conserva ingreso, evidencias, firma, problema reportado, diagnostico tecnico, aprobacion del cliente, responsable y fecha del diagnostico, trabajos, consumos, cierre y factura. Los repuestos descuentan inventario mediante `CONSUMO_TALLER` al confirmarse y solo se convierten en lineas de venta al facturar, evitando doble salida. La API MCH expone numero visible, empresa/NIT historicos, sucursal, marca/vehiculo, cliente, fechas, tipo/origen, diagnostico, historial, anulacion, factura, totales y lineas con pagador, impacto, servicio, revision, tecnico y tiempos. |
 | Vehiculos UIO | Cumple | `GET /api/integrations/mch/vehicles`; modulo interno `Vehicles` | Maestro por VIN unico de 17 caracteres, marca/modelo formal, motor, placa, fecha de venta, propietario vigente e historial, kilometraje, sucursal, historial por chasis y revisiones atendidas. |
 | Ordenes de alistamiento | Cumple | `GET /api/integrations/mch/preparation-orders`; modulo interno `PreparationOrders` | Implementa solicitud comercial, vehiculo por chasis, empresa/sucursal/marca, fechas, ejecutante, consumos y hallazgos. Al completar, los consumos con articulo descuentan inventario y generan movimiento documental. |
 | Garantias fabricante | Cumple | `GET /api/integrations/mch/warranties`; modulo interno `Warranties` | Reclamacion por vehiculo y orden origen, tipo, deteccion, causa, falla, pieza causante, reemplazos, mano de obra, estado de marca con historia, autorizacion, radicacion, resultado, valoracion, factura que agrupa garantias y pago. Los registros previos quedan marcados `IsLegacyRecord`. |

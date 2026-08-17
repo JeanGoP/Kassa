@@ -2095,6 +2095,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("CustomerApprovedDiagnosis")
+                        .HasColumnType("bit");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
@@ -2103,6 +2106,20 @@ namespace TPV.Infrastructure.Migrations
 
                     b.Property<string>("DeliveryNotes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DiagnosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DiagnosedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DiagnosedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("DiagnosisApprovalDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("EngineNumber")
                         .HasMaxLength(80)
@@ -2160,6 +2177,10 @@ namespace TPV.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ProblemDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateTime?>("PromisedDeliveryDateTime")
                         .HasColumnType("datetime2");
 
@@ -2175,6 +2196,10 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TechnicalDiagnosis")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("Technician")
                         .IsRequired()

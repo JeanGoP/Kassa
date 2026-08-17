@@ -52,14 +52,29 @@ namespace TPV.Web.Controllers.Api
             return Ok(result);
         }
 
+        [HttpGet("{id}/workspace")]
+        public async Task<ActionResult<ServiceOrderWorkspaceDto>> GetWorkspace(int id)
+        {
+            var result = await _service.GetWorkspaceAsync(id);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
         [HttpPut("{id}/diagnosis")]
         public async Task<ActionResult<ServiceOrderDto>> SetDiagnosis(int id, ServiceOrderDiagnosisDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
-            var result = await _service.SetDiagnosisAsync(id, dto, userId);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.SetDiagnosisAsync(id, dto, userId);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}/works")]
@@ -72,25 +87,46 @@ namespace TPV.Web.Controllers.Api
         [HttpPost("{id}/works")]
         public async Task<ActionResult<ServiceOrderWorkDto>> AddWork(int id, CreateServiceOrderWorkDto dto)
         {
-            var result = await _service.AddWorkAsync(id, dto);
-            if (result == null) return NotFound();
-            return CreatedAtAction(nameof(GetWorks), new { id }, result);
+            try
+            {
+                var result = await _service.AddWorkAsync(id, dto);
+                if (result == null) return NotFound();
+                return CreatedAtAction(nameof(GetWorks), new { id }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}/works/{workId}")]
         public async Task<ActionResult<ServiceOrderWorkDto>> UpdateWork(int id, int workId, CreateServiceOrderWorkDto dto)
         {
-            var result = await _service.UpdateWorkAsync(id, workId, dto);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.UpdateWorkAsync(id, workId, dto);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}/works/{workId}/status")]
         public async Task<ActionResult<ServiceOrderWorkDto>> UpdateWorkStatus(int id, int workId, ServiceOrderWorkStatusDto dto)
         {
-            var result = await _service.UpdateWorkStatusAsync(id, workId, dto);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.UpdateWorkStatusAsync(id, workId, dto);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}/parts")]
@@ -131,9 +167,16 @@ namespace TPV.Web.Controllers.Api
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
-            var result = await _service.CloseOrderAsync(id, dto, userId);
-            if (result == null) return BadRequest("No se pudo cerrar la orden. Verifique el estado y el checklist.");
-            return Ok(result);
+            try
+            {
+                var result = await _service.CloseOrderAsync(id, dto, userId);
+                if (result == null) return BadRequest(new { message = "No se pudo cerrar la orden. Verifique el estado y el checklist." });
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}/cancel")]
@@ -165,11 +208,15 @@ namespace TPV.Web.Controllers.Api
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
         }
     }

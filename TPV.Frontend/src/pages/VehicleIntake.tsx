@@ -83,7 +83,12 @@ const compressImageFile = (file: File): Promise<string> => {
     });
 };
 
-const VehicleIntake = () => {
+interface VehicleIntakeProps {
+    embedded?: boolean;
+    onOrderCreated?: (order: any) => void;
+}
+
+const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps) => {
     const [formData, setFormData] = useState({
         chassisNumber: '',
         engineNumber: '',
@@ -448,6 +453,7 @@ const VehicleIntake = () => {
         try {
             const response = await api.post('/ServiceOrders', intakeData);
             setLastServiceOrder(response.data);
+            onOrderCreated?.(response.data);
             alert('Ingreso de vehículo registrado exitosamente.');
             // Reset form
             setFormData(prev => ({
@@ -1052,7 +1058,7 @@ const VehicleIntake = () => {
         selectedEvidenceIndex !== null ? evidenceImages[selectedEvidenceIndex] : null;
 
     return (
-        <div className="bg-white rounded-xl shadow-md p-6 relative">
+        <div className={embedded ? "relative" : "bg-white rounded-xl shadow-md p-6 relative"}>
             <h1 className="text-2xl font-bold mb-4 text-slate-800">Ingreso del Vehículo</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
