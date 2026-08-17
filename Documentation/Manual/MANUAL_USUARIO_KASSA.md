@@ -173,4 +173,5 @@ Seleccione el reporte, rango de fechas y filtros. Genere y revise ventas por suc
 
 - Inicio: confirmar empresa/sucursal, abrir caja, revisar citas, órdenes e inventario bajo.
 - Cierre: actualizar órdenes, validar movimientos con soporte, conciliar y cerrar caja, cerrar sesión.
+- Ingreso rechazado: revise el mensaje mostrado y valide cliente, VIN, marca/modelo, sucursal, combustible y firma.
 - Soporte: informe usuario, empresa, sucursal, fecha/hora, módulo, documento y pasos; nunca adjunte contraseñas.

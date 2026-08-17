@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace TPV.Application.DTOs
 {
@@ -62,7 +63,9 @@ namespace TPV.Application.DTOs
         public string ChassisNumber { get; set; }
         public string? EngineNumber { get; set; }
         public string Plate { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int? BrandId { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int? VehicleModelId { get; set; }
         public string Brand { get; set; }
         public string Model { get; set; }

@@ -50,6 +50,29 @@ const formatDateTimeLocal = (date = new Date()) => {
 const MAX_VISUAL_EVIDENCE_IMAGES = 6;
 const SIGNATURE_MIN_STROKE_DISTANCE = 10;
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error !== 'object' || error === null || !('response' in error)) return fallback;
+
+    const data = (error as { response?: { data?: unknown } }).response?.data;
+    if (typeof data === 'string' && data.trim()) return data;
+    if (typeof data !== 'object' || data === null) return fallback;
+
+    for (const key of ['message', 'detail', 'title']) {
+        const value = (data as Record<string, unknown>)[key];
+        if (typeof value === 'string' && value.trim()) return value;
+    }
+
+    const errors = (data as { errors?: unknown }).errors;
+    if (typeof errors === 'object' && errors !== null) {
+        const messages = Object.values(errors as Record<string, unknown>)
+            .flatMap(value => Array.isArray(value) ? value : [value])
+            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+        if (messages.length > 0) return messages.join('\n');
+    }
+
+    return fallback;
+};
+
 const compressImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const image = new Image();
@@ -439,6 +462,8 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
             ...formData,
             chassisNumber: formData.chassisNumber.toUpperCase(),
             engineNumber: formData.engineNumber || null,
+            brandId: formData.brandId ? Number(formData.brandId) : null,
+            vehicleModelId: formData.vehicleModelId ? Number(formData.vehicleModelId) : null,
             year: Number(formData.year),
             mileage: Number(formData.mileage),
             maintenanceReviewMileage: formData.maintenanceReviewMileage ? Number(formData.maintenanceReviewMileage) : null,
@@ -482,7 +507,7 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
             clearSignature();
         } catch (error) {
             console.error('Error saving service order', error);
-            alert('Error al registrar el ingreso.');
+            alert(getApiErrorMessage(error, 'Error al registrar el ingreso. Revisa los datos e intenta nuevamente.'));
         }
     };
 

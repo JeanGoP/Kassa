@@ -607,6 +607,7 @@ def build_docx() -> None:
             ["No aparece un producto", "Estado activo, categoría, sucursal, ubicación y existencia."],
             ["No permite trasladar", "Stock del origen, unidad, cantidad y destinos diferentes."],
             ["No permite recibir mercancía", "Proveedor, documento, sucursal, fecha y ubicación de recepción."],
+            ["Ingreso de vehículo rechazado", "Cliente, VIN de 17 caracteres, marca/modelo del catálogo, sucursal, combustible y firma."],
             ["VIN rechazado", "Debe tener exactamente 17 caracteres y no estar duplicado."],
             ["Totales de venta diferentes", "Cantidades, impuestos, descuentos, devolución o nota crédito."],
             ["Orden no avanza", "Etapa previa, estado, autorizaciones, trabajos y repuestos pendientes."],
@@ -816,6 +817,7 @@ Seleccione el reporte, rango de fechas y filtros. Genere y revise ventas por suc
 
 - Inicio: confirmar empresa/sucursal, abrir caja, revisar citas, órdenes e inventario bajo.
 - Cierre: actualizar órdenes, validar movimientos con soporte, conciliar y cerrar caja, cerrar sesión.
+- Ingreso rechazado: revise el mensaje mostrado y valide cliente, VIN, marca/modelo, sucursal, combustible y firma.
 - Soporte: informe usuario, empresa, sucursal, fecha/hora, módulo, documento y pasos; nunca adjunte contraseñas.
 """
     MD_PATH.write_text(md, encoding="utf-8")
