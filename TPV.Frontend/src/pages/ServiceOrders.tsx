@@ -30,6 +30,7 @@ interface StatusHistory {
 
 interface ServiceOrder {
     id: number;
+    branchId?: number;
     orderNumber: string;
     customerName: string;
     plate: string;
@@ -117,6 +118,14 @@ interface MotorcycleService {
     estimatedMinutes?: number;
 }
 
+interface Technician {
+    id: number;
+    name: string;
+    specialty?: string;
+    branchId?: number;
+    branchName?: string;
+}
+
 interface ProductSearchResult {
     id: number;
     name: string;
@@ -185,6 +194,10 @@ const ServiceOrders = () => {
     const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
     const [serviceOptionsOpen, setServiceOptionsOpen] = useState(false);
     const [serviceCatalogError, setServiceCatalogError] = useState('');
+    const [technicianCatalog, setTechnicianCatalog] = useState<Technician[]>([]);
+    const [selectedTechnicianId, setSelectedTechnicianId] = useState<number | null>(null);
+    const [technicianOptionsOpen, setTechnicianOptionsOpen] = useState(false);
+    const [technicianCatalogError, setTechnicianCatalogError] = useState('');
     const [workTechnician, setWorkTechnician] = useState('');
     const [workEstimatedHours, setWorkEstimatedHours] = useState('');
     const [workReviewMileage, setWorkReviewMileage] = useState('');
@@ -255,6 +268,18 @@ const ServiceOrders = () => {
     }, []);
 
     useEffect(() => {
+        api.get('/Technicians')
+            .then(response => {
+                setTechnicianCatalog(response.data || []);
+                setTechnicianCatalogError('');
+            })
+            .catch(() => {
+                setTechnicianCatalog([]);
+                setTechnicianCatalogError('No se pudo cargar el catálogo de técnicos.');
+            });
+    }, []);
+
+    useEffect(() => {
         const timer = window.setTimeout(() => loadOrders(search), 250);
         return () => window.clearTimeout(timer);
     }, [search]);
@@ -290,6 +315,20 @@ const ServiceOrders = () => {
         setWorkEstimatedHours(service.estimatedMinutes ? (service.estimatedMinutes / 60).toFixed(2) : '');
     };
 
+    const filteredTechnicians = useMemo(() => {
+        const term = workTechnician.trim().toLocaleLowerCase();
+        return technicianCatalog
+            .filter(technician => !workspace?.order.branchId || !technician.branchId || technician.branchId === workspace.order.branchId)
+            .filter(technician => selectedTechnicianId !== null || !term || `${technician.name} ${technician.specialty || ''} ${technician.branchName || ''}`.toLocaleLowerCase().includes(term))
+            .slice(0, 8);
+    }, [selectedTechnicianId, technicianCatalog, workTechnician, workspace?.order.branchId]);
+
+    const selectTechnician = (technician: Technician) => {
+        setSelectedTechnicianId(technician.id);
+        setWorkTechnician(technician.name);
+        setTechnicianOptionsOpen(false);
+    };
+
     const saveDiagnosis = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!workspace) return;
@@ -320,6 +359,12 @@ const ServiceOrders = () => {
             await Swal.fire('Selecciona un servicio', 'El trabajo debe corresponder a un servicio activo del catálogo.', 'warning');
             return;
         }
+        const selectedTechnician = technicianCatalog.find(technician => technician.id === selectedTechnicianId);
+        if (!selectedTechnician || selectedTechnician.name !== workTechnician) {
+            setTechnicianOptionsOpen(true);
+            await Swal.fire('Selecciona un técnico', 'El trabajo debe asignarse a un técnico activo del catálogo.', 'warning');
+            return;
+        }
         setSavingWork(true);
         try {
             await api.post(`/ServiceOrders/${workspace.order.id}/works`, {
@@ -337,6 +382,7 @@ const ServiceOrders = () => {
             });
             setSelectedServiceId(null);
             setServiceSearch('');
+            setSelectedTechnicianId(null);
             setWorkTechnician('');
             setWorkEstimatedHours('');
             setWorkCost('');
@@ -757,9 +803,64 @@ const ServiceOrders = () => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Técnico</span><input value={workTechnician} onChange={event => setWorkTechnician(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
+                                                    <div className="relative space-y-1 lg:col-span-3">
+                                                        <label htmlFor="service-order-work-technician" className="block text-xs font-bold uppercase text-slate-600">Técnico del catálogo</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                id="service-order-work-technician"
+                                                                required
+                                                                autoComplete="off"
+                                                                value={workTechnician}
+                                                                onFocus={() => setTechnicianOptionsOpen(true)}
+                                                                onBlur={() => window.setTimeout(() => setTechnicianOptionsOpen(false), 150)}
+                                                                onChange={event => {
+                                                                    setWorkTechnician(event.target.value);
+                                                                    setSelectedTechnicianId(null);
+                                                                    setTechnicianOptionsOpen(true);
+                                                                }}
+                                                                onKeyDown={event => {
+                                                                    if (event.key === 'Escape') setTechnicianOptionsOpen(false);
+                                                                    if (event.key === 'Enter' && technicianOptionsOpen && filteredTechnicians.length > 0) {
+                                                                        event.preventDefault();
+                                                                        selectTechnician(filteredTechnicians[0]);
+                                                                    }
+                                                                }}
+                                                                placeholder="Buscar y seleccionar técnico..."
+                                                                className={`h-11 w-full rounded-lg border px-3 pr-10 text-sm outline-none focus:ring-2 ${selectedTechnicianId ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
+                                                            />
+                                                            {selectedTechnicianId && <Check size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600" />}
+                                                        </div>
+                                                        {technicianCatalogError && <span className="block text-xs font-semibold text-red-600">{technicianCatalogError}</span>}
+                                                        {technicianOptionsOpen && (
+                                                            <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-xl">
+                                                                {filteredTechnicians.map(technician => (
+                                                                    <button
+                                                                        type="button"
+                                                                        key={technician.id}
+                                                                        onMouseDown={event => event.preventDefault()}
+                                                                        onClick={() => selectTechnician(technician)}
+                                                                        className="flex w-full items-start justify-between gap-3 rounded px-3 py-2 text-left text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                                                                    >
+                                                                        <span className="min-w-0">
+                                                                            <span className="block font-semibold text-slate-900">{technician.name}</span>
+                                                                            {(technician.specialty || technician.branchName) && (
+                                                                                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                                                                                    {[technician.specialty, technician.branchName].filter(Boolean).join(' · ')}
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                    </button>
+                                                                ))}
+                                                                {filteredTechnicians.length === 0 && (
+                                                                    <div className="px-3 py-4 text-center text-sm text-slate-500">
+                                                                        {technicianCatalogError || 'No hay técnicos disponibles para esta sucursal.'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Tiempo estimado</span><input type="number" min="0" step="0.25" value={workEstimatedHours} onChange={event => setWorkEstimatedHours(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
-                                                    <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Valor</span><input type="number" min="0" value={workCost} onChange={event => setWorkCost(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
+                                                    <label className="space-y-1 lg:col-span-1"><span className="text-xs font-bold uppercase text-slate-600">Valor</span><input type="number" min="0" value={workCost} onChange={event => setWorkCost(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Pagador</span><select value={workPayer} onChange={event => setWorkPayer(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm"><option>CLIENTE</option><option>FABRICA</option><option>INTERNO</option></select></label>
                                                     <label className="space-y-1 lg:col-span-3"><span className="text-xs font-bold uppercase text-slate-600">Tipo de servicio</span><select value={workType} onChange={event => setWorkType(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm"><option>PREVENTIVO</option><option>CORRECTIVO</option><option>GARANTIA</option><option>RETRABAJO</option></select></label>
                                                     {workType === 'PREVENTIVO' && <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Revisión a los km</span><input required type="number" min="1" value={workReviewMileage} onChange={event => setWorkReviewMileage(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>}
