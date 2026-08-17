@@ -44,7 +44,7 @@ Brechas principales:
 | MCH-T12 | Valores monetarios indican IVA | Parcial | Ventas/compras exponen impuestos en lineas; no todos los recursos indican si incluyen IVA. |
 | MCH-T13 | Todo recurso trae empresa, marca y sucursal | Cumple | Empresa y sucursal se exponen por hecho; la marca se toma del vehiculo o de cada articulo/linea y nunca se infiere desde la sucursal. |
 | MCH-T14 | Cantidades numericas decimales | Cumple | Stock, ventas, compras, partes de taller, alistamientos, garantias y movimientos usan cantidades decimales y conservan cantidad en unidad base. |
-| MCH-T15 | Unidades cerradas y por registro | Cumple | `UnitsOfMeasure` es catalogo cerrado por empresa; cada linea y movimiento conserva unidad declarada, factor y cantidad base. |
+| MCH-T15 | Unidades cerradas y por registro | Cumple | `UnitsOfMeasure` es catalogo cerrado y autoprovisionado por empresa; cada linea y movimiento conserva unidad declarada, factor y cantidad base. |
 
 ## Recursos
 
@@ -55,7 +55,7 @@ Brechas principales:
 | Clientes | Parcial | `GET /api/integrations/mch/customers` | Basico disponible; falta historizacion de propietario de vehiculo. |
 | Proveedores | Cumple | `GET /api/integrations/mch/suppliers`; modulo interno `Suppliers` | Incluye identificacion, contacto, clasificacion OFICIAL/TERCERO y marca representada cuando corresponde. |
 | Catalogo de articulos | Cumple | `GET /api/integrations/mch/article-catalog`; modulo interno `Products` | Incluye jerarquia cerrada de categorias, origen original/homologo/generico, marca, fabricante, catalogo oficial, estado, aplicabilidad por modelo con fuente, equivalencias, sustituciones dirigidas con vigencia, referencias simples/kits y composicion, unidades/conversiones, dimensiones, tiempos y parametros de reposicion. |
-| Unidades de medida | Cumple | `GET /api/integrations/mch/units`; maestro interno de articulos | Lista cerrada por empresa con codigo, nombre, simbolo, fraccionamiento y estado. |
+| Unidades de medida | Cumple | `GET /api/integrations/mch/units`; maestro interno de articulos | Lista cerrada por empresa con codigo, nombre, simbolo, fraccionamiento y estado; las unidades operativas base se crean automaticamente cuando una empresa aun no tiene catalogo. |
 | Inventario | Cumple | `GET /api/integrations/mch/inventory`; `GET /api/integrations/mch/inventory-movements`; modulo `Inventory` | La sucursal actua como bodega; expone unidad base, ubicaciones y saldos, costo, min/max y kardex con unidad, conversion, documento y usuario. |
 | Ventas | Cumple | `GET /api/integrations/mch/sales`; POS e historial de ventas | Cada linea preserva referencia, marca, cantidad/unidad, precio, descuento, impuestos, total, costo y clasificacion. Las devoluciones y notas credito son documentos trazables contra la factura original; controlan cantidades parciales y distinguen si reintegran inventario. Los costos anteriores a la migracion del punto 7 permanecen en cero porque no existe una fuente historica confiable para reconstruirlos. |
 | Compras | Cumple | `GET /api/integrations/mch/purchases`; entradas de mercancia | Expone factura y fecha del proveedor, recepcion efectiva, bodega/ubicacion, pedido y fecha asociados, proveedor oficial/tercero y marca representada. Cada linea conserva marca, cantidad decimal, unidad exacta, cantidad base, costo unitario y total. |

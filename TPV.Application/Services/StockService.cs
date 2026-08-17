@@ -11,6 +11,18 @@ namespace TPV.Application.Services
 {
     public class StockService : IStockService
     {
+        private static readonly (string Code, string Name, string Symbol, bool AllowsDecimals)[] DefaultUnits =
+        {
+            ("UND", "UNIDAD", "UND", false),
+            ("CAJA", "CAJA", "CAJA", false),
+            ("L", "LITRO", "L", true),
+            ("ML", "MILILITRO", "ML", true),
+            ("KG", "KILOGRAMO", "KG", true),
+            ("G", "GRAMO", "G", true),
+            ("M", "METRO", "M", true),
+            ("H", "HORA", "H", true)
+        };
+
         private readonly IRepository<Stock> _stocks;
         private readonly IRepository<Product> _products;
         private readonly IRepository<UnitOfMeasure> _units;
@@ -19,6 +31,7 @@ namespace TPV.Application.Services
         private readonly IRepository<InventoryLocationBalance> _balances;
         private readonly IRepository<InventoryMovement> _movements;
         private readonly IUserService _users;
+        private readonly ICurrentTenantService _currentTenant;
 
         public StockService(
             IRepository<Stock> stocks,
@@ -28,7 +41,8 @@ namespace TPV.Application.Services
             IRepository<InventoryLocation> locations,
             IRepository<InventoryLocationBalance> balances,
             IRepository<InventoryMovement> movements,
-            IUserService users)
+            IUserService users,
+            ICurrentTenantService currentTenant)
         {
             _stocks = stocks;
             _products = products;
@@ -38,6 +52,7 @@ namespace TPV.Application.Services
             _balances = balances;
             _movements = movements;
             _users = users;
+            _currentTenant = currentTenant;
         }
 
         public async Task<IEnumerable<StockDto>> GetStockByBranchAsync(int branchId, string? userId = null)
@@ -212,8 +227,41 @@ namespace TPV.Application.Services
 
         public async Task<IEnumerable<UnitOfMeasureDto>> GetUnitsAsync()
         {
+            await EnsureDefaultUnitsAsync();
             var units = await _units.GetAsync(u => u.IsActive, q => q.OrderBy(u => u.Name));
             return units.Select(u => new UnitOfMeasureDto { Id = u.Id, Code = u.Code, Name = u.Name, Symbol = u.Symbol, AllowsDecimals = u.AllowsDecimals, IsActive = u.IsActive });
+        }
+
+        private async Task EnsureDefaultUnitsAsync()
+        {
+            var tenantId = _currentTenant.TenantId;
+            if (!tenantId.HasValue || tenantId.Value <= 0) return;
+
+            var existingUnits = (await _units.GetAsync(u => u.TenantId == tenantId.Value)).ToList();
+            foreach (var definition in DefaultUnits)
+            {
+                var existingUnit = existingUnits.FirstOrDefault(unit =>
+                    string.Equals(unit.Code.Trim(), definition.Code, StringComparison.OrdinalIgnoreCase));
+                if (existingUnit != null)
+                {
+                    if (!existingUnit.IsActive)
+                    {
+                        existingUnit.IsActive = true;
+                        await _units.UpdateAsync(existingUnit);
+                    }
+                    continue;
+                }
+
+                await _units.AddAsync(new UnitOfMeasure
+                {
+                    TenantId = tenantId.Value,
+                    Code = definition.Code,
+                    Name = definition.Name,
+                    Symbol = definition.Symbol,
+                    AllowsDecimals = definition.AllowsDecimals,
+                    IsActive = true
+                });
+            }
         }
 
         public async Task<IEnumerable<InventoryLocationDto>> GetLocationsAsync(int branchId, string? userId = null)
