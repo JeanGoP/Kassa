@@ -11,6 +11,10 @@ namespace TPV.Domain.Entities
         public DateTime Date { get; set; } = DateTime.Now;
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; } // Efectivo, Tarjeta, etc.
+        public decimal? AmountReceived { get; set; }
+        public decimal CustomerAdvanceApplied { get; set; }
+        public decimal CustomerAdvanceCreated { get; set; }
+        public decimal ChangeAmount { get; set; }
 
         public int? CustomerId { get; set; }
         public Customer Customer { get; set; }

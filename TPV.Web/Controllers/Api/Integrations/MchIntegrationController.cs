@@ -757,6 +757,10 @@ namespace TPV.Web.Controllers.Api.Integrations
                 PaymentMethod = s.PaymentMethod,
                 ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
                 TotalAmount = s.TotalAmount,
+                AmountReceived = s.AmountReceived ?? s.TotalAmount,
+                CustomerAdvanceApplied = s.CustomerAdvanceApplied,
+                CustomerAdvanceCreated = s.CustomerAdvanceCreated,
+                ChangeAmount = s.ChangeAmount,
                 Status = ToStatus(s.IsActive),
                 CreatedAt = s.CreatedAt,
                 ModifiedAt = s.UpdatedAt ?? s.CreatedAt,
@@ -2075,6 +2079,10 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string PaymentMethod { get; set; } = string.Empty;
         public string ElectronicInvoicingStatus { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
+        public decimal AmountReceived { get; set; }
+        public decimal CustomerAdvanceApplied { get; set; }
+        public decimal CustomerAdvanceCreated { get; set; }
+        public decimal ChangeAmount { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus, MapPin } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus, MapPin, Banknote, Landmark, WalletCards } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Product {
@@ -67,6 +67,11 @@ interface SaleResult {
     date: string;
     totalAmount: number;
     paymentMethod: string;
+    amountReceived: number;
+    customerAdvanceApplied: number;
+    customerAdvanceCreated: number;
+    changeAmount: number;
+    customerAdvanceBalance: number;
     customerName?: string;
     cufe?: string;
     qrCode?: string;
@@ -96,6 +101,9 @@ const POS = () => {
     const [showTicketModal, setShowTicketModal] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountPaid, setAmountPaid] = useState(0);
+    const [customerAdvanceBalance, setCustomerAdvanceBalance] = useState(0);
+    const [advanceToApply, setAdvanceToApply] = useState(0);
+    const [saveExcessAsAdvance, setSaveExcessAsAdvance] = useState(false);
     const [lastSale, setLastSale] = useState<SaleResult | null>(null);
     const [processing, setProcessing] = useState(false);
 
@@ -152,6 +160,16 @@ const POS = () => {
         };
     }, { subTotal: 0, taxAmount: 0, total: 0, totalDiscount: 0 });
 
+    const roundedTotal = Number(total.toFixed(2));
+    const appliedAdvance = Math.min(
+        Math.max(0, advanceToApply),
+        Math.max(0, customerAdvanceBalance),
+        roundedTotal
+    );
+    const amountDue = Math.max(0, roundedTotal - appliedAdvance);
+    const paymentExcess = Math.max(0, amountPaid - amountDue);
+    const changeAmount = saveExcessAsAdvance && selectedCustomer ? 0 : paymentExcess;
+
     // --- Effects ---
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -161,12 +179,38 @@ const POS = () => {
         return () => clearTimeout(timer);
     }, [productSearch]);
 
-    // Update amountPaid when payment method changes (auto-fill total for non-cash)
+    // Update the tendered amount for electronic payments and applied advances.
     useEffect(() => {
         if (paymentMethod !== 'Cash') {
-            setAmountPaid(total);
+            setAmountPaid(amountDue);
         }
-    }, [paymentMethod, total]);
+    }, [paymentMethod, amountDue]);
+
+    useEffect(() => {
+        let isCurrent = true;
+
+        if (!selectedCustomer) {
+            setCustomerAdvanceBalance(0);
+            setAdvanceToApply(0);
+            setSaveExcessAsAdvance(false);
+            return;
+        }
+
+        setAdvanceToApply(0);
+        setSaveExcessAsAdvance(false);
+        api.get(`/CustomerAdvances/customer/${selectedCustomer.id}/balance`)
+            .then(response => {
+                if (isCurrent) setCustomerAdvanceBalance(Number(response.data?.balance) || 0);
+            })
+            .catch(error => {
+                console.error('Error fetching customer advance balance', error);
+                if (isCurrent) setCustomerAdvanceBalance(0);
+            });
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [selectedCustomer?.id]);
 
     useEffect(() => {
         if (customerSearch.length > 2) {
@@ -229,7 +273,9 @@ const POS = () => {
     // --- Checkout Logic ---
     const handleInitiateCheckout = () => {
         if (cart.length === 0) return;
-        setAmountPaid(total);
+        setAdvanceToApply(0);
+        setSaveExcessAsAdvance(false);
+        setAmountPaid(roundedTotal);
         setShowPaymentModal(true);
     };
 
@@ -293,6 +339,10 @@ const POS = () => {
 
     const processSale = async () => {
         if (cart.length === 0) return;
+        if (saveExcessAsAdvance && paymentExcess > 0 && !selectedCustomer) {
+            alert('Selecciona un cliente para guardar el excedente como anticipo.');
+            return;
+        }
         
         setProcessing(true);
         try {
@@ -306,7 +356,10 @@ const POS = () => {
                     discountType: item.discountType,
                     discountValue: item.discountValue
                 })),
-                paymentMethod
+                paymentMethod,
+                amountReceived: amountPaid,
+                advanceAmountToApply: appliedAdvance,
+                createAdvanceFromExcess: saveExcessAsAdvance && paymentExcess > 0
             };
 
             const response = await api.post('/sales/checkout', payload);
@@ -560,8 +613,8 @@ const POS = () => {
                         </div>
                         
                         <div className="p-4 sm:p-6">
-                            <div className="text-center mb-6">
-                                <p className="text-gray-500 text-sm uppercase tracking-wide mb-1">Total a Pagar</p>
+                            <div className="mb-6 text-center">
+                                <p className="mb-1 text-sm font-medium uppercase text-gray-500">Total de la factura</p>
                                 <p className="break-words text-3xl font-extrabold text-slate-800 sm:text-4xl">${total.toFixed(2)}</p>
                             </div>
 
@@ -571,21 +624,74 @@ const POS = () => {
                                         key={method}
                                         onClick={() => setPaymentMethod(method)}
                                         className={clsx(
-                                            "py-3 px-2 rounded-xl border-2 font-medium text-sm transition-all flex flex-col items-center justify-center gap-2",
+                                            "flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border-2 px-2 py-3 text-sm font-medium transition-all",
                                             paymentMethod === method 
                                                 ? "border-blue-600 bg-blue-50 text-blue-700" 
                                                 : "border-gray-100 bg-white text-gray-600 hover:border-gray-200 hover:bg-gray-50"
                                         )}
                                     >
-                                        {method === 'Cash' && <span className="text-2xl">💵</span>}
-                                        {method === 'Card' && <span className="text-2xl">💳</span>}
-                                        {method === 'Transfer' && <span className="text-2xl">🏦</span>}
+                                        {method === 'Cash' && <Banknote size={22} />}
+                                        {method === 'Card' && <CreditCard size={22} />}
+                                        {method === 'Transfer' && <Landmark size={22} />}
                                         {method === 'Cash' ? 'Efectivo' : method === 'Card' ? 'Tarjeta' : 'Transferencia'}
                                     </button>
                                 ))}
                             </div>
 
                             <div className="mb-6 space-y-4">
+                                {selectedCustomer && (
+                                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                <WalletCards className="text-blue-600" size={19} />
+                                                Anticipo disponible
+                                            </div>
+                                            <span className="text-lg font-bold text-blue-700">${customerAdvanceBalance.toFixed(2)}</span>
+                                        </div>
+                                        {customerAdvanceBalance > 0 && (
+                                            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-slate-500">$</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max={Math.min(customerAdvanceBalance, roundedTotal)}
+                                                        step="0.01"
+                                                        value={advanceToApply || ''}
+                                                        onChange={(e) => {
+                                                            const requested = parseFloat(e.target.value) || 0;
+                                                            const validAmount = Math.min(Math.max(0, requested), customerAdvanceBalance, roundedTotal);
+                                                            setAdvanceToApply(requested);
+                                                            setAmountPaid(Math.max(0, roundedTotal - validAmount));
+                                                        }}
+                                                        onBlur={() => setAdvanceToApply(appliedAdvance)}
+                                                        className="w-full rounded-lg border border-blue-200 bg-white py-2.5 pl-7 pr-3 font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                        aria-label="Valor del anticipo a aplicar"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const maximum = Math.min(customerAdvanceBalance, roundedTotal);
+                                                        setAdvanceToApply(maximum);
+                                                        setAmountPaid(Math.max(0, roundedTotal - maximum));
+                                                    }}
+                                                    className="k-button-secondary px-3 text-sm"
+                                                >
+                                                    Usar saldo
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {appliedAdvance > 0 && (
+                                    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                                        <span className="font-medium text-slate-600">Pendiente por recibir</span>
+                                        <span className="font-bold text-slate-900">${amountDue.toFixed(2)}</span>
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Monto Recibido
@@ -603,17 +709,36 @@ const POS = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                                    <span className="text-slate-600 font-medium">Su cambio:</span>
-                                    <span className={clsx("text-2xl font-bold", (amountPaid - Number(total.toFixed(2))) >= 0 ? "text-green-600" : "text-red-500")}>
-                                        ${Math.max(0, amountPaid - total).toFixed(2)}
+                                {selectedCustomer && paymentExcess > 0 && (
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={saveExcessAsAdvance}
+                                            onChange={(e) => setSaveExcessAsAdvance(e.target.checked)}
+                                            className="mt-0.5 h-5 w-5 accent-emerald-600"
+                                        />
+                                        <span>
+                                            <span className="block font-semibold text-slate-800">Guardar excedente como anticipo</span>
+                                            <span className="mt-1 block text-sm text-slate-600">
+                                                ${paymentExcess.toFixed(2)} quedarán disponibles para futuras facturas de {selectedCustomer.firstName}.
+                                            </span>
+                                        </span>
+                                    </label>
+                                )}
+
+                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <span className="font-medium text-slate-600">
+                                        {saveExcessAsAdvance && paymentExcess > 0 ? 'Anticipo a favor' : 'Cambio'}
+                                    </span>
+                                    <span className={clsx("text-2xl font-bold", amountPaid >= amountDue ? "text-emerald-600" : "text-red-500")}>
+                                        ${(saveExcessAsAdvance ? paymentExcess : changeAmount).toFixed(2)}
                                     </span>
                                 </div>
                             </div>
 
                             <button 
                                 onClick={processSale}
-                                disabled={processing || amountPaid < Number(total.toFixed(2))}
+                                disabled={processing || amountPaid < amountDue}
                                 className="k-button-success w-full py-4 text-lg disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {processing ? (
@@ -678,12 +803,32 @@ const POS = () => {
                                     </div>
                                     <div className="flex justify-between text-gray-500 mt-2">
                                         <span>Pago ({lastSale.paymentMethod})</span>
-                                        <span>${amountPaid.toFixed(2)}</span>
+                                        <span>${lastSale.amountReceived.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between text-gray-500">
-                                        <span>Cambio</span>
-                                        <span>${Math.max(0, amountPaid - lastSale.totalAmount).toFixed(2)}</span>
-                                    </div>
+                                    {lastSale.customerAdvanceApplied > 0 && (
+                                        <div className="flex justify-between text-blue-700">
+                                            <span>Anticipo aplicado</span>
+                                            <span>-${lastSale.customerAdvanceApplied.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {lastSale.customerAdvanceCreated > 0 && (
+                                        <div className="flex justify-between font-semibold text-emerald-700">
+                                            <span>Nuevo anticipo</span>
+                                            <span>${lastSale.customerAdvanceCreated.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {lastSale.changeAmount > 0 && (
+                                        <div className="flex justify-between text-gray-500">
+                                            <span>Cambio</span>
+                                            <span>${lastSale.changeAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {(lastSale.customerAdvanceApplied > 0 || lastSale.customerAdvanceCreated > 0) && (
+                                        <div className="mt-2 flex justify-between border-t border-dashed border-gray-300 pt-2 font-bold">
+                                            <span>Saldo de anticipos</span>
+                                            <span>${lastSale.customerAdvanceBalance.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 
                                 {/* Electronic Invoicing */}

@@ -7,6 +7,9 @@ namespace TPV.Application.DTOs
         public int BranchId { get; set; }
         public int? CustomerId { get; set; }
         public string PaymentMethod { get; set; }
+        public decimal? AmountReceived { get; set; }
+        public decimal AdvanceAmountToApply { get; set; }
+        public bool CreateAdvanceFromExcess { get; set; }
         public List<SaleItemCreateDto> Items { get; set; } = new();
     }
 

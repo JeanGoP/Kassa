@@ -53,7 +53,7 @@ namespace TPV.Application.Services
             if (session == null || session.IsClosed) return session == null ? null : Map(session);
 
             var sales = await _saleRepository.GetAsync(s => s.BranchId == session.BranchId && s.Date >= session.OpeningTime);
-            var totalSales = sales.Sum(s => s.TotalAmount);
+            var totalSales = sales.Sum(s => (s.AmountReceived ?? s.TotalAmount) - s.ChangeAmount);
 
             session.ClosingTime = DateTime.Now;
             session.ClosingBalance = closingBalance;
@@ -80,4 +80,3 @@ namespace TPV.Application.Services
         };
     }
 }
-

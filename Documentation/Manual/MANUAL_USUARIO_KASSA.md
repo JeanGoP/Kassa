@@ -70,13 +70,23 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 1. Abra CAJA, cuente el efectivo y registre SALDO INICIAL.
 2. En PUNTO DE VENTA seleccione cliente y artículos.
 3. Revise cantidades, precios, descuentos, impuestos y total.
-4. Seleccione PAGAR, elija el medio y confirme.
-5. Entregue el comprobante.
-6. Al terminar, concilie y cierre caja con el SALDO FINAL real.
+4. Seleccione PAGAR y elija el medio. Si el cliente tiene saldo a favor, escriba el valor que desea usar o seleccione USAR SALDO; el sistema descuenta ese anticipo del valor pendiente por recibir.
+5. Registre el MONTO RECIBIDO. Cuando el cliente entregue más dinero que el total pendiente, active GUARDAR EXCEDENTE COMO ANTICIPO para conservarlo a su favor; si no lo activa, el excedente se calcula como cambio.
+6. Confirme el pago y entregue el comprobante. Este discrimina el dinero recibido, el anticipo aplicado o creado, el cambio y el nuevo saldo del cliente.
+7. Al terminar, concilie y cierre caja con el SALDO FINAL real. La caja contabiliza el dinero efectivamente retenido, sin duplicar los anticipos aplicados.
 
 ![Punto de venta](assets/02_punto_venta.png)
 
-En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. En HISTORIAL DE VENTAS consulte detalles y registre devoluciones con inventario o notas crédito sin inventario, siempre con motivo.
+En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. La cantidad cotizada no reserva ni descuenta inventario: facture únicamente lo entregado y guarde como anticipo cualquier excedente recibido para la entrega pendiente. En HISTORIAL DE VENTAS consulte detalles y registre devoluciones con inventario o notas crédito sin inventario, siempre con motivo.
+
+### CONSULTAR ANTICIPOS DE CLIENTES
+
+1. Abra OPERACIONES > ANTICIPOS DE CLIENTES.
+2. Busque por nombre o identificación y seleccione el cliente.
+3. Revise el SALDO DISPONIBLE y cada movimiento: RECIBIDO aumenta el saldo y APLICADO lo disminuye.
+4. Use la factura, referencia, sucursal, fecha y forma de pago para auditar el origen o la aplicación del valor.
+
+Las cuentas con saldo cero permanecen disponibles para consulta histórica. Los anticipos no se editan ni se borran desde esta pantalla; se constituyen y aplican al confirmar ventas para conservar la trazabilidad.
 
 ## 5. ENTRADAS DE MERCANCÍA
 

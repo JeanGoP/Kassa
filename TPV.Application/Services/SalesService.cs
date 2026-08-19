@@ -20,6 +20,8 @@ namespace TPV.Application.Services
         private readonly IStockService _stockService;
         private readonly IRepository<UnitOfMeasure> _unitRepository;
         private readonly IRepository<SaleAdjustment> _adjustmentRepository;
+        private readonly ICustomerAdvanceService _customerAdvanceService;
+        private readonly IApplicationTransaction _transaction;
 
         public SalesService(
             IRepository<Sale> saleRepository,
@@ -30,7 +32,9 @@ namespace TPV.Application.Services
             IUserService userService,
             IStockService stockService,
             IRepository<UnitOfMeasure> unitRepository,
-            IRepository<SaleAdjustment> adjustmentRepository)
+            IRepository<SaleAdjustment> adjustmentRepository,
+            ICustomerAdvanceService customerAdvanceService,
+            IApplicationTransaction transaction)
         {
             _saleRepository = saleRepository;
             _saleDetailRepository = saleDetailRepository;
@@ -41,6 +45,8 @@ namespace TPV.Application.Services
             _stockService = stockService;
             _unitRepository = unitRepository;
             _adjustmentRepository = adjustmentRepository;
+            _customerAdvanceService = customerAdvanceService;
+            _transaction = transaction;
         }
 
         public async Task<SaleResultDto> CreateSaleAsync(SaleCreateDto dto, string userId)
@@ -120,110 +126,102 @@ namespace TPV.Application.Services
                     product.PriceIncludesIva, product.BrandId, product.Brand?.Name, BuildCategoryPath(product.Category)));
             }
 
-            var sale = new Sale
+            var total = decimal.Round(processedItems.Sum(item =>
             {
-                BranchId = dto.BranchId,
-                CustomerId = dto.CustomerId,
-                Date = DateTime.Now,
-                PaymentMethod = dto.PaymentMethod,
-                InvoiceNumber = $"V-{DateTime.Now:yyyyMMddHHmmss}-{dto.BranchId}",
-                UserId = userId,
-                TotalAmount = 0 // Se recalcula más abajo con IVA discriminado
-            };
+                var amounts = CalculateLineAmounts(item.UnitPrice, item.Quantity, item.DiscountAmount,
+                    item.IvaType, item.IvaRate, item.PriceIncludesIva);
+                return amounts.LineBase + amounts.LineTax;
+            }), 2);
 
-            sale = await _saleRepository.AddAsync(sale);
+            if (dto.AdvanceAmountToApply < 0)
+                throw new InvalidOperationException("El anticipo a aplicar no puede ser negativo.");
+            if (!dto.CustomerId.HasValue && (dto.AdvanceAmountToApply > 0 || dto.CreateAdvanceFromExcess))
+                throw new InvalidOperationException("Seleccione un cliente para registrar o aplicar anticipos.");
 
-            decimal total = 0;
+            var advanceApplied = decimal.Round(dto.AdvanceAmountToApply, 2);
+            if (advanceApplied > total)
+                throw new InvalidOperationException("El anticipo aplicado no puede superar el total de la factura.");
 
-            foreach (var item in processedItems)
+            var amountDue = total - advanceApplied;
+            var amountReceived = decimal.Round(dto.AmountReceived ?? amountDue, 2);
+            if (amountReceived < 0)
+                throw new InvalidOperationException("El valor recibido no puede ser negativo.");
+            if (amountReceived < amountDue)
+                throw new InvalidOperationException($"Faltan {(amountDue - amountReceived):N2} para completar el pago de la factura.");
+
+            var excess = amountReceived - amountDue;
+            var advanceCreated = dto.CreateAdvanceFromExcess ? excess : 0m;
+            var changeAmount = dto.CreateAdvanceFromExcess ? 0m : excess;
+
+            var saleId = await _transaction.ExecuteAsync(async () =>
             {
-                decimal lineBase;
-                decimal lineTax;
-
-                if (item.IvaType == "Exento" || item.IvaType == "Excluido" || item.IvaRate <= 0)
+                if (dto.CustomerId.HasValue && advanceApplied > 0)
                 {
-                    lineBase = item.UnitPrice * item.Quantity - item.DiscountAmount;
-                    lineTax = 0;
-                }
-                else if (item.PriceIncludesIva)
-                {
-                    var divisor = 1 + (item.IvaRate / 100m);
-                    var gross = item.UnitPrice * item.Quantity - item.DiscountAmount;
-                    var baseAmount = decimal.Round(gross / divisor, 2);
-                    var taxAmount = gross - baseAmount;
-                    lineBase = baseAmount;
-                    lineTax = taxAmount;
-                }
-                else
-                {
-                    lineBase = item.UnitPrice * item.Quantity - item.DiscountAmount;
-                    lineTax = decimal.Round(lineBase * (item.IvaRate / 100m), 2);
+                    var availableBalance = await _customerAdvanceService.GetBalanceAsync(dto.CustomerId.Value);
+                    if (advanceApplied > availableBalance)
+                        throw new InvalidOperationException($"El cliente solo tiene {availableBalance:N2} disponibles en anticipos.");
                 }
 
-                var detail = new SaleDetail
+                var sale = await _saleRepository.AddAsync(new Sale
                 {
-                    SaleId = sale.Id,
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitOfMeasureId = item.UnitId,
-                    UnitCode = item.UnitCode,
-                    QuantityBase = item.BaseQuantity,
-                    UnitPrice = item.UnitPrice, // Usar precio verificado
-                    DiscountAmount = item.DiscountAmount,
-                    SubTotal = lineBase + lineTax,
-                    TaxRate = item.IvaRate,
-                    TaxAmount = lineTax,
-                    UnitCost = item.UnitCost,
-                    TotalCost = item.TotalCost,
-                    BrandId = item.BrandId,
-                    BrandName = item.BrandName,
-                    AccountingClassification = item.Classification
-                };
-                await _saleDetailRepository.AddAsync(detail);
+                    BranchId = dto.BranchId,
+                    CustomerId = dto.CustomerId,
+                    Date = DateTime.Now,
+                    PaymentMethod = dto.PaymentMethod,
+                    InvoiceNumber = $"V-{DateTime.Now:yyyyMMddHHmmssfff}-{dto.BranchId}",
+                    UserId = userId,
+                    TotalAmount = total,
+                    AmountReceived = amountReceived,
+                    CustomerAdvanceApplied = advanceApplied,
+                    CustomerAdvanceCreated = advanceCreated,
+                    ChangeAmount = changeAmount
+                });
 
-                total += lineBase + lineTax;
-
-                await _stockService.ApplyMovementAsync(item.ProductId, dto.BranchId, item.Quantity, item.UnitId, false,
-                    "VENTA", "VENTA", sale.Id, sale.InvoiceNumber, null, null, userId);
-            }
-
-            sale.TotalAmount = total;
-            await _saleRepository.UpdateAsync(sale);
-
-            // Facturación Electrónica
-            try 
-            {
-                // Recargar venta completa con relaciones necesarias
-                // Nota: Dependiendo de la implementación del repo, "SaleDetails.Product" podría requerir configuración.
-                // Si falla, se podría necesitar cargar explícitamente.
-                var fullSaleList = await _saleRepository.GetAsync(s => s.Id == sale.Id, null, "Customer,SaleDetails.Product");
-                var fullSale = fullSaleList.FirstOrDefault();
-
-                if (fullSale != null)
+                foreach (var item in processedItems)
                 {
-                    var invoiceResult = await _electronicInvoicingService.GenerateInvoiceAsync(fullSale);
-                    if (invoiceResult.Success)
+                    var amounts = CalculateLineAmounts(item.UnitPrice, item.Quantity, item.DiscountAmount,
+                        item.IvaType, item.IvaRate, item.PriceIncludesIva);
+                    await _saleDetailRepository.AddAsync(new SaleDetail
                     {
-                        fullSale.Cufe = invoiceResult.Cufe;
-                        fullSale.QrCode = invoiceResult.QrCode;
-                        fullSale.ElectronicInvoiceId = invoiceResult.ElectronicInvoiceId;
-                        fullSale.ElectronicInvoicingStatus = "Sent";
-                    }
-                    else
-                    {
-                        fullSale.ElectronicInvoicingStatus = "Error";
-                        // Podríamos guardar el mensaje de error si hubiera un campo para ello
-                    }
-                    await _saleRepository.UpdateAsync(fullSale);
-                }
-            }
-            catch (Exception ex)
-            {
-                // No detener la venta si falla la facturación, solo loguear (o marcar error)
-                Console.WriteLine($"Error en facturación electrónica: {ex.Message}");
-            }
+                        SaleId = sale.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitOfMeasureId = item.UnitId,
+                        UnitCode = item.UnitCode,
+                        QuantityBase = item.BaseQuantity,
+                        UnitPrice = item.UnitPrice,
+                        DiscountAmount = item.DiscountAmount,
+                        SubTotal = amounts.LineBase + amounts.LineTax,
+                        TaxRate = item.IvaRate,
+                        TaxAmount = amounts.LineTax,
+                        UnitCost = item.UnitCost,
+                        TotalCost = item.TotalCost,
+                        BrandId = item.BrandId,
+                        BrandName = item.BrandName,
+                        AccountingClassification = item.Classification
+                    });
 
-            return await GetSaleAsync(sale.Id);
+                    await _stockService.ApplyMovementAsync(item.ProductId, dto.BranchId, item.Quantity, item.UnitId, false,
+                        "VENTA", "VENTA", sale.Id, sale.InvoiceNumber, null, null, userId);
+                }
+
+                if (dto.CustomerId.HasValue && advanceApplied > 0)
+                {
+                    await _customerAdvanceService.RegisterApplicationAsync(dto.CustomerId.Value, dto.BranchId, sale.Id,
+                        advanceApplied, sale.InvoiceNumber, "Aplicación de anticipo a factura", userId);
+                }
+
+                if (dto.CustomerId.HasValue && advanceCreated > 0)
+                {
+                    await _customerAdvanceService.RegisterCreditAsync(dto.CustomerId.Value, dto.BranchId, sale.Id,
+                        advanceCreated, dto.PaymentMethod, sale.InvoiceNumber, "Excedente recibido para entrega pendiente", userId);
+                }
+
+                return sale.Id;
+            });
+
+            await TryEmitInvoiceAsync(saleId);
+            return await GetSaleAsync(saleId);
         }
 
         public async Task<SaleResultDto> EmitInvoiceAsync(int saleId)
@@ -275,6 +273,10 @@ namespace TPV.Application.Services
                 Date = s.Date,
                 TotalAmount = s.TotalAmount,
                 PaymentMethod = s.PaymentMethod,
+                AmountReceived = s.AmountReceived ?? s.TotalAmount,
+                CustomerAdvanceApplied = s.CustomerAdvanceApplied,
+                CustomerAdvanceCreated = s.CustomerAdvanceCreated,
+                ChangeAmount = s.ChangeAmount,
                 CustomerName = s.Customer != null ? $"{s.Customer.FirstName} {s.Customer.LastName}" : "Cliente General",
                 Cufe = s.Cufe,
                 QrCode = s.QrCode,
@@ -324,6 +326,13 @@ namespace TPV.Application.Services
                 CustomerName = sale.Customer != null ? $"{sale.Customer.FirstName} {sale.Customer.LastName}".Trim() : null,
                 TotalAmount = sale.TotalAmount,
                 PaymentMethod = sale.PaymentMethod,
+                AmountReceived = sale.AmountReceived ?? sale.TotalAmount,
+                CustomerAdvanceApplied = sale.CustomerAdvanceApplied,
+                CustomerAdvanceCreated = sale.CustomerAdvanceCreated,
+                ChangeAmount = sale.ChangeAmount,
+                CustomerAdvanceBalance = sale.CustomerId.HasValue
+                    ? await _customerAdvanceService.GetBalanceAsync(sale.CustomerId.Value)
+                    : 0m,
                 Cufe = sale.Cufe,
                 QrCode = sale.QrCode,
                 ElectronicInvoiceId = sale.ElectronicInvoiceId,
@@ -470,6 +479,40 @@ namespace TPV.Application.Services
                 SubTotal = d.SubTotal
             }).ToList()
         };
+
+        private async Task TryEmitInvoiceAsync(int saleId)
+        {
+            try
+            {
+                await EmitInvoiceAsync(saleId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en facturación electrónica: {ex.Message}");
+            }
+        }
+
+        private static (decimal LineBase, decimal LineTax) CalculateLineAmounts(
+            decimal unitPrice,
+            decimal quantity,
+            decimal discountAmount,
+            string ivaType,
+            decimal ivaRate,
+            bool priceIncludesIva)
+        {
+            if (ivaType == "Exento" || ivaType == "Excluido" || ivaRate <= 0)
+                return (unitPrice * quantity - discountAmount, 0m);
+
+            if (priceIncludesIva)
+            {
+                var gross = unitPrice * quantity - discountAmount;
+                var lineBase = decimal.Round(gross / (1 + ivaRate / 100m), 2);
+                return (lineBase, gross - lineBase);
+            }
+
+            var taxableBase = unitPrice * quantity - discountAmount;
+            return (taxableBase, decimal.Round(taxableBase * ivaRate / 100m, 2));
+        }
 
         private static string BuildCategoryPath(Category? category)
         {

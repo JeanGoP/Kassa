@@ -13,6 +13,11 @@ namespace TPV.Application.DTOs
         public string? CustomerName { get; set; }
         public decimal TotalAmount { get; set; }
         public string PaymentMethod { get; set; }
+        public decimal AmountReceived { get; set; }
+        public decimal CustomerAdvanceApplied { get; set; }
+        public decimal CustomerAdvanceCreated { get; set; }
+        public decimal ChangeAmount { get; set; }
+        public decimal CustomerAdvanceBalance { get; set; }
         public string? Cufe { get; set; }
         public string? QrCode { get; set; }
         public string? ElectronicInvoiceId { get; set; }

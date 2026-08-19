@@ -38,6 +38,7 @@ namespace TPV.Infrastructure.Persistence
         public DbSet<Purchase> Purchases { get; set; }
         public DbSet<PurchaseDetail> PurchaseDetails { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<CustomerAdvanceMovement> CustomerAdvanceMovements { get; set; }
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
         public DbSet<ServiceOrderWork> ServiceOrderWorks { get; set; }
         public DbSet<ServiceOrderPart> ServiceOrderParts { get; set; }
@@ -161,6 +162,20 @@ namespace TPV.Infrastructure.Persistence
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<SaleDetail>().Property(d => d.DiscountAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<Sale>().Property(s => s.AmountReceived).HasColumnType("decimal(18,2)");
+            builder.Entity<Sale>().Property(s => s.CustomerAdvanceApplied).HasColumnType("decimal(18,2)");
+            builder.Entity<Sale>().Property(s => s.CustomerAdvanceCreated).HasColumnType("decimal(18,2)");
+            builder.Entity<Sale>().Property(s => s.ChangeAmount).HasColumnType("decimal(18,2)");
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.MovementType).HasMaxLength(30);
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.Amount).HasColumnType("decimal(18,2)");
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.PaymentMethod).HasMaxLength(40);
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.Reference).HasMaxLength(120);
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.Notes).HasMaxLength(500);
+            builder.Entity<CustomerAdvanceMovement>().Property(m => m.CreatedByUserId).HasMaxLength(450);
+            builder.Entity<CustomerAdvanceMovement>().HasIndex(m => new { m.TenantId, m.CustomerId, m.Date });
+            builder.Entity<CustomerAdvanceMovement>().HasOne(m => m.Customer).WithMany().HasForeignKey(m => m.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<CustomerAdvanceMovement>().HasOne(m => m.Branch).WithMany().HasForeignKey(m => m.BranchId).OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<CustomerAdvanceMovement>().HasOne(m => m.Sale).WithMany().HasForeignKey(m => m.SaleId).OnDelete(DeleteBehavior.Restrict);
             builder.Entity<SaleDetail>().Property(d => d.UnitCost).HasColumnType("decimal(18,4)");
             builder.Entity<SaleDetail>().Property(d => d.TotalCost).HasColumnType("decimal(18,2)");
             builder.Entity<SaleDetail>().Property(d => d.BrandName).HasMaxLength(120);

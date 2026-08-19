@@ -34,6 +34,7 @@ import Tenants from './pages/Tenants';
 import WorkshopDashboard from './pages/WorkshopDashboard';
 import Warranties from './pages/Warranties';
 import VehicleCatalogs from './pages/VehicleCatalogs';
+import CustomerAdvances from './pages/CustomerAdvances';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
@@ -65,6 +66,7 @@ const AppRoutes = () => {
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="motorcycle-services" element={<MotorcycleServices />} />
                 <Route path="sales-history" element={<SalesHistory />} />
+                <Route path="customer-advances" element={<CustomerAdvances />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="inventory/adjustments" element={<StockAdjustments />} />
                 <Route path="inventory/transfers" element={<StockTransfers />} />

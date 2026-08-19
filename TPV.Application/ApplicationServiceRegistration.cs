@@ -21,6 +21,7 @@ namespace TPV.Application
             services.AddScoped<IPurchaseService, PurchaseService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<ICustomerAdvanceService, CustomerAdvanceService>();
             services.AddScoped<IServiceOrderService, ServiceOrderService>();
             services.AddScoped<ITechnicianService, TechnicianService>();
             services.AddScoped<IWorkshopManagerService, WorkshopManagerService>();
