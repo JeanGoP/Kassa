@@ -67,7 +67,15 @@ namespace TPV.Application.DTOs
         public string? RequestedByEmail { get; set; }
         public string? Notes { get; set; }
         public decimal TotalAmount { get; set; }
+        public int? CustomerId { get; set; }
+        public string? CustomerName { get; set; }
+        public string Status { get; set; } = "PENDIENTE";
+        public decimal InvoicedAmount { get; set; }
+        public decimal PendingAmount { get; set; }
+        public decimal AdvanceCreated { get; set; }
+        public decimal AdvanceApplied { get; set; }
         public List<QuotationDetailDto> Details { get; set; } = new();
+        public List<QuotationInvoiceDto> Invoices { get; set; } = new();
     }
 
     public class QuotationDetailDto
@@ -81,6 +89,18 @@ namespace TPV.Application.DTOs
         public decimal AvailableQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal SubTotal { get; set; }
+        public decimal InvoicedQuantity { get; set; }
+        public decimal PendingQuantity { get; set; }
+    }
+
+    public class QuotationInvoiceDto
+    {
+        public int SaleId { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal AdvanceCreated { get; set; }
+        public decimal AdvanceApplied { get; set; }
     }
 
     public class QuotationReportFilterDto

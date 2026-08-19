@@ -20,6 +20,7 @@ namespace TPV.Application.Services
         private readonly IStockService _stockService;
         private readonly IRepository<UnitOfMeasure> _unitRepository;
         private readonly IRepository<SaleAdjustment> _adjustmentRepository;
+        private readonly IRepository<Quotation> _quotationRepository;
         private readonly ICustomerAdvanceService _customerAdvanceService;
         private readonly IApplicationTransaction _transaction;
 
@@ -33,6 +34,7 @@ namespace TPV.Application.Services
             IStockService stockService,
             IRepository<UnitOfMeasure> unitRepository,
             IRepository<SaleAdjustment> adjustmentRepository,
+            IRepository<Quotation> quotationRepository,
             ICustomerAdvanceService customerAdvanceService,
             IApplicationTransaction transaction)
         {
@@ -45,6 +47,7 @@ namespace TPV.Application.Services
             _stockService = stockService;
             _unitRepository = unitRepository;
             _adjustmentRepository = adjustmentRepository;
+            _quotationRepository = quotationRepository;
             _customerAdvanceService = customerAdvanceService;
             _transaction = transaction;
         }
@@ -59,8 +62,40 @@ namespace TPV.Application.Services
             if (dto.Items == null || dto.Items.Count == 0)
                 throw new InvalidOperationException("No hay ítems en la venta.");
 
+            Quotation? sourceQuotation = null;
+            var invoicedByQuotationDetail = new Dictionary<int, decimal>();
+            if (dto.QuotationId.HasValue)
+            {
+                if (!dto.CustomerId.HasValue)
+                    throw new InvalidOperationException("Seleccione el cliente para facturar esta cotización.");
+                if (dto.Items.Any(item => !item.QuotationDetailId.HasValue))
+                    throw new InvalidOperationException("Todos los artículos deben conservar su línea de cotización de origen.");
+                if (dto.Items.GroupBy(item => item.QuotationDetailId).Any(group => group.Count() > 1))
+                    throw new InvalidOperationException("Una línea de cotización no puede repetirse en la misma factura.");
+
+                sourceQuotation = (await _quotationRepository.GetAsync(
+                    quotation => quotation.Id == dto.QuotationId.Value,
+                    null,
+                    "Details",
+                    false)).FirstOrDefault()
+                    ?? throw new InvalidOperationException("La cotización de origen no existe.");
+
+                if (sourceQuotation.CustomerId.HasValue && sourceQuotation.CustomerId != dto.CustomerId)
+                    throw new InvalidOperationException("La cotización ya está asociada a otro cliente.");
+
+                var previousDetails = await _saleDetailRepository.GetAsync(
+                    detail => detail.Sale.QuotationId == sourceQuotation.Id && detail.QuotationDetailId.HasValue);
+                invoicedByQuotationDetail = previousDetails
+                    .GroupBy(detail => detail.QuotationDetailId!.Value)
+                    .ToDictionary(group => group.Key, group => group.Sum(detail => detail.Quantity));
+            }
+            else if (dto.Items.Any(item => item.QuotationDetailId.HasValue))
+            {
+                throw new InvalidOperationException("No se puede indicar una línea cotizada sin la cotización de origen.");
+            }
+
             // Validar stock disponible y obtener precios reales
-            var processedItems = new List<(int ProductId, decimal Quantity, int UnitId, string UnitCode, decimal BaseQuantity,
+            var processedItems = new List<(int ProductId, int? QuotationDetailId, decimal Quantity, int UnitId, string UnitCode, decimal BaseQuantity,
                 decimal UnitPrice, decimal DiscountAmount, decimal UnitCost, decimal TotalCost, string ProductName,
                 decimal IvaRate, string IvaType, bool PriceIncludesIva, int? BrandId, string? BrandName, string Classification)>();
 
@@ -71,6 +106,22 @@ namespace TPV.Application.Services
                 if (product == null)
                     throw new InvalidOperationException($"Producto con ID {item.ProductId} no encontrado.");
                 if (item.Quantity <= 0) throw new InvalidOperationException("La cantidad debe ser mayor que cero.");
+
+                QuotationDetail? quotationDetail = null;
+                if (sourceQuotation != null)
+                {
+                    quotationDetail = sourceQuotation.Details.FirstOrDefault(detail => detail.Id == item.QuotationDetailId)
+                        ?? throw new InvalidOperationException("La línea indicada no pertenece a la cotización de origen.");
+                    if (quotationDetail.ProductId != item.ProductId)
+                        throw new InvalidOperationException("El artículo no coincide con la línea de cotización seleccionada.");
+
+                    var alreadyInvoiced = invoicedByQuotationDetail.GetValueOrDefault(quotationDetail.Id);
+                    var pendingQuantity = quotationDetail.Quantity - alreadyInvoiced;
+                    if (pendingQuantity <= 0)
+                        throw new InvalidOperationException($"'{quotationDetail.ProductName}' ya fue facturado completamente.");
+                    if (item.Quantity > pendingQuantity)
+                        throw new InvalidOperationException($"Solo quedan {pendingQuantity:N4} unidades pendientes de '{quotationDetail.ProductName}'.");
+                }
 
                 var unitId = item.UnitOfMeasureId ?? product.SaleUnitId ?? product.BaseUnitId
                     ?? throw new InvalidOperationException($"El producto '{product.Name}' no tiene unidad de venta configurada.");
@@ -110,6 +161,9 @@ namespace TPV.Application.Services
                     finalPrice = System.Math.Round(finalPrice, 2);
                 }
 
+                if (quotationDetail != null)
+                    finalPrice = quotationDetail.UnitPrice;
+
                 var discountType = string.IsNullOrWhiteSpace(item.DiscountType) ? "NONE" : item.DiscountType.Trim().ToUpperInvariant();
                 if (discountType != "NONE" && discountType != "PERCENT" && discountType != "FIXED")
                     throw new InvalidOperationException("El tipo de descuento no es válido.");
@@ -121,7 +175,7 @@ namespace TPV.Application.Services
                 var unitCost = stock.Cost * factor;
                 var totalCost = stock.Cost * baseQuantity;
 
-                processedItems.Add((item.ProductId, item.Quantity, unit.Id, unit.Code, baseQuantity, finalPrice,
+                processedItems.Add((item.ProductId, quotationDetail?.Id, item.Quantity, unit.Id, unit.Code, baseQuantity, finalPrice,
                     discountAmount, unitCost, totalCost, product.Name, product.IvaRate, product.IvaType,
                     product.PriceIncludesIva, product.BrandId, product.Brand?.Name, BuildCategoryPath(product.Category)));
             }
@@ -174,7 +228,8 @@ namespace TPV.Application.Services
                     AmountReceived = amountReceived,
                     CustomerAdvanceApplied = advanceApplied,
                     CustomerAdvanceCreated = advanceCreated,
-                    ChangeAmount = changeAmount
+                    ChangeAmount = changeAmount,
+                    QuotationId = sourceQuotation?.Id
                 });
 
                 foreach (var item in processedItems)
@@ -185,6 +240,7 @@ namespace TPV.Application.Services
                     {
                         SaleId = sale.Id,
                         ProductId = item.ProductId,
+                        QuotationDetailId = item.QuotationDetailId,
                         Quantity = item.Quantity,
                         UnitOfMeasureId = item.UnitId,
                         UnitCode = item.UnitCode,
@@ -215,6 +271,12 @@ namespace TPV.Application.Services
                 {
                     await _customerAdvanceService.RegisterCreditAsync(dto.CustomerId.Value, dto.BranchId, sale.Id,
                         advanceCreated, dto.PaymentMethod, sale.InvoiceNumber, "Excedente recibido para entrega pendiente", userId);
+                }
+
+                if (sourceQuotation != null && !sourceQuotation.CustomerId.HasValue)
+                {
+                    sourceQuotation.CustomerId = dto.CustomerId;
+                    await _quotationRepository.UpdateAsync(sourceQuotation);
                 }
 
                 return sale.Id;
@@ -263,7 +325,7 @@ namespace TPV.Application.Services
                      (string.IsNullOrEmpty(invoiceNumber) || s.InvoiceNumber.Contains(invoiceNumber)) &&
                      (string.IsNullOrEmpty(customerName) || (s.Customer != null && (s.Customer.FirstName.Contains(customerName) || s.Customer.LastName.Contains(customerName)))),
                 q => q.OrderByDescending(s => s.Date),
-                "Customer,SaleDetails.Product,Adjustments.Details.Product"
+                "Customer,Quotation,SaleDetails.Product,Adjustments.Details.Product"
             );
 
             return sales.Select(s => new SaleResultDto
@@ -282,10 +344,13 @@ namespace TPV.Application.Services
                 QrCode = s.QrCode,
                 ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
                 ServiceOrderId = s.ServiceOrderId,
+                QuotationId = s.QuotationId,
+                QuotationNumber = s.Quotation?.QuotationNumber,
                 Items = s.SaleDetails.Select(d => new SaleItemDto
                 {
                     SaleDetailId = d.Id,
                     ProductId = d.ProductId,
+                    QuotationDetailId = d.QuotationDetailId,
                     SKU = d.Product?.SKU ?? string.Empty,
                     ProductName = d.Product?.Name ?? "Unknown",
                     Quantity = d.Quantity,
@@ -311,7 +376,7 @@ namespace TPV.Application.Services
 
         public async Task<SaleResultDto> GetSaleAsync(int saleId)
         {
-            var saleList = await _saleRepository.GetAsync(s => s.Id == saleId, null, "Branch,Customer,Adjustments.Details.Product");
+            var saleList = await _saleRepository.GetAsync(s => s.Id == saleId, null, "Branch,Customer,Quotation,Adjustments.Details.Product");
             var sale = saleList.FirstOrDefault();
             if (sale == null) return null;
 
@@ -338,11 +403,14 @@ namespace TPV.Application.Services
                 ElectronicInvoiceId = sale.ElectronicInvoiceId,
                 ElectronicInvoicingStatus = sale.ElectronicInvoicingStatus,
                 ServiceOrderId = sale.ServiceOrderId,
+                QuotationId = sale.QuotationId,
+                QuotationNumber = sale.Quotation?.QuotationNumber,
                 Adjustments = sale.Adjustments.OrderByDescending(a => a.Date).Select(MapAdjustment).ToList(),
                 Items = details.Select(d => new SaleItemDto
                 {
                     SaleDetailId = d.Id,
                     ProductId = d.ProductId,
+                    QuotationDetailId = d.QuotationDetailId,
                     ProductName = d.Product?.Name,
                     SKU = d.Product?.SKU,
                     UnitPrice = d.UnitPrice,

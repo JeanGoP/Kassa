@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TPV.Domain.Common;
 
 namespace TPV.Domain.Entities
@@ -18,5 +19,7 @@ namespace TPV.Domain.Entities
         public decimal AvailableQuantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal SubTotal { get; set; }
+
+        public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }

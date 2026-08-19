@@ -6,6 +6,7 @@ namespace TPV.Application.DTOs
     {
         public int BranchId { get; set; }
         public int? CustomerId { get; set; }
+        public int? QuotationId { get; set; }
         public string PaymentMethod { get; set; }
         public decimal? AmountReceived { get; set; }
         public decimal AdvanceAmountToApply { get; set; }
@@ -16,6 +17,7 @@ namespace TPV.Application.DTOs
     public class SaleItemCreateDto
     {
         public int ProductId { get; set; }
+        public int? QuotationDetailId { get; set; }
         public decimal Quantity { get; set; }
         public int? UnitOfMeasureId { get; set; }
         public string DiscountType { get; set; } = "NONE";

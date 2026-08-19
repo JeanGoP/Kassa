@@ -177,7 +177,7 @@ namespace TPV.Application.Services
             var quotations = await _quotationRepository.GetAsync(
                 q => q.Id == id,
                 null,
-                "Details.Product");
+                "Details.Product,Sales.SaleDetails,Sales.Customer,Customer");
 
             var quotation = quotations.FirstOrDefault();
             return quotation == null ? null : MapQuotation(quotation);
@@ -196,7 +196,7 @@ namespace TPV.Application.Services
                       q.QuotationNumber.Contains(normalizedSearch) ||
                       q.RequestedByName.Contains(normalizedSearch)),
                 q => q.OrderByDescending(item => item.Date),
-                "Details");
+                "Details.Product,Sales.SaleDetails,Sales.Customer,Customer");
 
             return quotations.Select(MapQuotation);
         }
@@ -262,6 +262,39 @@ namespace TPV.Application.Services
 
         private static QuotationDto MapQuotation(Quotation quotation)
         {
+            var sales = quotation.Sales?.OrderBy(sale => sale.Date).ToList() ?? new List<Sale>();
+            var saleDetails = sales.SelectMany(sale => sale.SaleDetails ?? new List<SaleDetail>()).ToList();
+            var details = quotation.Details?
+                .OrderBy(detail => detail.Id)
+                .Select(detail =>
+                {
+                    var invoicedQuantity = saleDetails
+                        .Where(saleDetail => saleDetail.QuotationDetailId == detail.Id)
+                        .Sum(saleDetail => saleDetail.Quantity);
+                    var pendingQuantity = Math.Max(0m, detail.Quantity - invoicedQuantity);
+                    return new QuotationDetailDto
+                    {
+                        Id = detail.Id,
+                        ProductId = detail.ProductId,
+                        ProductName = string.IsNullOrWhiteSpace(detail.ProductName) ? detail.Product?.Name ?? string.Empty : detail.ProductName,
+                        SKU = string.IsNullOrWhiteSpace(detail.SKU) ? detail.Product?.SKU ?? string.Empty : detail.SKU,
+                        Barcode = detail.Barcode ?? detail.Product?.Barcode,
+                        Quantity = detail.Quantity,
+                        AvailableQuantity = detail.AvailableQuantity,
+                        UnitPrice = detail.UnitPrice,
+                        SubTotal = detail.SubTotal,
+                        InvoicedQuantity = invoicedQuantity,
+                        PendingQuantity = pendingQuantity
+                    };
+                })
+                .ToList() ?? new List<QuotationDetailDto>();
+
+            var invoicedQuantityTotal = details.Sum(detail => detail.InvoicedQuantity);
+            var pendingQuantityTotal = details.Sum(detail => detail.PendingQuantity);
+            var status = pendingQuantityTotal <= 0 ? "COMPLETADA"
+                : invoicedQuantityTotal > 0 ? "PARCIAL"
+                : "PENDIENTE";
+
             return new QuotationDto
             {
                 Id = quotation.Id,
@@ -272,21 +305,25 @@ namespace TPV.Application.Services
                 RequestedByEmail = quotation.RequestedByEmail,
                 Notes = quotation.Notes,
                 TotalAmount = quotation.TotalAmount,
-                Details = quotation.Details?
-                    .OrderBy(d => d.Id)
-                    .Select(d => new QuotationDetailDto
-                    {
-                        Id = d.Id,
-                        ProductId = d.ProductId,
-                        ProductName = string.IsNullOrWhiteSpace(d.ProductName) ? d.Product?.Name ?? string.Empty : d.ProductName,
-                        SKU = string.IsNullOrWhiteSpace(d.SKU) ? d.Product?.SKU ?? string.Empty : d.SKU,
-                        Barcode = d.Barcode ?? d.Product?.Barcode,
-                        Quantity = d.Quantity,
-                        AvailableQuantity = d.AvailableQuantity,
-                        UnitPrice = d.UnitPrice,
-                        SubTotal = d.SubTotal
-                    })
-                    .ToList() ?? new List<QuotationDetailDto>()
+                CustomerId = quotation.CustomerId,
+                CustomerName = quotation.Customer != null
+                    ? $"{quotation.Customer.FirstName} {quotation.Customer.LastName}".Trim()
+                    : null,
+                Status = status,
+                InvoicedAmount = sales.Sum(sale => sale.TotalAmount),
+                PendingAmount = details.Sum(detail => detail.PendingQuantity * detail.UnitPrice),
+                AdvanceCreated = sales.Sum(sale => sale.CustomerAdvanceCreated),
+                AdvanceApplied = sales.Sum(sale => sale.CustomerAdvanceApplied),
+                Details = details,
+                Invoices = sales.Select(sale => new QuotationInvoiceDto
+                {
+                    SaleId = sale.Id,
+                    InvoiceNumber = sale.InvoiceNumber,
+                    Date = sale.Date,
+                    TotalAmount = sale.TotalAmount,
+                    AdvanceCreated = sale.CustomerAdvanceCreated,
+                    AdvanceApplied = sale.CustomerAdvanceApplied
+                }).ToList()
             };
         }
     }

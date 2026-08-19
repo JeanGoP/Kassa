@@ -23,6 +23,8 @@ namespace TPV.Application.DTOs
         public string? ElectronicInvoiceId { get; set; }
         public string? ElectronicInvoicingStatus { get; set; }
         public int? ServiceOrderId { get; set; }
+        public int? QuotationId { get; set; }
+        public string? QuotationNumber { get; set; }
         public List<SaleAdjustmentDto> Adjustments { get; set; } = new();
         public List<SaleItemDto> Items { get; set; } = new();
     }
@@ -31,6 +33,7 @@ namespace TPV.Application.DTOs
     {
         public int SaleDetailId { get; set; }
         public int ProductId { get; set; }
+        public int? QuotationDetailId { get; set; }
         public string ProductName { get; set; }
         public string SKU { get; set; }
         public decimal UnitPrice { get; set; }

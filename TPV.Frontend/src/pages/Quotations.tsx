@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { CheckCircle, FileText, Plus, Printer, Search, Trash2, X, XCircle } from 'lucide-react';
+import { CheckCircle, FileText, Plus, Printer, ReceiptText, Search, Trash2, X, XCircle } from 'lucide-react';
 
 interface BranchAvailability {
     branchId: number;
@@ -56,6 +57,9 @@ interface SavedQuotation {
     requestedByEmail?: string | null;
     notes?: string | null;
     totalAmount: number;
+    status: string;
+    invoicedAmount: number;
+    pendingAmount: number;
     details: SavedQuotationDetail[];
 }
 
@@ -67,6 +71,7 @@ const formatCurrency = (value: number) =>
     });
 
 const Quotations = () => {
+    const navigate = useNavigate();
     const [requestedByName, setRequestedByName] = useState('');
     const [requestedByPhone, setRequestedByPhone] = useState('');
     const [requestedByEmail, setRequestedByEmail] = useState('');
@@ -345,6 +350,10 @@ const Quotations = () => {
         window.print();
     };
 
+    const invoiceQuotation = (quotationId: number) => {
+        navigate(`/pos?quotationId=${quotationId}`);
+    };
+
     return (
         <div className="k-page">
             <div className="k-page-header flex-col lg:flex-row lg:items-center">
@@ -380,14 +389,24 @@ const Quotations = () => {
                             Solicitante: {lastQuotation.requestedByName} - Total: {formatCurrency(lastQuotation.totalAmount)}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setIsPrintModalOpen(true)}
-                        className="k-button-success w-full px-4 py-2 text-sm sm:w-fit"
-                    >
-                        <Printer size={18} />
-                        Imprimir / PDF
-                    </button>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                        <button
+                            type="button"
+                            onClick={() => invoiceQuotation(lastQuotation.id)}
+                            className="k-button-primary w-full px-4 py-2 text-sm sm:w-fit"
+                        >
+                            <ReceiptText size={18} />
+                            Convertir en venta
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsPrintModalOpen(true)}
+                            className="k-button-success w-full px-4 py-2 text-sm sm:w-fit"
+                        >
+                            <Printer size={18} />
+                            Imprimir / PDF
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -697,6 +716,14 @@ const Quotations = () => {
                                     <p className="text-sm text-slate-500">{lastQuotation.quotationNumber}</p>
                                 </div>
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => invoiceQuotation(lastQuotation.id)}
+                                        className="k-button-success w-full px-4 py-2 text-sm sm:w-auto"
+                                    >
+                                        <ReceiptText size={18} />
+                                        Convertir en venta
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={handlePrintModal}

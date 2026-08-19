@@ -9,6 +9,8 @@ namespace TPV.Domain.Entities
         public Sale Sale { get; set; } = null!;
         public int ProductId { get; set; }
         public Product Product { get; set; } = null!;
+        public int? QuotationDetailId { get; set; }
+        public QuotationDetail? QuotationDetail { get; set; }
         public decimal Quantity { get; set; }
         public int? UnitOfMeasureId { get; set; }
         public UnitOfMeasure? UnitOfMeasure { get; set; }

@@ -16,6 +16,10 @@ namespace TPV.Domain.Entities
         public decimal TotalAmount { get; set; }
         public string? UserId { get; set; }
 
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
+
         public ICollection<QuotationDetail> Details { get; set; } = new List<QuotationDetail>();
+        public ICollection<Sale> Sales { get; set; } = new List<Sale>();
     }
 }

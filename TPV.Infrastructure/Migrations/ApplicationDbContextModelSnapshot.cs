@@ -1651,6 +1651,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
@@ -1691,6 +1694,8 @@ namespace TPV.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("QuotationNumber");
 
@@ -1866,6 +1871,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<string>("QrCode")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("QuotationId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ServiceOrderId")
                         .HasColumnType("int");
 
@@ -1887,6 +1895,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasIndex("BranchId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("QuotationId");
 
                     b.HasIndex("ServiceOrderId")
                         .IsUnique()
@@ -2089,6 +2099,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<decimal>("QuantityBase")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<int?>("QuotationDetailId")
+                        .HasColumnType("int");
+
                     b.Property<int>("SaleId")
                         .HasColumnType("int");
 
@@ -2124,6 +2137,8 @@ namespace TPV.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("QuotationDetailId");
 
                     b.HasIndex("SaleId");
 
@@ -3938,6 +3953,16 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("UnitOfMeasure");
                 });
 
+            modelBuilder.Entity("TPV.Domain.Entities.Quotation", b =>
+                {
+                    b.HasOne("TPV.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("TPV.Domain.Entities.QuotationDetail", b =>
                 {
                     b.HasOne("TPV.Domain.Entities.Product", "Product")
@@ -3970,6 +3995,11 @@ namespace TPV.Infrastructure.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TPV.Domain.Entities.Quotation", "Quotation")
+                        .WithMany("Sales")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.ServiceOrder", "ServiceOrder")
                         .WithOne("Sale")
                         .HasForeignKey("TPV.Domain.Entities.Sale", "ServiceOrderId")
@@ -3978,6 +4008,8 @@ namespace TPV.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Quotation");
 
                     b.Navigation("ServiceOrder");
                 });
@@ -4036,6 +4068,11 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TPV.Domain.Entities.QuotationDetail", "QuotationDetail")
+                        .WithMany("SaleDetails")
+                        .HasForeignKey("QuotationDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TPV.Domain.Entities.Sale", "Sale")
                         .WithMany("SaleDetails")
                         .HasForeignKey("SaleId")
@@ -4048,6 +4085,8 @@ namespace TPV.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Product");
+
+                    b.Navigation("QuotationDetail");
 
                     b.Navigation("Sale");
 
@@ -4405,6 +4444,13 @@ namespace TPV.Infrastructure.Migrations
             modelBuilder.Entity("TPV.Domain.Entities.Quotation", b =>
                 {
                     b.Navigation("Details");
+
+                    b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("TPV.Domain.Entities.QuotationDetail", b =>
+                {
+                    b.Navigation("SaleDetails");
                 });
 
             modelBuilder.Entity("TPV.Domain.Entities.Sale", b =>

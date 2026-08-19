@@ -406,7 +406,15 @@ def build_docx() -> None:
         "Busque y agregue los productos o servicios. Cuando el artículo tenga porcentaje de utilidad, el sistema propone el precio calculado desde el costo de inventario; ajuste cantidades y precios únicamente cuando esté autorizado.",
         "Revise totales y seleccione GUARDAR.",
         "Genere el PDF para entregar al cliente.",
-    ], "La cotización no reserva ni descuenta inventario. Facture únicamente lo entregado y guarde como anticipo cualquier excedente recibido para la entrega pendiente.")
+    ], "La cotización no reserva ni descuenta inventario.")
+    add_procedure(doc, "Facturar una cotización por entregas", [
+        "En la confirmación de la cotización seleccione CONVERTIR EN VENTA. Para retomar una anterior, abra REPORTES > COTIZACIONES EMITIDAS y use la acción FACTURAR PENDIENTES.",
+        "Seleccione o cree el cliente. La primera factura deja ese cliente asociado a la cotización para las entregas posteriores.",
+        "El punto de venta carga únicamente los artículos pendientes que tienen existencia en la sucursal. Ajuste la cantidad a lo que realmente entregará.",
+        "Confirme el pago. La factura muestra la COTIZACIÓN ORIGEN y el inventario descuenta solamente las unidades entregadas.",
+        "Si el cliente paga también mercancía pendiente, active GUARDAR EXCEDENTE COMO ANTICIPO para conservar ese dinero a su favor.",
+        "Cuando llegue el saldo, regrese a la misma cotización, seleccione FACTURAR PENDIENTES y aplique el anticipo disponible.",
+    ], "Ejemplo: cotice 10, facture y entregue 8, y conserve como anticipo el valor de 2. La cotización queda PARCIAL hasta facturar las 2 unidades restantes.")
     add_figure(doc, "05_historial_ventas.png", "Figura 17. Historial de ventas y ajustes.")
     add_procedure(doc, "Consultar ventas, devoluciones y notas crédito", [
         "Abra OPERACIONES > HISTORIAL DE VENTAS y aplique los filtros disponibles.",
@@ -729,7 +737,18 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 
 ![Punto de venta](assets/02_punto_venta.png)
 
-En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. Cuando un artículo tenga porcentaje de utilidad, el precio sugerido se calcula desde su costo de inventario y contempla el IVA si está configurado como incluido. La cantidad cotizada no reserva ni descuenta inventario: facture únicamente lo entregado y guarde como anticipo cualquier excedente recibido para la entrega pendiente. En HISTORIAL DE VENTAS consulte detalles y registre devoluciones con inventario o notas crédito sin inventario, siempre con motivo.
+En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. Cuando un artículo tenga porcentaje de utilidad, el precio sugerido se calcula desde su costo de inventario y contempla el IVA si está configurado como incluido. La cantidad cotizada no reserva ni descuenta inventario.
+
+### FACTURAR UNA COTIZACIÓN POR ENTREGAS
+
+1. En la confirmación seleccione CONVERTIR EN VENTA. Para retomar una cotización, abra REPORTES > COTIZACIONES EMITIDAS y use FACTURAR PENDIENTES.
+2. Seleccione o cree el cliente. La primera factura lo deja asociado a la cotización.
+3. El punto de venta carga solo las líneas pendientes con existencia en la sucursal. Registre la cantidad que realmente entregará.
+4. Confirme el pago. La factura conserva la COTIZACIÓN ORIGEN y el inventario descuenta únicamente lo entregado.
+5. Si recibe dinero por mercancía todavía pendiente, active GUARDAR EXCEDENTE COMO ANTICIPO.
+6. Cuando llegue el saldo, regrese a la cotización, facture las unidades pendientes y aplique el anticipo disponible.
+
+Ejemplo: cotice 10, facture y entregue 8, y conserve como anticipo el valor de 2. La cotización queda PARCIAL hasta facturar las 2 unidades restantes. En HISTORIAL DE VENTAS cada factura muestra su cotización de origen.
 
 ### CONSULTAR ANTICIPOS DE CLIENTES
 

@@ -180,6 +180,16 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<SaleDetail>().Property(d => d.TotalCost).HasColumnType("decimal(18,2)");
             builder.Entity<SaleDetail>().Property(d => d.BrandName).HasMaxLength(120);
             builder.Entity<SaleDetail>().Property(d => d.AccountingClassification).HasMaxLength(200);
+            builder.Entity<Sale>()
+                .HasOne(s => s.Quotation)
+                .WithMany(q => q.Sales)
+                .HasForeignKey(s => s.QuotationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<SaleDetail>()
+                .HasOne(d => d.QuotationDetail)
+                .WithMany(q => q.SaleDetails)
+                .HasForeignKey(d => d.QuotationDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<SaleAdjustment>().Property(a => a.DocumentType).HasMaxLength(20);
             builder.Entity<SaleAdjustment>().Property(a => a.DocumentNumber).HasMaxLength(80);
@@ -482,6 +492,12 @@ namespace TPV.Infrastructure.Persistence
                 .WithOne(d => d.Quotation)
                 .HasForeignKey(d => d.QuotationId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Quotation>()
+                .HasOne(q => q.Customer)
+                .WithMany()
+                .HasForeignKey(q => q.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<QuotationDetail>()
                 .Property(d => d.ProductName)

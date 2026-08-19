@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import { calculateNitVerificationDigit } from '../utils/nit';
 import AddressBuilder from '../components/AddressBuilder';
-import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus, MapPin, Banknote, Landmark, WalletCards } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, ShoppingCart, User, X, Check, Printer, UserPlus, MapPin, Banknote, Landmark, WalletCards, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Product {
@@ -21,6 +22,8 @@ interface Product {
 
 interface CartItem extends Product {
     quantity: number;
+    quotationDetailId?: number;
+    maximumQuantity?: number;
     discountType: 'NONE' | 'PERCENT' | 'FIXED';
     discountValue: number;
 }
@@ -73,6 +76,8 @@ interface SaleResult {
     changeAmount: number;
     customerAdvanceBalance: number;
     customerName?: string;
+    quotationId?: number;
+    quotationNumber?: string;
     cufe?: string;
     qrCode?: string;
     items: {
@@ -83,12 +88,36 @@ interface SaleResult {
     }[];
 }
 
+interface SourceQuotation {
+    id: number;
+    quotationNumber: string;
+    requestedByName: string;
+    customerId?: number | null;
+    customerName?: string | null;
+    status: 'PENDIENTE' | 'PARCIAL' | 'COMPLETADA';
+    totalAmount: number;
+    invoicedAmount: number;
+    pendingAmount: number;
+    details: {
+        id: number;
+        productId: number;
+        productName: string;
+        sku: string;
+        unitPrice: number;
+        pendingQuantity: number;
+    }[];
+}
+
 const POS = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const quotationId = Number(searchParams.get('quotationId')) || null;
     // Products & Cart
     const [products, setProducts] = useState<Product[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [productSearch, setProductSearch] = useState('');
     const [loadingProducts, setLoadingProducts] = useState(false);
+    const [sourceQuotation, setSourceQuotation] = useState<SourceQuotation | null>(null);
+    const [quotationError, setQuotationError] = useState('');
 
     // Customers
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -172,12 +201,14 @@ const POS = () => {
 
     // --- Effects ---
     useEffect(() => {
+        if (quotationId) return;
+
         const timer = setTimeout(() => {
             fetchProducts();
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [productSearch]);
+    }, [productSearch, quotationId]);
 
     // Update the tendered amount for electronic payments and applied advances.
     useEffect(() => {
@@ -223,6 +254,88 @@ const POS = () => {
         }
     }, [customerSearch]);
 
+    useEffect(() => {
+        let isCurrent = true;
+        if (!quotationId) {
+            setSourceQuotation(null);
+            setQuotationError('');
+            return;
+        }
+
+        const loadQuotation = async () => {
+            setLoadingProducts(true);
+            setQuotationError('');
+            try {
+                const [quotationResponse, productResponse] = await Promise.all([
+                    api.get(`/quotations/${quotationId}`),
+                    api.get('/sales/products', { params: { search: '' } })
+                ]);
+                if (!isCurrent) return;
+
+                const quotation = quotationResponse.data as SourceQuotation;
+                if (quotation.status === 'COMPLETADA') {
+                    setSourceQuotation(quotation);
+                    setCart([]);
+                    setQuotationError('Esta cotización ya fue facturada completamente.');
+                    return;
+                }
+
+                const branchProducts = productResponse.data as Product[];
+                setProducts(branchProducts);
+                setSourceQuotation(quotation);
+
+                const unavailable: string[] = [];
+                const quotedCart = quotation.details
+                    .filter(detail => detail.pendingQuantity > 0)
+                    .flatMap(detail => {
+                        const product = branchProducts.find(candidate => candidate.id === detail.productId);
+                        const available = Math.max(0, Number(product?.stockQuantity) || 0);
+                        const quantity = Math.min(detail.pendingQuantity, available);
+                        if (!product || quantity <= 0) {
+                            unavailable.push(detail.productName);
+                            return [];
+                        }
+
+                        return [{
+                            ...product,
+                            price: detail.unitPrice,
+                            quantity,
+                            quotationDetailId: detail.id,
+                            maximumQuantity: detail.pendingQuantity,
+                            discountType: 'NONE' as const,
+                            discountValue: 0
+                        }];
+                    });
+
+                setCart(quotedCart);
+                if (unavailable.length > 0) {
+                    setQuotationError(`Sin existencia en esta sucursal: ${unavailable.join(', ')}. Esas líneas permanecen pendientes.`);
+                }
+
+                if (quotation.customerId) {
+                    const customerResponse = await api.get(`/customers/${quotation.customerId}`);
+                    if (isCurrent) setSelectedCustomer(customerResponse.data);
+                } else {
+                    setSelectedCustomer(null);
+                    setCustomerSearch(quotation.requestedByName);
+                    setShowCustomerSearch(true);
+                }
+            } catch {
+                if (!isCurrent) return;
+                setSourceQuotation(null);
+                setCart([]);
+                setQuotationError('No se pudo preparar la cotización para facturar.');
+            } finally {
+                if (isCurrent) setLoadingProducts(false);
+            }
+        };
+
+        loadQuotation();
+        return () => {
+            isCurrent = false;
+        };
+    }, [quotationId]);
+
     // --- Data Fetching ---
     const fetchProducts = async () => {
         setLoadingProducts(true);
@@ -247,6 +360,7 @@ const POS = () => {
 
     // --- Cart Actions ---
     const addToCart = (product: Product) => {
+        if (sourceQuotation) return;
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
@@ -259,7 +373,11 @@ const POS = () => {
     const updateQuantity = (id: number, delta: number) => {
         setCart(prev => prev.map(item => {
             if (item.id === id) {
-                const newQty = Math.max(1, item.quantity + delta);
+                const maximum = Math.min(
+                    item.maximumQuantity ?? Number.POSITIVE_INFINITY,
+                    item.stockQuantity ?? Number.POSITIVE_INFINITY
+                );
+                const newQty = Math.min(maximum, Math.max(1, item.quantity + delta));
                 return { ...item, quantity: newQty };
             }
             return item;
@@ -273,6 +391,11 @@ const POS = () => {
     // --- Checkout Logic ---
     const handleInitiateCheckout = () => {
         if (cart.length === 0) return;
+        if (sourceQuotation && !selectedCustomer) {
+            alert('Selecciona o crea el cliente de la cotización antes de facturar.');
+            setShowCustomerSearch(true);
+            return;
+        }
         setAdvanceToApply(0);
         setSaveExcessAsAdvance(false);
         setAmountPaid(roundedTotal);
@@ -349,8 +472,10 @@ const POS = () => {
             const payload = {
                 branchId: 0, // 0 lets the backend use the default branch
                 customerId: selectedCustomer?.id || null,
+                quotationId: sourceQuotation?.id || null,
                 items: cart.map(item => ({
                     productId: item.id,
+                    quotationDetailId: item.quotationDetailId || null,
                     quantity: item.quantity,
                     unitOfMeasureId: item.saleUnitId,
                     discountType: item.discountType,
@@ -366,6 +491,7 @@ const POS = () => {
             setLastSale(response.data);
             setCart([]);
             setSelectedCustomer(null);
+            setSearchParams({}, { replace: true });
             setShowPaymentModal(false);
             setShowTicketModal(true);
             fetchProducts();
@@ -393,7 +519,41 @@ const POS = () => {
     };
 
     return (
-        <div className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[1600px] flex-col gap-4 sm:p-2 xl:h-[calc(100vh-96px)] xl:flex-row">
+        <div className="mx-auto w-full max-w-[1600px] space-y-4 sm:p-2">
+            {(sourceQuotation || quotationError) && (
+                <section className="w-full flex-none rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-3">
+                            <div className="rounded-lg bg-white p-2 text-blue-700"><FileText size={22} /></div>
+                            <div>
+                                <div className="font-extrabold text-slate-900">
+                                    {sourceQuotation ? `Venta desde ${sourceQuotation.quotationNumber}` : 'Cotización no disponible'}
+                                </div>
+                                {sourceQuotation && (
+                                    <p className="mt-1 text-sm text-slate-600">
+                                        {sourceQuotation.requestedByName} · Estado {sourceQuotation.status} · Pendiente ${sourceQuotation.pendingAmount.toLocaleString('es-CO')}
+                                    </p>
+                                )}
+                                {quotationError && <p className="mt-1 text-sm font-semibold text-amber-800">{quotationError}</p>}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCart([]);
+                                setSourceQuotation(null);
+                                setQuotationError('');
+                                setSearchParams({}, { replace: true });
+                            }}
+                            className="k-button-secondary w-full px-4 py-2 text-sm md:w-auto"
+                        >
+                            <X size={17} />
+                            Cancelar conversión
+                        </button>
+                    </div>
+                </section>
+            )}
+            <div className="flex min-h-[calc(100vh-96px)] flex-col gap-4 xl:h-[calc(100vh-96px)] xl:flex-row">
             {/* LEFT: Product Catalog */}
             <div className="k-card flex min-h-[520px] flex-1 flex-col overflow-hidden p-3 sm:p-4 xl:min-h-0">
                 <div className="mb-4 relative">
@@ -404,6 +564,7 @@ const POS = () => {
                         className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all"
                         value={productSearch}
                         onChange={(e) => setProductSearch(e.target.value)}
+                        disabled={Boolean(sourceQuotation)}
                     />
                 </div>
                 
@@ -415,7 +576,10 @@ const POS = () => {
                             {products.map(product => (
                                 <div 
                                     key={product.id} 
-                                    className="group cursor-pointer rounded-lg border border-slate-200 bg-white p-3 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:p-4"
+                                    className={clsx(
+                                        "group rounded-lg border border-slate-200 bg-white p-3 transition-all sm:p-4",
+                                        sourceQuotation ? "cursor-default opacity-60" : "cursor-pointer hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
+                                    )}
                                     onClick={() => addToCart(product)}
                                 >
                                     <div className="mb-3 flex h-24 items-center justify-center rounded-lg bg-slate-50 text-gray-300 transition-colors group-hover:bg-blue-50 sm:h-28">
@@ -446,7 +610,7 @@ const POS = () => {
                         <h2 className="font-bold text-slate-700 flex items-center text-sm uppercase tracking-wide">
                             <User size={16} className="mr-2" /> Cliente
                         </h2>
-                        {selectedCustomer && (
+                        {selectedCustomer && !sourceQuotation?.customerId && (
                             <button onClick={() => setSelectedCustomer(null)} className="text-xs text-red-500 hover:text-red-700 flex items-center">
                                 <X size={12} className="mr-1" /> Quitar
                             </button>
@@ -525,7 +689,7 @@ const POS = () => {
                     <h2 className="font-bold text-slate-700 flex items-center">
                         <ShoppingCart className="mr-2" size={20} /> Carrito ({cart.reduce((acc, item) => acc + item.quantity, 0)})
                     </h2>
-                    {cart.length > 0 && (
+                    {cart.length > 0 && !sourceQuotation && (
                         <button onClick={() => setCart([])} className="text-xs text-red-500 hover:text-red-700 flex items-center">
                             <Trash2 size={12} className="mr-1" /> Vaciar
                         </button>
@@ -547,11 +711,14 @@ const POS = () => {
                                         <div className="mr-2 min-w-0 flex-1">
                                             <h4 className="truncate text-sm font-medium text-gray-800">{item.name}</h4>
                                             <div className="mt-1 text-xs font-semibold text-blue-600">${item.price.toFixed(2)}</div>
+                                            {item.maximumQuantity !== undefined && (
+                                                <div className="mt-1 text-xs font-medium text-amber-700">Pendiente cotizado: {item.maximumQuantity}</div>
+                                            )}
                                         </div>
                                         <div className="flex items-center rounded-lg bg-gray-100 p-1">
                                             <button onClick={() => updateQuantity(item.id, -1)} className="rounded p-1 text-gray-600 hover:bg-white"><Minus size={14} /></button>
-                                            <input type="number" min={item.allowsFractionalQuantity ? 0.0001 : 1} step={item.allowsFractionalQuantity ? 0.0001 : 1} value={item.quantity} onChange={event => { const value = Number(event.target.value); if (value > 0) setCart(previous => previous.map(row => row.id === item.id ? {...row, quantity: value} : row)); }} className="w-16 bg-transparent text-center text-sm font-bold outline-none" />
-                                            <button onClick={() => updateQuantity(item.id, 1)} className="rounded p-1 text-gray-600 hover:bg-white"><Plus size={14} /></button>
+                                            <input type="number" min={item.allowsFractionalQuantity ? 0.0001 : 1} max={item.maximumQuantity} step={item.allowsFractionalQuantity ? 0.0001 : 1} value={item.quantity} onChange={event => { const value = Number(event.target.value); const maximum = Math.min(item.maximumQuantity ?? Number.POSITIVE_INFINITY, item.stockQuantity ?? Number.POSITIVE_INFINITY); if (value > 0) setCart(previous => previous.map(row => row.id === item.id ? {...row, quantity: Math.min(value, maximum)} : row)); }} className="w-16 bg-transparent text-center text-sm font-bold outline-none" />
+                                            <button disabled={item.quantity >= Math.min(item.maximumQuantity ?? Number.POSITIVE_INFINITY, item.stockQuantity ?? Number.POSITIVE_INFINITY)} onClick={() => updateQuantity(item.id, 1)} className="rounded p-1 text-gray-600 hover:bg-white disabled:cursor-not-allowed disabled:opacity-35"><Plus size={14} /></button>
                                         </div>
                                         <button onClick={() => removeFromCart(item.id)} className="rounded-lg p-2 text-gray-300 hover:bg-red-50 hover:text-red-500"><Trash2 size={16} /></button>
                                     </div>
@@ -597,6 +764,7 @@ const POS = () => {
                         <span>Pagar ${total.toFixed(2)}</span>
                     </button>
                 </div>
+            </div>
             </div>
 
             {/* Payment Modal */}
@@ -775,6 +943,9 @@ const POS = () => {
                                     <p className="text-gray-500">Sucursal Principal</p>
                                     <p className="text-gray-500 mt-2">{new Date(lastSale.date).toLocaleString()}</p>
                                     <p className="font-bold mt-1">Ticket: {lastSale.invoiceNumber}</p>
+                                    {lastSale.quotationNumber && (
+                                        <p className="mt-1 font-bold text-blue-700">Cotización origen: {lastSale.quotationNumber}</p>
+                                    )}
                                 </div>
                                 
                                 {/* Customer Info */}

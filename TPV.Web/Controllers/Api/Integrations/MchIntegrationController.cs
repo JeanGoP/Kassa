@@ -727,6 +727,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 .IgnoreQueryFilters()
                 .Include(s => s.Customer)
                 .Include(s => s.Branch)
+                .Include(s => s.Quotation)
                 .Include(s => s.SaleDetails)
                     .ThenInclude(d => d.Product)
                         .ThenInclude(p => p.Brand)
@@ -754,6 +755,8 @@ namespace TPV.Web.Controllers.Api.Integrations
                 CustomerIdentificationType = s.Customer != null ? s.Customer.IdentificationType : null,
                 CustomerTaxId = s.Customer != null ? s.Customer.TaxId : null,
                 ServiceOrderId = s.ServiceOrderId,
+                QuotationId = s.QuotationId,
+                QuotationNumber = s.Quotation != null ? s.Quotation.QuotationNumber : null,
                 PaymentMethod = s.PaymentMethod,
                 ElectronicInvoicingStatus = s.ElectronicInvoicingStatus,
                 TotalAmount = s.TotalAmount,
@@ -767,6 +770,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                 Lines = s.SaleDetails.Select(d => new MchSaleLineDto
                 {
                     Id = d.Id,
+                    QuotationDetailId = d.QuotationDetailId,
                     ProductId = d.ProductId,
                     Reference = d.Product?.SKU,
                     Description = d.Product?.Name,
@@ -2076,6 +2080,8 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? CustomerIdentificationType { get; set; }
         public string? CustomerTaxId { get; set; }
         public int? ServiceOrderId { get; set; }
+        public int? QuotationId { get; set; }
+        public string? QuotationNumber { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public string ElectronicInvoicingStatus { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
@@ -2093,6 +2099,7 @@ namespace TPV.Web.Controllers.Api.Integrations
     public class MchSaleLineDto
     {
         public int Id { get; set; }
+        public int? QuotationDetailId { get; set; }
         public int ProductId { get; set; }
         public string? Reference { get; set; }
         public string? Description { get; set; }

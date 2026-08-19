@@ -28,13 +28,16 @@ namespace TPV.Domain.Entities
         public int? ServiceOrderId { get; set; }
         public ServiceOrder ServiceOrder { get; set; }
 
+        public int? QuotationId { get; set; }
+        public Quotation? Quotation { get; set; }
+
         // Electronic Invoicing Fields
         public string? ElectronicInvoiceId { get; set; } // ID from the provider
         public string? Cufe { get; set; }
         public string? QrCode { get; set; }
         public string ElectronicInvoicingStatus { get; set; } = "Pending"; // Pending, Sent, Error
 
-        public ICollection<SaleDetail> SaleDetails { get; set; }
+        public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
         public ICollection<SaleAdjustment> Adjustments { get; set; } = new List<SaleAdjustment>();
     }
 }

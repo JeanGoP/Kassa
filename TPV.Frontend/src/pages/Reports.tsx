@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { FileText, Printer, Search } from 'lucide-react';
+import { FileText, Printer, ReceiptText, Search } from 'lucide-react';
 
 const formatDateInput = (date: Date) => {
     const year = date.getFullYear();
@@ -18,6 +19,7 @@ const formatCurrency = (value: number) =>
     });
 
 const Reports = () => {
+    const navigate = useNavigate();
     const [data, setData] = useState<any[]>([]);
     const [reportType, setReportType] = useState('sales-by-branch');
     const [startDate, setStartDate] = useState(formatDateInput(new Date()));
@@ -93,8 +95,10 @@ const Reports = () => {
                         <th className="border-b px-4 py-3">Fecha</th>
                         <th className="border-b px-4 py-3">Solicitante</th>
                         <th className="border-b px-4 py-3 text-center">Items</th>
+                        <th className="border-b px-4 py-3 text-center">Estado</th>
+                        <th className="border-b px-4 py-3 text-right">Pendiente</th>
                         <th className="border-b px-4 py-3 text-right">Total</th>
-                        <th className="border-b px-4 py-3 text-center">PDF</th>
+                        <th className="border-b px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody className="text-slate-700">
@@ -104,16 +108,34 @@ const Reports = () => {
                             <td className="px-4 py-3">{new Date(quote.date).toLocaleString('es-CO')}</td>
                             <td className="px-4 py-3">{quote.requestedByName}</td>
                             <td className="px-4 py-3 text-center">{quote.details?.length || 0}</td>
+                            <td className="px-4 py-3 text-center">
+                                <span className={`k-badge ${quote.status === 'COMPLETADA' ? 'k-badge-success' : quote.status === 'PARCIAL' ? 'k-badge-warning' : 'k-badge-info'}`}>
+                                    {quote.status || 'PENDIENTE'}
+                                </span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-amber-700">{formatCurrency(quote.pendingAmount)}</td>
                             <td className="px-4 py-3 text-right font-semibold">{formatCurrency(quote.totalAmount)}</td>
                             <td className="px-4 py-3 text-center">
-                                <button
-                                    type="button"
-                                    onClick={() => window.open(`/quotations/print/${quote.id}`, '_blank', 'noopener,noreferrer')}
-                                    className="inline-flex items-center justify-center rounded-lg p-2 text-blue-700 hover:bg-blue-50"
-                                    title="Imprimir / PDF"
-                                >
-                                    <Printer size={18} />
-                                </button>
+                                <div className="flex items-center justify-center gap-1">
+                                    {quote.status !== 'COMPLETADA' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/pos?quotationId=${quote.id}`)}
+                                            className="inline-flex items-center justify-center rounded-lg p-2 text-emerald-700 hover:bg-emerald-50"
+                                            title={quote.status === 'PARCIAL' ? 'Facturar pendientes' : 'Convertir en venta'}
+                                        >
+                                            <ReceiptText size={18} />
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => window.open(`/quotations/print/${quote.id}`, '_blank', 'noopener,noreferrer')}
+                                        className="inline-flex items-center justify-center rounded-lg p-2 text-blue-700 hover:bg-blue-50"
+                                        title="Imprimir / PDF"
+                                    >
+                                        <Printer size={18} />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}
