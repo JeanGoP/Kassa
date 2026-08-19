@@ -476,6 +476,7 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
             year: Number(formData.year),
             mileage: Number(formData.mileage),
             maintenanceReviewMileage: formData.maintenanceReviewMileage ? Number(formData.maintenanceReviewMileage) : null,
+            promisedDeliveryDateTime: formData.promisedDeliveryDateTime || null,
             technicianId: formData.technicianId ? Number(formData.technicianId) : null,
             intakeDateTime: formData.intakeDateTime || formatDateTimeLocal(),
             visualEvidenceImages,
@@ -1362,7 +1363,7 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">ENTREGA PROMETIDA</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">ENTREGA PROMETIDA <span className="font-normal text-gray-500">(opcional)</span></label>
                         <input type="datetime-local" name="promisedDeliveryDateTime" value={formData.promisedDeliveryDateTime} onChange={handleChange} min={formData.intakeDateTime} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                     <div>

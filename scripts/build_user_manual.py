@@ -503,7 +503,7 @@ def build_docx() -> None:
         "Abra EXPEDIENTE DE TALLER y seleccione NUEVO INGRESO.",
         "Verifique primero la fecha y hora de ingreso, busque o registre el cliente y asigne un técnico activo de la sucursal.",
         "Registre el vehículo y confirme VIN, placa, motor, marca, modelo y año.",
-        "Registre TIPO DE ORDEN, ORIGEN, kilometraje y fecha prometida.",
+        "Registre TIPO DE ORDEN, ORIGEN y kilometraje. La fecha de entrega prometida es opcional y puede dejarse vacía.",
         "Documente el estado visual y adjunte fotografías de recepción.",
         "Registre observaciones y obtenga la firma del cliente.",
         "Guarde la orden. El expediente se abrirá en la misma pantalla para continuar.",
@@ -772,7 +772,7 @@ El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE
 
 ### CREAR Y COMPLETAR UN EXPEDIENTE
 
-1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
+1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. La entrega prometida es opcional y puede dejarse vacía. Al guardar, la orden se abre en el mismo expediente.
 2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
 3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El técnico se muestra solo como información y no se vuelve a seleccionar: cada trabajo hereda automáticamente la asignación realizada en el ingreso. El sistema también carga el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
 4. En la misma pestaña, busque los repuestos e insumos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
