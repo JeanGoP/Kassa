@@ -315,6 +315,8 @@ namespace TPV.Application.Services
             ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
             var description = Clean(dto.Description)
                 ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
+            var assignedTechnician = Clean(order.Technician)
+                ?? throw new InvalidOperationException("La orden debe tener un tecnico asignado desde el ingreso del vehiculo.");
             if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
             ValidateTaxRate(dto.TaxRate);
 
@@ -323,7 +325,7 @@ namespace TPV.Application.Services
                 ServiceOrderId = serviceOrderId,
                 ProductId = dto.ProductId,
                 Description = description,
-                Technician = Clean(dto.Technician) ?? string.Empty,
+                Technician = assignedTechnician,
                 EstimatedTimeHours = dto.EstimatedTimeHours,
                 ActualTimeHours = dto.ActualTimeHours,
                 LaborCost = dto.LaborCost,
@@ -366,12 +368,14 @@ namespace TPV.Application.Services
             ValidateLineData(dto.Payer, dto.ServiceType, dto.MaintenanceReviewMileage, dto.EstimatedTimeHours, dto.ActualTimeHours);
             var description = Clean(dto.Description)
                 ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
+            var assignedTechnician = Clean(order.Technician)
+                ?? throw new InvalidOperationException("La orden debe tener un tecnico asignado desde el ingreso del vehiculo.");
             if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
             ValidateTaxRate(dto.TaxRate);
 
             entity.ProductId = dto.ProductId;
             entity.Description = description;
-            entity.Technician = Clean(dto.Technician) ?? string.Empty;
+            entity.Technician = assignedTechnician;
             entity.EstimatedTimeHours = dto.EstimatedTimeHours;
             entity.ActualTimeHours = dto.ActualTimeHours;
             entity.LaborCost = dto.LaborCost;

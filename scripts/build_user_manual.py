@@ -519,7 +519,7 @@ def build_docx() -> None:
     add_procedure(doc, "Etapa 3: asignar trabajos", [
         "En el mismo expediente, abra TRABAJOS Y REPUESTOS.",
         "Busque y agregue los servicios aprobados desde el catálogo.",
-        "Compruebe el técnico asignado desde el ingreso, el tiempo, el precio fijo y el IVA cargados desde el catálogo.",
+        "Compruebe el técnico heredado automáticamente desde el ingreso; no debe volver a seleccionarlo. Revise también el tiempo, el precio fijo y el IVA cargados desde el catálogo.",
         "Seleccione responsable de pago y si la línea suma a la factura.",
         "Cambie cada trabajo a REALIZADO cuando termine y registre el tiempo real solicitado.",
     ])
@@ -774,7 +774,7 @@ El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE
 
 1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
 2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
-3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El sistema carga el técnico asignado en el ingreso, el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El técnico se muestra solo como información y no se vuelve a seleccionar: cada trabajo hereda automáticamente la asignación realizada en el ingreso. El sistema también carga el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
 4. En la misma pestaña, busque los repuestos e insumos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
 5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos, impuestos, repuestos y total estimado. Complete el checklist, registre el usuario que recibe y finalice la orden.
 6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
