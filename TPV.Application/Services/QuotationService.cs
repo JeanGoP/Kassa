@@ -150,7 +150,7 @@ namespace TPV.Application.Services
                 }
 
                 var availableQuantity = product.Stocks?.Where(s => s.Quantity > 0).Sum(s => s.Quantity) ?? 0;
-                var unitPrice = item.UnitPrice ?? product.Price;
+                var unitPrice = item.UnitPrice ?? CalculateQuotationPrice(product);
                 var subTotal = item.Quantity * unitPrice;
 
                 quotation.Details.Add(new QuotationDetail
@@ -228,10 +228,36 @@ namespace TPV.Application.Services
                 Name = product.Name,
                 SKU = product.SKU,
                 Barcode = product.Barcode,
-                Price = product.Price,
+                Price = CalculateQuotationPrice(product),
                 TotalQuantity = branches.Sum(b => b.Quantity),
                 Branches = branches
             };
+        }
+
+        private static decimal CalculateQuotationPrice(Product product)
+        {
+            var profitability = product.ProfitabilityPercentage ?? 0m;
+            if (profitability <= 0) return product.Price;
+
+            var stocksWithCost = product.Stocks?
+                .Where(stock => stock.Cost > 0)
+                .ToList() ?? new List<Stock>();
+            if (stocksWithCost.Count == 0) return product.Price;
+
+            // A multi-warehouse quote must preserve the configured margin regardless of the dispatching branch.
+            var availableStocks = stocksWithCost.Where(stock => stock.Quantity > 0).ToList();
+            var referenceCost = availableStocks.Count > 0
+                ? availableStocks.Max(stock => stock.Cost)
+                : stocksWithCost
+                    .OrderByDescending(stock => stock.UpdatedAt ?? stock.CreatedAt)
+                    .First()
+                    .Cost;
+
+            var price = referenceCost * (1 + profitability / 100m);
+            if (product.PriceIncludesIva && product.IvaRate > 0)
+                price *= 1 + product.IvaRate / 100m;
+
+            return decimal.Round(price, 2);
         }
 
         private static QuotationDto MapQuotation(Quotation quotation)

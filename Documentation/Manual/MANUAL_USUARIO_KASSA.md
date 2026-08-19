@@ -77,7 +77,7 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 
 ![Punto de venta](assets/02_punto_venta.png)
 
-En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. La cantidad cotizada no reserva ni descuenta inventario: facture únicamente lo entregado y guarde como anticipo cualquier excedente recibido para la entrega pendiente. En HISTORIAL DE VENTAS consulte detalles y registre devoluciones con inventario o notas crédito sin inventario, siempre con motivo.
+En COTIZACIONES registre solicitante, artículos y cantidades; guarde y genere el PDF. Cuando un artículo tenga porcentaje de utilidad, el precio sugerido se calcula desde su costo de inventario y contempla el IVA si está configurado como incluido. La cantidad cotizada no reserva ni descuenta inventario: facture únicamente lo entregado y guarde como anticipo cualquier excedente recibido para la entrega pendiente. En HISTORIAL DE VENTAS consulte detalles y registre devoluciones con inventario o notas crédito sin inventario, siempre con motivo.
 
 ### CONSULTAR ANTICIPOS DE CLIENTES
 
