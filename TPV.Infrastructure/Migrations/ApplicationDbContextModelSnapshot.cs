@@ -841,6 +841,12 @@ namespace TPV.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
@@ -2437,6 +2443,9 @@ namespace TPV.Infrastructure.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("Technician")
                         .IsRequired()

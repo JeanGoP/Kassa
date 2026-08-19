@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-    Boxes,
     Car,
     Check,
     CheckCircle2,
@@ -56,6 +55,7 @@ interface ServiceOrder {
     diagnosisApprovalDate?: string;
     diagnosedAt?: string;
     diagnosedByName?: string;
+    technician?: string;
     deliveryNotes?: string;
     statusHistory?: StatusHistory[];
 }
@@ -67,6 +67,7 @@ interface ServiceOrderWork {
     estimatedTimeHours?: number;
     actualTimeHours?: number;
     laborCost: number;
+    taxRate: number;
     payer: string;
     addsToCustomerTotal: boolean;
     serviceType: string;
@@ -102,6 +103,7 @@ interface ServiceOrderWorkspaceData {
     parts: ServiceOrderPart[];
     invoice?: Invoice | null;
     billableLaborTotal: number;
+    billableLaborTaxTotal: number;
     billablePartsTotal: number;
     estimatedCustomerTotal: number;
     hasDiagnosis: boolean;
@@ -116,6 +118,8 @@ interface MotorcycleService {
     name: string;
     description?: string;
     estimatedMinutes?: number;
+    price: number;
+    taxRate: number;
 }
 
 interface Technician {
@@ -144,8 +148,7 @@ interface DraftPart extends ProductSearchResult {
 const tabs: Array<{ id: WorkspaceTab; label: string; icon: typeof Car }> = [
     { id: 'intake', label: 'Ingreso', icon: Car },
     { id: 'diagnosis', label: 'Diagnóstico', icon: Stethoscope },
-    { id: 'works', label: 'Trabajos', icon: Wrench },
-    { id: 'parts', label: 'Repuestos', icon: Boxes },
+    { id: 'works', label: 'Trabajos y repuestos', icon: Wrench },
     { id: 'closure', label: 'Cierre y factura', icon: CheckCircle2 }
 ];
 
@@ -202,6 +205,7 @@ const ServiceOrders = () => {
     const [workEstimatedHours, setWorkEstimatedHours] = useState('');
     const [workReviewMileage, setWorkReviewMileage] = useState('');
     const [workCost, setWorkCost] = useState('');
+    const [workTaxRate, setWorkTaxRate] = useState('0');
     const [workPayer, setWorkPayer] = useState('CLIENTE');
     const [workAddsToTotal, setWorkAddsToTotal] = useState(true);
     const [workType, setWorkType] = useState('CORRECTIVO');
@@ -280,6 +284,17 @@ const ServiceOrders = () => {
     }, []);
 
     useEffect(() => {
+        if (!workspace) return;
+        const assignedTechnician = technicianCatalog.find(technician =>
+            technician.name === workspace.order.technician &&
+            (!workspace.order.branchId || !technician.branchId || technician.branchId === workspace.order.branchId));
+        if (!assignedTechnician) return;
+
+        setSelectedTechnicianId(assignedTechnician.id);
+        setWorkTechnician(assignedTechnician.name);
+    }, [technicianCatalog, workspace?.order.branchId, workspace?.order.id, workspace?.order.technician]);
+
+    useEffect(() => {
         const timer = window.setTimeout(() => loadOrders(search), 250);
         return () => window.clearTimeout(timer);
     }, [search]);
@@ -313,6 +328,8 @@ const ServiceOrders = () => {
         setServiceSearch(service.name);
         setServiceOptionsOpen(false);
         setWorkEstimatedHours(service.estimatedMinutes ? (service.estimatedMinutes / 60).toFixed(2) : '');
+        setWorkCost(service.price.toString());
+        setWorkTaxRate(service.taxRate.toString());
     };
 
     const filteredTechnicians = useMemo(() => {
@@ -374,6 +391,7 @@ const ServiceOrders = () => {
                 estimatedTimeHours: workEstimatedHours ? Number(workEstimatedHours) : null,
                 actualTimeHours: null,
                 laborCost: workCost ? Number(workCost) : 0,
+                taxRate: workTaxRate ? Number(workTaxRate) : 0,
                 payer: workPayer,
                 addsToCustomerTotal: workAddsToTotal,
                 serviceType: workType,
@@ -386,6 +404,7 @@ const ServiceOrders = () => {
             setWorkTechnician('');
             setWorkEstimatedHours('');
             setWorkCost('');
+            setWorkTaxRate('0');
             setWorkReviewMileage('');
             await loadWorkspace(workspace.order.id, 'works');
         } catch (error) {
@@ -470,7 +489,7 @@ const ServiceOrders = () => {
                 }))
             });
             setDraftParts([]);
-            await loadWorkspace(workspace.order.id, 'parts');
+            await loadWorkspace(workspace.order.id, 'works');
             await Swal.fire('Consumo registrado', 'Los artículos se descontaron del inventario y quedaron ligados a la orden.', 'success');
         } catch (error) {
             await Swal.fire('No se pudo registrar el consumo', errorMessage(error, 'Revisa cantidades y existencias.'), 'error');
@@ -648,7 +667,7 @@ const ServiceOrders = () => {
                                             <p className="mt-1 text-xs text-slate-500">Ingreso {new Date(workspace.order.intakeDateTime).toLocaleString()} · {workspace.order.mileage.toLocaleString()} km</p>
                                         </div>
                                         <div className="grid grid-cols-3 gap-3 text-right">
-                                            <div><div className="text-[10px] font-bold uppercase text-slate-500">Trabajos</div><div className="text-sm font-extrabold text-slate-900">{money(workspace.billableLaborTotal)}</div></div>
+                                            <div><div className="text-[10px] font-bold uppercase text-slate-500">Trabajos</div><div className="text-sm font-extrabold text-slate-900">{money(workspace.billableLaborTotal)}</div><div className="text-[10px] font-semibold text-slate-500">IVA {money(workspace.billableLaborTaxTotal)}</div></div>
                                             <div><div className="text-[10px] font-bold uppercase text-slate-500">Repuestos</div><div className="text-sm font-extrabold text-slate-900">{money(workspace.billablePartsTotal)}</div></div>
                                             <div><div className="text-[10px] font-bold uppercase text-slate-500">Estimado</div><div className="text-sm font-extrabold text-blue-700">{money(workspace.estimatedCustomerTotal)}</div></div>
                                         </div>
@@ -685,12 +704,14 @@ const ServiceOrders = () => {
                                         <div className="space-y-6">
                                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                                 {[
+                                                    ['Fecha y hora de ingreso', new Date(workspace.order.intakeDateTime).toLocaleString()],
                                                     ['Cliente', workspace.order.customerName],
                                                     ['Vehículo', `${workspace.order.brand} ${workspace.order.model} ${workspace.order.year}`],
                                                     ['Chasis / VIN', workspace.order.chassisNumber || 'Sin registrar'],
+                                                    ['Técnico asignado', workspace.order.technician || 'Sin asignar'],
                                                     ['Jefe de taller', workspace.order.workshopManager || 'Sin asignar'],
                                                     ['Combustible', workspace.order.fuelLevel || 'Sin registrar'],
-                                                    ['Recibido por', workspace.order.receivedByName || 'Sin registrar'],
+                                                    ['Recibido por usuario', workspace.order.receivedByName || 'Sin registrar'],
                                                     ['Entrega prometida', workspace.order.promisedDeliveryDateTime ? new Date(workspace.order.promisedDeliveryDateTime).toLocaleString() : 'Sin definir'],
                                                     ['Firma de ingreso', workspace.order.intakeCustomerSignatureDataUrl ? 'Capturada' : 'No capturada']
                                                 ].map(([label, value]) => (
@@ -792,7 +813,10 @@ const ServiceOrders = () => {
                                                                             <span className="block font-semibold text-slate-900">{service.name}</span>
                                                                             {service.description && <span className="mt-0.5 block truncate text-xs text-slate-500">{service.description}</span>}
                                                                         </span>
-                                                                        {service.estimatedMinutes ? <span className="shrink-0 text-xs font-semibold text-slate-500">{service.estimatedMinutes} min</span> : null}
+                                                                        <span className="shrink-0 text-right text-xs font-semibold text-slate-500">
+                                                                            {service.estimatedMinutes ? <span className="block">{service.estimatedMinutes} min</span> : null}
+                                                                            <span className="block text-blue-700">{money(service.price)} + IVA {service.taxRate}%</span>
+                                                                        </span>
                                                                     </button>
                                                                 ))}
                                                                 {filteredServices.length === 0 && (
@@ -860,7 +884,8 @@ const ServiceOrders = () => {
                                                         )}
                                                     </div>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Tiempo estimado</span><input type="number" min="0" step="0.25" value={workEstimatedHours} onChange={event => setWorkEstimatedHours(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
-                                                    <label className="space-y-1 lg:col-span-1"><span className="text-xs font-bold uppercase text-slate-600">Valor</span><input type="number" min="0" value={workCost} onChange={event => setWorkCost(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
+                                                    <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Precio fijo</span><input type="number" min="0" value={workCost} readOnly className="h-11 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm font-semibold" /></label>
+                                                    <label className="space-y-1 lg:col-span-1"><span className="text-xs font-bold uppercase text-slate-600">IVA %</span><input type="number" value={workTaxRate} readOnly className="h-11 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm font-semibold" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Pagador</span><select value={workPayer} onChange={event => setWorkPayer(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm"><option>CLIENTE</option><option>FABRICA</option><option>INTERNO</option></select></label>
                                                     <label className="space-y-1 lg:col-span-3"><span className="text-xs font-bold uppercase text-slate-600">Tipo de servicio</span><select value={workType} onChange={event => setWorkType(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm"><option>PREVENTIVO</option><option>CORRECTIVO</option><option>GARANTIA</option><option>RETRABAJO</option></select></label>
                                                     {workType === 'PREVENTIVO' && <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Revisión a los km</span><input required type="number" min="1" value={workReviewMileage} onChange={event => setWorkReviewMileage(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>}
@@ -869,12 +894,12 @@ const ServiceOrders = () => {
                                                 </fieldset>
                                             </form>
                                             <div className="overflow-x-auto">
-                                                <table className="min-w-full text-sm"><thead className="border-b border-slate-200 text-left text-xs font-bold uppercase text-slate-500"><tr><th className="px-3 py-3">Servicio</th><th className="px-3 py-3">Técnico</th><th className="px-3 py-3">Pagador</th><th className="px-3 py-3 text-right">Valor</th><th className="px-3 py-3 text-right">Estado</th></tr></thead><tbody className="divide-y divide-slate-100">{workspace.works.map(work => <tr key={work.id}><td className="px-3 py-3 font-semibold text-slate-900">{work.description}</td><td className="px-3 py-3 text-slate-600">{work.technician || 'Sin asignar'}</td><td className="px-3 py-3 text-slate-600">{work.payer}</td><td className="px-3 py-3 text-right font-semibold">{money(work.laborCost)}</td><td className="px-3 py-3 text-right"><button type="button" disabled={!workspace.canEdit} onClick={() => toggleWork(work)} className={`rounded-md px-2.5 py-1 text-xs font-bold ${work.status === 'REALIZADO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{work.status}</button></td></tr>)}{workspace.works.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-500">No hay trabajos registrados.</td></tr>}</tbody></table>
+                                                <table className="min-w-full text-sm"><thead className="border-b border-slate-200 text-left text-xs font-bold uppercase text-slate-500"><tr><th className="px-3 py-3">Servicio</th><th className="px-3 py-3">Técnico</th><th className="px-3 py-3">Pagador</th><th className="px-3 py-3 text-right">Precio</th><th className="px-3 py-3 text-right">IVA</th><th className="px-3 py-3 text-right">Total</th><th className="px-3 py-3 text-right">Estado</th></tr></thead><tbody className="divide-y divide-slate-100">{workspace.works.map(work => <tr key={work.id}><td className="px-3 py-3 font-semibold text-slate-900">{work.description}</td><td className="px-3 py-3 text-slate-600">{work.technician || 'Sin asignar'}</td><td className="px-3 py-3 text-slate-600">{work.payer}</td><td className="px-3 py-3 text-right font-semibold">{money(work.laborCost)}</td><td className="px-3 py-3 text-right text-slate-600">{work.taxRate}%</td><td className="px-3 py-3 text-right font-bold">{money(work.laborCost * (1 + work.taxRate / 100))}</td><td className="px-3 py-3 text-right"><button type="button" disabled={!workspace.canEdit} onClick={() => toggleWork(work)} className={`rounded-md px-2.5 py-1 text-xs font-bold ${work.status === 'REALIZADO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{work.status}</button></td></tr>)}{workspace.works.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-500">No hay trabajos registrados.</td></tr>}</tbody></table>
                                             </div>
                                         </div>
                                     )}
 
-                                    {activeTab === 'parts' && (
+                                    {(activeTab === 'works' || activeTab === 'parts') && (
                                         <div className="space-y-6">
                                             <div className="border-b border-slate-200 pb-6">
                                                 <h3 className="text-lg font-extrabold text-slate-950">Repuestos e insumos</h3>
@@ -906,7 +931,7 @@ const ServiceOrders = () => {
                                                     </div>
                                                     <div className="space-y-3">
                                                         <label className="block space-y-1"><span className="text-xs font-bold uppercase text-slate-600">Fecha y hora de salida</span><input type="datetime-local" value={exitDateTime} onChange={event => setExitDateTime(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
-                                                        <label className="block space-y-1"><span className="text-xs font-bold uppercase text-slate-600">Recibido por el cliente</span><input value={customerSignatureName} onChange={event => setCustomerSignatureName(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" placeholder="Nombre de quien recibe" /></label>
+                                                        <label className="block space-y-1"><span className="text-xs font-bold uppercase text-slate-600">Recibido por usuario</span><input value={customerSignatureName} onChange={event => setCustomerSignatureName(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" placeholder="Nombre del usuario que recibe" /></label>
                                                         <label className="block space-y-1"><span className="text-xs font-bold uppercase text-slate-600">Notas de entrega</span><textarea value={deliveryNotes} onChange={event => setDeliveryNotes(event.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
                                                     </div>
                                                     <div className="flex flex-wrap justify-between gap-3 lg:col-span-2"><button type="button" onClick={cancelOrder} className="inline-flex h-11 items-center gap-2 rounded-lg border border-red-200 px-4 text-sm font-bold text-red-700 hover:bg-red-50"><XCircle size={17} /> Anular orden</button><button type="button" onClick={closeOrder} disabled={savingClosure || !workspace.canClose || !allServicesCompleted || !materialsProcessed || !noPendingTechnicalNotes} className="inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><CheckCircle2 size={17} /> {savingClosure ? 'Finalizando...' : 'Finalizar orden'}</button></div>

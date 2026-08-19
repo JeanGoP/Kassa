@@ -56,8 +56,8 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 ### SERVICIOS DE MOTO Y PERSONAL
 
 1. Abra SERVICIOS MOTO y revise los diez servicios predeterminados.
-2. Ajuste nombre, descripción, tiempo estimado y orden de visualización cuando sea necesario.
-3. Cree servicios adicionales para los trabajos propios del taller.
+2. Ajuste nombre, descripción, tiempo estimado, precio fijo antes de IVA, porcentaje de IVA y orden de visualización.
+3. Cree servicios adicionales para los trabajos propios del taller y defina su precio e impuesto.
 4. En TÉCNICOS registre el personal que ejecuta los trabajos.
 5. En JEFES DE TALLER registre los responsables y asígnelos a las sucursales.
 
@@ -123,15 +123,15 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS y CIERRE Y FACTURA.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
 
 ### CREAR Y COMPLETAR UN EXPEDIENTE
 
-1. Seleccione NUEVO INGRESO y registre cliente, vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
+1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
 2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
-3. En TRABAJOS busque un servicio del catálogo, asigne técnico, tiempo estimado, valor, pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
-4. En REPUESTOS busque los artículos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
-5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos y el total estimado. Complete el checklist, registre la entrega y finalice la orden.
+3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El sistema carga el técnico asignado en el ingreso, el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+4. En la misma pestaña, busque los repuestos e insumos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
+5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos, impuestos, repuestos y total estimado. Complete el checklist, registre el usuario que recibe y finalice la orden.
 6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
 
 Las órdenes finalizadas, cerradas o anuladas quedan en modo consulta. La trazabilidad al final del expediente muestra cada cambio de estado, fecha, responsable y nota.

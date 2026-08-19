@@ -367,8 +367,8 @@ def build_docx() -> None:
     add_figure(doc, "21_servicios_moto.png", "Figura 12. Catálogo de servicios de motocicleta.")
     add_procedure(doc, "Mantener servicios y personal de taller", [
         "Abra SERVICIOS MOTO. El sistema presenta diez servicios predeterminados para iniciar la operación.",
-        "Revise el nombre, la descripción, el tiempo estimado y el orden de visualización; ajuste los valores cuando su operación lo requiera.",
-        "Cree servicios adicionales para los trabajos propios del taller.",
+        "Revise nombre, descripción, tiempo estimado, precio fijo antes de IVA, porcentaje de IVA y orden de visualización.",
+        "Cree servicios adicionales para los trabajos propios del taller y defina su precio e impuesto.",
         "Abra TÉCNICOS y registre el personal que ejecuta trabajos.",
         "Abra JEFES DE TALLER y registre responsables; luego asígnelos a las sucursales.",
     ])
@@ -482,7 +482,7 @@ def build_docx() -> None:
         "Al prestar el servicio, márquela FINALIZADA; use CANCELADA cuando no se realizará.",
     ])
 
-    add_section_break(doc, "8. Vehículos y taller", "El expediente de taller reúne ingreso, diagnóstico, trabajos, repuestos, cierre y factura en una sola pantalla. El VIN o chasis de 17 caracteres conecta vehículo, propietario, historial y garantías.")
+    add_section_break(doc, "8. Vehículos y taller", "El expediente de taller reúne ingreso, diagnóstico, trabajos y repuestos, cierre y factura en una sola pantalla. El VIN o chasis de 17 caracteres conecta vehículo, propietario, historial y garantías.")
     add_figure(doc, "09_vehiculos.png", "Figura 24. Maestro de vehículos UIO.")
     add_procedure(doc, "Crear o actualizar un vehículo", [
         "Abra ÓRDENES DE SERVICIO > VEHÍCULOS UIO.",
@@ -495,14 +495,15 @@ def build_docx() -> None:
     add_procedure(doc, "Controlar el trabajo del taller", [
         "Abra DASHBOARD TALLER.",
         "Revise órdenes por estado, carga de técnicos, entregas pendientes y alertas.",
-        "Abra EXPEDIENTE DE TALLER, seleccione la orden y use sus pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS o CIERRE Y FACTURA.",
+        "Abra EXPEDIENTE DE TALLER, seleccione la orden y use sus pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS o CIERRE Y FACTURA.",
         "Priorice órdenes vencidas o con fecha prometida próxima.",
     ])
     add_figure(doc, "10_ingreso_vehiculos.png", "Figura 26. Pestaña de ingreso del expediente.")
     add_procedure(doc, "Etapa 1: recibir el vehículo", [
         "Abra EXPEDIENTE DE TALLER y seleccione NUEVO INGRESO.",
-        "Busque o registre cliente y vehículo; confirme VIN, placa, motor, marca, modelo y año.",
-        "Registre TIPO DE ORDEN, ORIGEN, kilometraje, fecha de recepción y fecha prometida.",
+        "Verifique primero la fecha y hora de ingreso, busque o registre el cliente y asigne un técnico activo de la sucursal.",
+        "Registre el vehículo y confirme VIN, placa, motor, marca, modelo y año.",
+        "Registre TIPO DE ORDEN, ORIGEN, kilometraje y fecha prometida.",
         "Documente el estado visual y adjunte fotografías de recepción.",
         "Registre observaciones y obtenga la firma del cliente.",
         "Guarde la orden. El expediente se abrirá en la misma pantalla para continuar.",
@@ -514,17 +515,17 @@ def build_docx() -> None:
         "Indique si el cliente aprobó el diagnóstico y la fecha de aprobación.",
         "Guarde. El sistema conserva la fecha y el responsable del diagnóstico.",
     ])
-    add_figure(doc, "12_trabajos_servicios.png", "Figura 28. Pestaña de trabajos y servicios.")
+    add_figure(doc, "12_trabajos_servicios.png", "Figura 28. Pestaña de trabajos y repuestos.")
     add_procedure(doc, "Etapa 3: asignar trabajos", [
-        "En el mismo expediente, abra TRABAJOS.",
+        "En el mismo expediente, abra TRABAJOS Y REPUESTOS.",
         "Busque y agregue los servicios aprobados desde el catálogo.",
-        "Asigne técnico, responsable de pago y si la línea suma a la factura.",
-        "Registre el tiempo estimado y el valor de mano de obra.",
+        "Compruebe el técnico asignado desde el ingreso, el tiempo, el precio fijo y el IVA cargados desde el catálogo.",
+        "Seleccione responsable de pago y si la línea suma a la factura.",
         "Cambie cada trabajo a REALIZADO cuando termine y registre el tiempo real solicitado.",
     ])
-    add_figure(doc, "13_repuestos_insumos.png", "Figura 29. Pestaña de repuestos e insumos.")
+    add_figure(doc, "13_repuestos_insumos.png", "Figura 29. Sección de repuestos e insumos dentro de trabajos.")
     add_procedure(doc, "Etapa 4: cargar repuestos e insumos", [
-        "En el mismo expediente, abra REPUESTOS.",
+        "Permanezca en TRABAJOS Y REPUESTOS y ubique la sección de artículos.",
         "Busque cada artículo y confirme su existencia disponible.",
         "Registre cantidad, tipo de línea y responsable de pago.",
         "Confirme el consumo. El sistema descuenta inventario y lo vincula a la orden sin generar todavía la factura.",
@@ -533,7 +534,7 @@ def build_docx() -> None:
     add_procedure(doc, "Etapa 5: cerrar y entregar", [
         "En el mismo expediente, abra CIERRE Y FACTURA.",
         "Compruebe que el diagnóstico esté completo y todos los trabajos estén REALIZADOS.",
-        "Complete el checklist y registre fecha, persona que recibe y notas de entrega.",
+        "Complete el checklist y registre fecha, usuario que recibe y notas de entrega.",
         "Finalice la orden, seleccione el medio de pago y genere la factura una sola vez.",
         "Compruebe que la orden quede CERRADA y revise la trazabilidad.",
     ], "Una orden anulada debe conservar fecha, motivo y usuario responsable. No elimine el historial operativo.")
@@ -700,8 +701,8 @@ Evite duplicados por identificación. En proveedores seleccione TERCERO u OFICIA
 ### SERVICIOS DE MOTO Y PERSONAL
 
 1. Abra SERVICIOS MOTO y revise los diez servicios predeterminados.
-2. Ajuste nombre, descripción, tiempo estimado y orden de visualización cuando sea necesario.
-3. Cree servicios adicionales para los trabajos propios del taller.
+2. Ajuste nombre, descripción, tiempo estimado, precio fijo antes de IVA, porcentaje de IVA y orden de visualización.
+3. Cree servicios adicionales para los trabajos propios del taller y defina su precio e impuesto.
 4. En TÉCNICOS registre el personal que ejecuta los trabajos.
 5. En JEFES DE TALLER registre los responsables y asígnelos a las sucursales.
 
@@ -767,15 +768,15 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS, REPUESTOS y CIERRE Y FACTURA.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
 
 ### CREAR Y COMPLETAR UN EXPEDIENTE
 
-1. Seleccione NUEVO INGRESO y registre cliente, vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
+1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. Al guardar, la orden se abre en el mismo expediente.
 2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
-3. En TRABAJOS busque un servicio del catálogo, asigne técnico, tiempo estimado, valor, pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
-4. En REPUESTOS busque los artículos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
-5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos y el total estimado. Complete el checklist, registre la entrega y finalice la orden.
+3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El sistema carga el técnico asignado en el ingreso, el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+4. En la misma pestaña, busque los repuestos e insumos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
+5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos, impuestos, repuestos y total estimado. Complete el checklist, registre el usuario que recibe y finalice la orden.
 6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
 
 Las órdenes finalizadas, cerradas o anuladas quedan en modo consulta. La trazabilidad al final del expediente muestra cada cambio de estado, fecha, responsable y nota.

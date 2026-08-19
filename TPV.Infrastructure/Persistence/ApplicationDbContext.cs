@@ -615,6 +615,14 @@ namespace TPV.Infrastructure.Persistence
                 .HasMaxLength(500);
 
             builder.Entity<MotorcycleService>()
+                .Property(s => s.Price)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Entity<MotorcycleService>()
+                .Property(s => s.TaxRate)
+                .HasColumnType("decimal(5,2)");
+
+            builder.Entity<MotorcycleService>()
                 .HasIndex(s => new { s.TenantId, s.Name })
                 .IsUnique();
 
@@ -995,6 +1003,9 @@ namespace TPV.Infrastructure.Persistence
             builder.Entity<ServiceOrderWork>()
                 .Property(w => w.LaborCost)
                 .HasColumnType("decimal(18,2)");
+            builder.Entity<ServiceOrderWork>()
+                .Property(w => w.TaxRate)
+                .HasColumnType("decimal(5,2)");
             builder.Entity<ServiceOrderWork>()
                 .Property(w => w.EstimatedTimeHours)
                 .HasColumnType("decimal(9,2)");

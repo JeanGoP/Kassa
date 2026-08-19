@@ -1006,9 +1006,12 @@ namespace TPV.Web.Controllers.Api.Integrations
                     CloseReason = o.CloseReason,
                     LaborCost = o.LaborCost,
                     LaborTotal = works.Where(w => w.ServiceOrderId == o.Id).Sum(w => w.LaborCost),
+                    LaborTaxTotal = works.Where(w => w.ServiceOrderId == o.Id)
+                        .Sum(w => decimal.Round(w.LaborCost * w.TaxRate / 100m, 2)),
                     PartsTotal = parts.Where(p => p.ServiceOrderId == o.Id && p.LineType == "REPUESTO").Sum(p => p.SubTotal),
                     ConsumablesTotal = parts.Where(p => p.ServiceOrderId == o.Id && p.LineType == "INSUMO").Sum(p => p.SubTotal),
-                    CustomerInvoiceTotal = works.Where(w => w.ServiceOrderId == o.Id && w.AddsToCustomerTotal).Sum(w => w.LaborCost)
+                    CustomerInvoiceTotal = works.Where(w => w.ServiceOrderId == o.Id && w.AddsToCustomerTotal)
+                            .Sum(w => w.LaborCost + decimal.Round(w.LaborCost * w.TaxRate / 100m, 2))
                         + parts.Where(p => p.ServiceOrderId == o.Id && p.AddsToCustomerTotal).Sum(p => p.SubTotal),
                     InvoiceNumber = o.Sale?.InvoiceNumber,
                     InvoiceDate = o.Sale?.Date,
@@ -1025,6 +1028,7 @@ namespace TPV.Web.Controllers.Api.Integrations
                             EstimatedTimeHours = w.EstimatedTimeHours,
                             ActualTimeHours = w.ActualTimeHours,
                             LaborCost = w.LaborCost,
+                            TaxRate = w.TaxRate,
                             Payer = w.Payer,
                             AddsToCustomerTotal = w.AddsToCustomerTotal,
                             ServiceType = w.ServiceType,
@@ -2279,6 +2283,7 @@ namespace TPV.Web.Controllers.Api.Integrations
         public string? CloseReason { get; set; }
         public decimal LaborCost { get; set; }
         public decimal LaborTotal { get; set; }
+        public decimal LaborTaxTotal { get; set; }
         public decimal PartsTotal { get; set; }
         public decimal ConsumablesTotal { get; set; }
         public decimal CustomerInvoiceTotal { get; set; }
@@ -2300,6 +2305,7 @@ namespace TPV.Web.Controllers.Api.Integrations
         public decimal? EstimatedTimeHours { get; set; }
         public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public decimal TaxRate { get; set; }
         public string Payer { get; set; } = string.Empty;
         public bool AddsToCustomerTotal { get; set; }
         public string ServiceType { get; set; } = string.Empty;

@@ -7,6 +7,8 @@ interface MotorcycleService {
     name: string;
     description?: string;
     estimatedMinutes?: number;
+    price: number;
+    taxRate: number;
     displayOrder: number;
 }
 
@@ -14,6 +16,8 @@ const emptyForm = {
     name: '',
     description: '',
     estimatedMinutes: '',
+    price: '',
+    taxRate: '0',
     displayOrder: '0'
 };
 
@@ -48,6 +52,8 @@ const MotorcycleServices = () => {
                 name: service.name,
                 description: service.description || '',
                 estimatedMinutes: service.estimatedMinutes?.toString() || '',
+                price: service.price.toString(),
+                taxRate: service.taxRate.toString(),
                 displayOrder: service.displayOrder.toString()
             });
         } else {
@@ -70,6 +76,8 @@ const MotorcycleServices = () => {
             name: formData.name.trim(),
             description: formData.description.trim() || null,
             estimatedMinutes: formData.estimatedMinutes ? Number(formData.estimatedMinutes) : null,
+            price: formData.price ? Number(formData.price) : 0,
+            taxRate: formData.taxRate ? Number(formData.taxRate) : 0,
             displayOrder: Number(formData.displayOrder) || 0
         };
 
@@ -169,6 +177,9 @@ const MotorcycleServices = () => {
                                 <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1">
                                     <ListOrdered size={13} /> Orden {service.displayOrder}
                                 </span>
+                                <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">
+                                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(service.price)} + IVA {service.taxRate}%
+                                </span>
                             </div>
                         </div>
                     ))}
@@ -186,6 +197,8 @@ const MotorcycleServices = () => {
                                 <th className="border-b p-4">Servicio</th>
                                 <th className="border-b p-4">Descripcion</th>
                                 <th className="border-b p-4">Tiempo</th>
+                                <th className="border-b p-4">Precio fijo</th>
+                                <th className="border-b p-4">IVA</th>
                                 <th className="border-b p-4">Orden</th>
                                 <th className="border-b p-4 text-center">Acciones</th>
                             </tr>
@@ -196,6 +209,8 @@ const MotorcycleServices = () => {
                                     <td className="p-4 font-bold text-slate-900">{service.name}</td>
                                     <td className="max-w-xl p-4 text-sm text-slate-500">{service.description || '-'}</td>
                                     <td className="p-4 text-sm font-semibold">{service.estimatedMinutes ? `${service.estimatedMinutes} min` : '-'}</td>
+                                    <td className="p-4 text-sm font-semibold">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(service.price)}</td>
+                                    <td className="p-4 text-sm font-semibold">{service.taxRate}%</td>
                                     <td className="p-4 text-sm font-semibold">{service.displayOrder}</td>
                                     <td className="p-4">
                                         <div className="flex justify-center gap-2">
@@ -221,7 +236,7 @@ const MotorcycleServices = () => {
                             ))}
                             {!loading && services.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-sm font-semibold text-slate-400">
+                                    <td colSpan={7} className="p-8 text-center text-sm font-semibold text-slate-400">
                                         No se encontraron servicios.
                                     </td>
                                 </tr>
@@ -287,6 +302,32 @@ const MotorcycleServices = () => {
                                         placeholder="60"
                                         value={formData.estimatedMinutes}
                                         onChange={(event) => setFormData({ ...formData, estimatedMinutes: event.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="k-form-label">Precio fijo antes de IVA</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        className="k-form-control"
+                                        placeholder="0"
+                                        value={formData.price}
+                                        onChange={(event) => setFormData({ ...formData, price: event.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="k-form-label">IVA %</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        step="0.01"
+                                        className="k-form-control"
+                                        value={formData.taxRate}
+                                        onChange={(event) => setFormData({ ...formData, taxRate: event.target.value })}
                                     />
                                 </div>
                                 <div>

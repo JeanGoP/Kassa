@@ -13,6 +13,7 @@ namespace TPV.Domain.Entities
         public decimal? EstimatedTimeHours { get; set; }
         public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public decimal TaxRate { get; set; }
         public string Payer { get; set; } = "CLIENTE";
         public bool AddsToCustomerTotal { get; set; } = true;
         public string ServiceType { get; set; } = "CORRECTIVO";

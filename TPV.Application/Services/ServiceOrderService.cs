@@ -31,6 +31,7 @@ namespace TPV.Application.Services
         private readonly IRepository<Tenant> _tenantRepository;
         private readonly IRepository<Stock> _stockRepository;
         private readonly IRepository<UnitOfMeasure> _unitRepository;
+        private readonly IRepository<Technician> _technicianRepository;
         private readonly IUserService _userService;
         private readonly IVehicleService _vehicleService;
         private readonly IStockService _stockService;
@@ -51,6 +52,7 @@ namespace TPV.Application.Services
             IRepository<Tenant> tenantRepository,
             IRepository<Stock> stockRepository,
             IRepository<UnitOfMeasure> unitRepository,
+            IRepository<Technician> technicianRepository,
             IUserService userService,
             IVehicleService vehicleService,
             IStockService stockService,
@@ -70,6 +72,7 @@ namespace TPV.Application.Services
             _tenantRepository = tenantRepository;
             _stockRepository = stockRepository;
             _unitRepository = unitRepository;
+            _technicianRepository = technicianRepository;
             _userService = userService;
             _vehicleService = vehicleService;
             _stockService = stockService;
@@ -127,6 +130,21 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("La firma del cliente es obligatoria para registrar el ingreso del vehiculo.");
             }
 
+            if (!dto.TechnicianId.HasValue)
+            {
+                throw new InvalidOperationException("Debe asignar un tecnico al registrar el ingreso del vehiculo.");
+            }
+
+            var technician = (await _technicianRepository.GetAsync(t =>
+                t.Id == dto.TechnicianId.Value &&
+                t.IsActive &&
+                t.TenantId == branch.TenantId &&
+                (!t.BranchId.HasValue || t.BranchId == branch.Id))).FirstOrDefault();
+            if (technician == null)
+            {
+                throw new InvalidOperationException("Seleccione un tecnico activo de la sucursal.");
+            }
+
             var registeredVehicle = await _vehicleService.RegisterOperationAsync(new RegisterVehicleOperationDto
             {
                 TenantId = branch.TenantId,
@@ -176,7 +194,7 @@ namespace TPV.Application.Services
                 VisualCondition = dto.VisualCondition,
                 VisualEvidenceImagesJson = JsonSerializer.Serialize(visualEvidenceImages),
                 IntakeCustomerSignatureDataUrl = intakeSignature,
-                Technician = string.Empty,
+                Technician = technician.Name,
                 WorkshopManager = workshopManagerName,
                 Status = "ABIERTA"
             };
@@ -207,6 +225,8 @@ namespace TPV.Application.Services
             var linkedSale = (await _saleRepository.GetAsync(s => s.ServiceOrderId == id)).FirstOrDefault();
             var invoice = linkedSale == null ? null : await _salesService.GetSaleAsync(linkedSale.Id);
             var billableLabor = works.Where(w => w.AddsToCustomerTotal).Sum(w => w.LaborCost);
+            var billableLaborTax = works.Where(w => w.AddsToCustomerTotal)
+                .Sum(w => decimal.Round(w.LaborCost * w.TaxRate / 100m, 2));
             var billableParts = parts.Where(p => p.AddsToCustomerTotal).Sum(p => p.SubTotal);
             var closed = order.Status is "FINALIZADA" or "CERRADA" or "CANCELADA" or "ANULADA";
             var allWorksCompleted = works.Count == 0 || works.All(w => w.Status == "REALIZADO");
@@ -219,8 +239,9 @@ namespace TPV.Application.Services
                 Parts = parts,
                 Invoice = invoice,
                 BillableLaborTotal = billableLabor,
+                BillableLaborTaxTotal = billableLaborTax,
                 BillablePartsTotal = billableParts,
-                EstimatedCustomerTotal = billableLabor + billableParts,
+                EstimatedCustomerTotal = billableLabor + billableLaborTax + billableParts,
                 HasDiagnosis = hasDiagnosis,
                 AllWorksCompleted = allWorksCompleted,
                 CanEdit = !closed,
@@ -277,6 +298,7 @@ namespace TPV.Application.Services
                 EstimatedTimeHours = w.EstimatedTimeHours,
                 ActualTimeHours = w.ActualTimeHours,
                 LaborCost = w.LaborCost,
+                TaxRate = w.TaxRate,
                 Payer = w.Payer,
                 AddsToCustomerTotal = w.AddsToCustomerTotal,
                 ServiceType = w.ServiceType,
@@ -294,6 +316,7 @@ namespace TPV.Application.Services
             var description = Clean(dto.Description)
                 ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
             if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
+            ValidateTaxRate(dto.TaxRate);
 
             var entity = new ServiceOrderWork
             {
@@ -304,6 +327,7 @@ namespace TPV.Application.Services
                 EstimatedTimeHours = dto.EstimatedTimeHours,
                 ActualTimeHours = dto.ActualTimeHours,
                 LaborCost = dto.LaborCost,
+                TaxRate = dto.TaxRate,
                 Payer = ValidateOption(dto.Payer, Payers, "pagador"),
                 AddsToCustomerTotal = dto.AddsToCustomerTotal,
                 ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio"),
@@ -323,6 +347,7 @@ namespace TPV.Application.Services
                 EstimatedTimeHours = entity.EstimatedTimeHours,
                 ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                TaxRate = entity.TaxRate,
                 Payer = entity.Payer,
                 AddsToCustomerTotal = entity.AddsToCustomerTotal,
                 ServiceType = entity.ServiceType,
@@ -342,6 +367,7 @@ namespace TPV.Application.Services
             var description = Clean(dto.Description)
                 ?? throw new InvalidOperationException("La descripcion del trabajo es obligatoria.");
             if (dto.LaborCost < 0) throw new InvalidOperationException("El valor de la mano de obra no puede ser negativo.");
+            ValidateTaxRate(dto.TaxRate);
 
             entity.ProductId = dto.ProductId;
             entity.Description = description;
@@ -349,6 +375,7 @@ namespace TPV.Application.Services
             entity.EstimatedTimeHours = dto.EstimatedTimeHours;
             entity.ActualTimeHours = dto.ActualTimeHours;
             entity.LaborCost = dto.LaborCost;
+            entity.TaxRate = dto.TaxRate;
             entity.Payer = ValidateOption(dto.Payer, Payers, "pagador");
             entity.AddsToCustomerTotal = dto.AddsToCustomerTotal;
             entity.ServiceType = ValidateOption(dto.ServiceType, ServiceTypes, "tipo de servicio");
@@ -367,6 +394,7 @@ namespace TPV.Application.Services
                 EstimatedTimeHours = entity.EstimatedTimeHours,
                 ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                TaxRate = entity.TaxRate,
                 Payer = entity.Payer,
                 AddsToCustomerTotal = entity.AddsToCustomerTotal,
                 ServiceType = entity.ServiceType,
@@ -408,6 +436,7 @@ namespace TPV.Application.Services
                 EstimatedTimeHours = entity.EstimatedTimeHours,
                 ActualTimeHours = entity.ActualTimeHours,
                 LaborCost = entity.LaborCost,
+                TaxRate = entity.TaxRate,
                 Payer = entity.Payer,
                 AddsToCustomerTotal = entity.AddsToCustomerTotal,
                 ServiceType = entity.ServiceType,
@@ -804,41 +833,33 @@ namespace TPV.Application.Services
                 totalSaleAmount += subTotal;
             }
 
-            // Add Sale Detail (Labor)
-            if (billableLaborCost > 0)
+            // Preserve the configured tax for each service, even when a work order
+            // combines services taxed at different rates.
+            foreach (var laborGroup in works
+                .Where(w => w.AddsToCustomerTotal && w.LaborCost > 0)
+                .GroupBy(w => w.TaxRate))
             {
-                // Calculate Taxes for Labor
-                decimal taxRate = (laborProduct.IvaRate + laborProduct.ImpoconsumoRate) / 100m;
-                decimal subTotal = billableLaborCost;
-                decimal taxAmount = 0;
-
-                if (laborProduct.PriceIncludesIva)
-                {
-                    decimal baseAmount = subTotal / (1 + taxRate);
-                    taxAmount = subTotal - baseAmount;
-                }
-                else
-                {
-                    taxAmount = subTotal * taxRate;
-                    subTotal = subTotal + taxAmount;
-                }
+                var laborBase = laborGroup.Sum(w => w.LaborCost);
+                var taxRate = laborGroup.Key;
+                var taxAmount = decimal.Round(laborBase * taxRate / 100m, 2);
+                var laborTotal = laborBase + taxAmount;
 
                 var laborDetail = new SaleDetail
                 {
                     SaleId = sale.Id,
                     ProductId = laborProduct.Id,
                     Quantity = 1,
-                    UnitPrice = billableLaborCost,
+                    UnitPrice = laborBase,
                     DiscountAmount = 0,
-                    TaxRate = taxRate * 100,
+                    TaxRate = taxRate,
                     TaxAmount = taxAmount,
-                    SubTotal = subTotal,
+                    SubTotal = laborTotal,
                     UnitCost = 0,
                     TotalCost = 0,
                     AccountingClassification = "TALLER / MANO_DE_OBRA"
                 };
                 await _saleDetailRepository.AddAsync(laborDetail);
-                totalSaleAmount += subTotal;
+                totalSaleAmount += laborTotal;
             }
 
             // Update Sale Total
@@ -969,6 +990,12 @@ namespace TPV.Application.Services
                 throw new InvalidOperationException("La revision asociada debe ser mayor a cero.");
             if ((estimatedHours.HasValue && estimatedHours.Value < 0) || (actualHours.HasValue && actualHours.Value < 0))
                 throw new InvalidOperationException("Los tiempos estimado y real no pueden ser negativos.");
+        }
+
+        private static void ValidateTaxRate(decimal taxRate)
+        {
+            if (taxRate < 0 || taxRate > 100)
+                throw new InvalidOperationException("El impuesto del servicio debe estar entre 0 y 100.");
         }
 
         private static void EnsureOrderCanBeEdited(ServiceOrder order)

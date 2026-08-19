@@ -82,6 +82,8 @@ namespace TPV.Application.DTOs
         public List<string> VisualEvidenceImages { get; set; } = new List<string>();
         public string? IntakeCustomerSignatureDataUrl { get; set; }
         public string? WorkshopManager { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public int? TechnicianId { get; set; }
         public string Status { get; set; }
     }
 
@@ -103,6 +105,7 @@ namespace TPV.Application.DTOs
         public decimal? EstimatedTimeHours { get; set; }
         public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public decimal TaxRate { get; set; }
         public string Payer { get; set; } = string.Empty;
         public bool AddsToCustomerTotal { get; set; }
         public string ServiceType { get; set; } = string.Empty;
@@ -118,6 +121,7 @@ namespace TPV.Application.DTOs
         public decimal? EstimatedTimeHours { get; set; }
         public decimal? ActualTimeHours { get; set; }
         public decimal LaborCost { get; set; }
+        public decimal TaxRate { get; set; }
         public string Payer { get; set; } = "CLIENTE";
         public bool AddsToCustomerTotal { get; set; } = true;
         public string ServiceType { get; set; } = "CORRECTIVO";
@@ -209,6 +213,7 @@ namespace TPV.Application.DTOs
         public List<ServiceOrderPartDto> Parts { get; set; } = new();
         public SaleResultDto? Invoice { get; set; }
         public decimal BillableLaborTotal { get; set; }
+        public decimal BillableLaborTaxTotal { get; set; }
         public decimal BillablePartsTotal { get; set; }
         public decimal EstimatedCustomerTotal { get; set; }
         public bool HasDiagnosis { get; set; }

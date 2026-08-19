@@ -11,18 +11,18 @@ namespace TPV.Application.Services
 {
     public class MotorcycleServiceCatalogService : IMotorcycleServiceCatalogService
     {
-        private static readonly (string Name, string Description, int Minutes, int Order)[] DefaultServices =
+        private static readonly (string Name, string Description, int Minutes, decimal Price, decimal TaxRate, int Order)[] DefaultServices =
         {
-            ("Revision general", "Inspeccion general de la moto y puntos de seguridad.", 60, 10),
-            ("Cambio de aceite", "Cambio de aceite y revision basica de niveles.", 30, 20),
-            ("Mantenimiento preventivo", "Servicio preventivo por kilometraje o rutina.", 90, 30),
-            ("Ajuste de frenos", "Revision, ajuste y limpieza del sistema de frenos.", 45, 40),
-            ("Cambio de pastillas o bandas", "Cambio de elementos de freno segun estado.", 60, 50),
-            ("Revision electrica", "Diagnostico de luces, bateria, carga y conexiones.", 60, 60),
-            ("Cambio de llantas", "Montaje o cambio de llanta delantera o trasera.", 45, 70),
-            ("Sincronizacion", "Ajuste de motor, carburacion o parametros de marcha.", 90, 80),
-            ("Revision de suspension", "Inspeccion de amortiguadores, barras y direccion.", 60, 90),
-            ("Kit de arrastre", "Revision o cambio de cadena, sprocket y catalina.", 75, 100)
+            ("Revision general", "Inspeccion general de la moto y puntos de seguridad.", 60, 0m, 0m, 10),
+            ("Cambio de aceite", "Cambio de aceite y revision basica de niveles.", 30, 0m, 0m, 20),
+            ("Mantenimiento preventivo", "Servicio preventivo por kilometraje o rutina.", 90, 0m, 0m, 30),
+            ("Ajuste de frenos", "Revision, ajuste y limpieza del sistema de frenos.", 45, 0m, 0m, 40),
+            ("Cambio de pastillas o bandas", "Cambio de elementos de freno segun estado.", 60, 0m, 0m, 50),
+            ("Revision electrica", "Diagnostico de luces, bateria, carga y conexiones.", 60, 0m, 0m, 60),
+            ("Cambio de llantas", "Montaje o cambio de llanta delantera o trasera.", 45, 0m, 0m, 70),
+            ("Sincronizacion", "Ajuste de motor, carburacion o parametros de marcha.", 90, 0m, 0m, 80),
+            ("Revision de suspension", "Inspeccion de amortiguadores, barras y direccion.", 60, 0m, 0m, 90),
+            ("Kit de arrastre", "Revision o cambio de cadena, sprocket y catalina.", 75, 0m, 0m, 100)
         };
 
         private readonly IRepository<MotorcycleService> _repository;
@@ -106,6 +106,8 @@ namespace TPV.Application.Services
                 Name = name,
                 Description = CleanOptional(dto.Description),
                 EstimatedMinutes = NormalizeMinutes(dto.EstimatedMinutes),
+                Price = NormalizePrice(dto.Price),
+                TaxRate = NormalizeTaxRate(dto.TaxRate),
                 DisplayOrder = Math.Max(0, dto.DisplayOrder),
                 IsActive = true
             };
@@ -128,6 +130,8 @@ namespace TPV.Application.Services
             entity.Name = name;
             entity.Description = CleanOptional(dto.Description);
             entity.EstimatedMinutes = NormalizeMinutes(dto.EstimatedMinutes);
+            entity.Price = NormalizePrice(dto.Price);
+            entity.TaxRate = NormalizeTaxRate(dto.TaxRate);
             entity.DisplayOrder = Math.Max(0, dto.DisplayOrder);
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -161,6 +165,8 @@ namespace TPV.Application.Services
                     Name = service.Name,
                     Description = service.Description,
                     EstimatedMinutes = service.Minutes,
+                    Price = service.Price,
+                    TaxRate = service.TaxRate,
                     DisplayOrder = service.Order,
                     IsActive = true
                 });
@@ -259,6 +265,18 @@ namespace TPV.Application.Services
             return Math.Clamp(minutes.Value, 5, 600);
         }
 
+        private static decimal NormalizePrice(decimal price)
+        {
+            if (price < 0) throw new Exception("El precio fijo no puede ser negativo.");
+            return decimal.Round(price, 2);
+        }
+
+        private static decimal NormalizeTaxRate(decimal taxRate)
+        {
+            if (taxRate < 0 || taxRate > 100) throw new Exception("El impuesto debe estar entre 0 y 100.");
+            return decimal.Round(taxRate, 2);
+        }
+
         private static IEnumerable<MotorcycleService> DeduplicateByName(IEnumerable<MotorcycleService> services)
         {
             return services
@@ -281,6 +299,8 @@ namespace TPV.Application.Services
                 Name = service.Name,
                 Description = service.Description,
                 EstimatedMinutes = service.EstimatedMinutes,
+                Price = service.Price,
+                TaxRate = service.TaxRate,
                 DisplayOrder = service.DisplayOrder
             };
         }

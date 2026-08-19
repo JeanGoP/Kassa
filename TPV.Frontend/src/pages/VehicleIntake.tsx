@@ -111,6 +111,13 @@ interface VehicleIntakeProps {
     onOrderCreated?: (order: any) => void;
 }
 
+interface Technician {
+    id: number;
+    name: string;
+    specialty?: string;
+    branchId?: number;
+}
+
 const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps) => {
     const [formData, setFormData] = useState({
         chassisNumber: '',
@@ -131,12 +138,15 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
         initialObservations: '',
         visualCondition: '',
         workshopManager: '',
+        technicianId: '',
     });
 
     // Customers State
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [vehicleModels, setVehicleModels] = useState<VehicleModel[]>([]);
+    const [technicians, setTechnicians] = useState<Technician[]>([]);
+    const [currentBranchId, setCurrentBranchId] = useState<number | null>(null);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
@@ -182,6 +192,7 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
                 const response = await api.get('/branches/current');
                 const branch = response.data;
                 const managerName = branch.workshopManagerName || branch.managerName || '';
+                setCurrentBranchId(branch.id || null);
                 setFormData(prev => ({ ...prev, workshopManager: managerName }));
             } catch (error) {
                 console.error("Error fetching current branch info", error);
@@ -190,8 +201,8 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
         };
 
         fetchCurrentBranchManager();
-        Promise.all([api.get<Brand[]>('/vehiclecatalogs/brands'), api.get<VehicleModel[]>('/vehiclecatalogs/models')])
-            .then(([brandResponse, modelResponse]) => { setBrands(brandResponse.data); setVehicleModels(modelResponse.data); })
+        Promise.all([api.get<Brand[]>('/vehiclecatalogs/brands'), api.get<VehicleModel[]>('/vehiclecatalogs/models'), api.get<Technician[]>('/technicians')])
+            .then(([brandResponse, modelResponse, technicianResponse]) => { setBrands(brandResponse.data); setVehicleModels(modelResponse.data); setTechnicians(technicianResponse.data); })
             .catch(error => console.error('Error fetching vehicle catalogs', error));
     }, []);
 
@@ -205,8 +216,6 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
             setCustomers([]);
         }
     }, [customerSearch]);
-
-    // Technicians State (no se asigna técnico en el ingreso inicial)
 
     const fetchCustomers = async () => {
         try {
@@ -467,6 +476,7 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
             year: Number(formData.year),
             mileage: Number(formData.mileage),
             maintenanceReviewMileage: formData.maintenanceReviewMileage ? Number(formData.maintenanceReviewMileage) : null,
+            technicianId: formData.technicianId ? Number(formData.technicianId) : null,
             intakeDateTime: formData.intakeDateTime || formatDateTimeLocal(),
             visualEvidenceImages,
             intakeCustomerSignatureDataUrl: signatureDataUrl,
@@ -499,7 +509,8 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
                 fuelLevel: '',
                 initialObservations: '',
                 visualCondition: '',
-                workshopManager: prev.workshopManager
+                workshopManager: prev.workshopManager,
+                technicianId: ''
             }));
             setSelectedCustomer(null);
             setCustomerSearch('');
@@ -1086,7 +1097,28 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
         <div className={embedded ? "relative" : "bg-white rounded-xl shadow-md p-6 relative"}>
             <h1 className="text-2xl font-bold mb-4 text-slate-800">Ingreso del Vehículo</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="max-w-md">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                        <label className="block text-sm font-medium text-gray-700">FECHA Y HORA DE INGRESO</label>
+                        <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, intakeDateTime: formatDateTimeLocal() }))}
+                            className="text-xs font-semibold text-blue-600 transition hover:text-blue-700"
+                        >
+                            Usar ahora
+                        </button>
+                    </div>
+                    <input
+                        type="datetime-local"
+                        name="intakeDateTime"
+                        value={formData.intakeDateTime}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        required
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {/* Customer Search Section */}
                     <div className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
@@ -1151,6 +1183,26 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
                                 </button>
                             </div>
                         )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Técnico asignado</label>
+                        <select
+                            name="technicianId"
+                            value={formData.technicianId}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            required
+                        >
+                            <option value="">Seleccione un técnico...</option>
+                            {technicians
+                                .filter(technician => !currentBranchId || !technician.branchId || technician.branchId === currentBranchId)
+                                .map(technician => (
+                                    <option key={technician.id} value={technician.id}>
+                                        {technician.name}{technician.specialty ? ` · ${technician.specialty}` : ''}
+                                    </option>
+                                ))}
+                        </select>
                     </div>
 
                     <div>
@@ -1307,26 +1359,6 @@ const VehicleIntake = ({ embedded = false, onOrderCreated }: VehicleIntakeProps)
                             onChange={handleChange}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             placeholder="Ej. 5000"
-                        />
-                    </div>
-                    <div>
-                        <div className="mb-1 flex items-center justify-between gap-2">
-                            <label className="block text-sm font-medium text-gray-700">FECHA Y HORA DE INGRESO</label>
-                            <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, intakeDateTime: formatDateTimeLocal() }))}
-                                className="text-xs font-semibold text-blue-600 transition hover:text-blue-700"
-                            >
-                                Usar ahora
-                            </button>
-                        </div>
-                        <input
-                            type="datetime-local"
-                            name="intakeDateTime"
-                            value={formData.intakeDateTime}
-                            onChange={handleChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            required
                         />
                     </div>
                     <div>
