@@ -16,14 +16,14 @@
 
 ![Panel principal](assets/01_dashboard.png)
 
-El panel resume ventas, órdenes activas, inventario bajo, clientes nuevos y estados del taller. Las opciones visibles dependen de los permisos del rol.
+El panel resume ventas, órdenes activas, inventario bajo, clientes nuevos y estados del taller. Use BUSCAR EN EL MENÚ para localizar una opción, contraiga la navegación cuando necesite más espacio y utilice los accesos frecuentes para iniciar ventas, cotizaciones, citas, expedientes o consultas de inventario. Las opciones visibles dependen de los permisos del rol.
 
 ## 2. CONFIGURACIÓN INICIAL
 
-1. En SEGURIDAD > EMPRESAS registre RAZÓN SOCIAL y NIT.
+1. En ADMINISTRACIÓN > EMPRESAS registre RAZÓN SOCIAL y NIT.
 2. En CATÁLOGOS > SUCURSALES cree cada sede, asígnele MARCA PRINCIPAL y JEFE DE TALLER.
-3. En SEGURIDAD > ROLES Y PERMISOS configure el acceso mínimo necesario.
-4. En SEGURIDAD > USUARIOS asigne empresa, sucursal y rol.
+3. En ADMINISTRACIÓN > ROLES Y PERMISOS configure el acceso mínimo necesario.
+4. En ADMINISTRACIÓN > USUARIOS asigne empresa, sucursal y rol.
 
 ![Sucursales](assets/24_sucursales.png)
 
@@ -116,7 +116,7 @@ Las cuentas con saldo cero permanecen disponibles para consulta histórica. Los 
 
 ### CREAR UNA UBICACIÓN
 
-1. Abra MOVIMIENTOS > INVENTARIO y seleccione la sucursal.
+1. Abra INVENTARIO > EXISTENCIAS y seleccione la sucursal.
 2. En UBICACIONES seleccione NUEVA UBICACIÓN.
 3. Registre código, nombre y descripción.
 4. Marque ES PREDETERMINADA solo para la ubicación habitual.
@@ -144,7 +144,7 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra TALLER > EXPEDIENTES para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
 
 ### CREAR Y COMPLETAR UN EXPEDIENTE
 

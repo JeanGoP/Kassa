@@ -1,51 +1,112 @@
-import React, { useEffect } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingCart, Package, DollarSign, FileBarChart, LogOut, Menu, Users, ArrowDownCircle, Tags, UserCircle, MapPin, ChevronDown, ChevronRight, Car, Wrench, Boxes, ClipboardList, UserCog, UserCheck, Activity, Shield, Building2, Key, ArrowLeftRight, Sliders, Truck, FileText, CalendarDays, WalletCards } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+    Activity,
+    ArrowDownCircle,
+    Boxes,
+    Building2,
+    CalendarDays,
+    Car,
+    ChevronDown,
+    ChevronRight,
+    CirclePlus,
+    ClipboardList,
+    DollarSign,
+    FileBarChart,
+    FileText,
+    Key,
+    LayoutDashboard,
+    LogOut,
+    MapPin,
+    Menu,
+    Package,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Search,
+    Shield,
+    ShoppingCart,
+    Sliders,
+    Tags,
+    Truck,
+    UserCheck,
+    UserCircle,
+    UserCog,
+    Users,
+    WalletCards,
+    Wrench,
+    X,
+    type LucideIcon
+} from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAuth } from '../context/AuthContext';
 import logo from '../assets/Logo.png';
 import ChangePasswordModal from './ChangePasswordModal';
+
+interface NavLinkItem {
+    path: string;
+    label: string;
+    icon: LucideIcon;
+    permission?: string;
+}
+
+interface NavGroupItem {
+    label: string;
+    icon: LucideIcon;
+    submenu: NavLinkItem[];
+}
+
+type NavItem = NavLinkItem | NavGroupItem;
+
+const isNavGroup = (item: NavItem): item is NavGroupItem => 'submenu' in item;
 
 const Layout = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const isDesktopViewport = () => typeof window === 'undefined' || window.innerWidth >= 768;
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(isDesktopViewport);
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => {
+        if (typeof window === 'undefined') return true;
+        if (window.innerWidth < 1024) return false;
+        return window.localStorage.getItem('kassa.sidebar') !== 'collapsed';
+    });
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
+    const [menuSearch, setMenuSearch] = React.useState('');
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
     const commitSha = (__APP_COMMIT__ || 'local-dev').trim();
     const shortCommitSha = commitSha.length > 7 ? commitSha.slice(0, 7) : commitSha;
 
-    const handleLogout = async () => {
-        await logout();
-        navigate('/login');
-    };
-
-    const navItems = [
-        { path: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'Menus.Dashboard.View' },
+    const navItems = useMemo<NavItem[]>(() => [
+        { path: '/', label: 'Resumen', icon: LayoutDashboard, permission: 'Menus.Dashboard.View' },
         {
             label: 'Operaciones',
             icon: ShoppingCart,
             submenu: [
-                { path: '/pos', label: 'Punto de Venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
-                { path: '/appointments', label: 'Agenda de Citas', icon: CalendarDays, permission: 'Menus.Appointments.View' },
-                { path: '/quotations', label: 'Cotización', icon: FileText, permission: 'Menus.Quotations.View' },
-                { path: '/sales-history', label: 'Historial de Ventas', icon: FileText, permission: 'Menus.POS.View' },
+                { path: '/pos', label: 'Punto de venta', icon: ShoppingCart, permission: 'Menus.POS.View' },
+                { path: '/appointments', label: 'Agenda de citas', icon: CalendarDays, permission: 'Menus.Appointments.View' },
+                { path: '/quotations', label: 'Cotizaciones', icon: FileText, permission: 'Menus.Quotations.View' },
+                { path: '/sales-history', label: 'Historial de ventas', icon: ClipboardList, permission: 'Menus.POS.View' },
                 { path: '/customer-advances', label: 'Anticipos de clientes', icon: WalletCards, permission: 'Menus.POS.View' },
-                { path: '/purchases', label: 'Entradas de Mercancia', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
+                { path: '/purchases', label: 'Entradas de mercancía', icon: ArrowDownCircle, permission: 'Menus.Purchases.View' },
             ]
         },
         {
-            label: 'Órdenes de Servicio',
+            label: 'Taller',
             icon: Wrench,
             submenu: [
-                { path: '/service-orders/dashboard', label: 'Dashboard Taller', icon: Activity, permission: 'Menus.Workshop.View' },
-                { path: '/preparation-orders', label: 'Alistamientos', icon: ClipboardList, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders/dashboard', label: 'Control de taller', icon: Activity, permission: 'Menus.Workshop.View' },
+                { path: '/service-orders', label: 'Expedientes', icon: ClipboardList, permission: 'Menus.Workshop.View' },
+                { path: '/preparation-orders', label: 'Alistamientos', icon: Car, permission: 'Menus.Workshop.View' },
                 { path: '/vehicles', label: 'Vehículos UIO', icon: Car, permission: 'Menus.Workshop.View' },
-                { path: '/service-orders', label: 'Expediente de Taller', icon: ClipboardList, permission: 'Menus.Workshop.View' },
                 { path: '/warranties', label: 'Garantías', icon: Shield, permission: 'Menus.Workshop.View' },
+            ]
+        },
+        {
+            label: 'Inventario',
+            icon: Package,
+            submenu: [
+                { path: '/inventory', label: 'Existencias', icon: Package, permission: 'Menus.Inventory.View' },
+                { path: '/inventory/adjustments', label: 'Ajustes', icon: Sliders, permission: 'Menus.Inventory.View' },
+                { path: '/inventory/transfers', label: 'Traslados', icon: Truck, permission: 'Menus.Inventory.View' },
             ]
         },
         {
@@ -53,150 +114,139 @@ const Layout = () => {
             icon: Boxes,
             submenu: [
                 { path: '/products', label: 'Productos', icon: Tags, permission: 'Menus.Products.View' },
-                { path: '/categories', label: 'Categorías', icon: Tags, permission: 'Menus.Products.View' },
-                { path: '/vehicle-catalogs', label: 'Marcas y Modelos', icon: Car, permission: 'Menus.Products.View' },
+                { path: '/categories', label: 'Categorías', icon: Boxes, permission: 'Menus.Products.View' },
+                { path: '/vehicle-catalogs', label: 'Marcas y modelos', icon: Car, permission: 'Menus.Products.View' },
                 { path: '/customers', label: 'Clientes', icon: UserCircle, permission: 'Menus.Customers.View' },
                 { path: '/suppliers', label: 'Proveedores', icon: Users, permission: 'Menus.Suppliers.View' },
-                { path: '/motorcycle-services', label: 'Servicios de Moto', icon: Wrench, permission: 'Menus.MotorcycleServices.View' },
+                { path: '/motorcycle-services', label: 'Servicios de moto', icon: Wrench, permission: 'Menus.MotorcycleServices.View' },
                 { path: '/technicians', label: 'Técnicos', icon: UserCog, permission: 'Menus.Technicians.View' },
-                { path: '/workshop-managers', label: 'Jefes de Taller', icon: UserCheck, permission: 'Menus.WorkshopManagers.View' },
+                { path: '/workshop-managers', label: 'Jefes de taller', icon: UserCheck, permission: 'Menus.WorkshopManagers.View' },
                 { path: '/branches', label: 'Sucursales', icon: MapPin, permission: 'Menus.Branches.View' },
             ]
         },
-        {
-            label: 'Movimientos',
-            icon: ArrowLeftRight,
-            submenu: [
-                { path: '/inventory', label: 'Inventario', icon: Package, permission: 'Menus.Inventory.View' },
-                { path: '/inventory/adjustments', label: 'Ajustes', icon: Sliders, permission: 'Menus.Inventory.View' },
-                { path: '/inventory/transfers', label: 'Traslados', icon: Truck, permission: 'Menus.Inventory.View' },
-            ]
-        },
         { path: '/cash', label: 'Caja', icon: DollarSign, permission: 'Menus.Cash.View' },
+        { path: '/reports', label: 'Reportes', icon: FileBarChart, permission: 'Menus.Reports.View' },
         {
-            label: 'Seguridad',
+            label: 'Administración',
             icon: Shield,
             submenu: [
-                ...(!user?.tenantId ? [{ path: '/tenants', label: 'Empresas', icon: Building2, permission: 'Host.Tenants.Manage' }] : []),
+                ...(!user?.tenantId
+                    ? [{ path: '/tenants', label: 'Empresas', icon: Building2, permission: 'Host.Tenants.Manage' }]
+                    : []),
                 { path: '/users', label: 'Usuarios', icon: Users, permission: 'Admin.Users.Manage' },
                 { path: '/roles', label: 'Roles y permisos', icon: Shield, permission: 'Admin.Roles.Manage' },
             ]
         },
-        { path: '/reports', label: 'Reportes', icon: FileBarChart, permission: 'Menus.Reports.View' },
-    ];
+    ], [user?.tenantId]);
 
     const hasPermission = (permission?: string) => {
-        if (!user?.tenantId) return true;
-        if (!permission) return true;
-        return user?.permissions?.includes(permission);
+        if (!user?.tenantId || !permission) return true;
+        return Boolean(user.permissions?.includes(permission));
     };
 
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            setIsSidebarOpen(false);
-        }
-        setIsUserMenuOpen(false);
-    }, [location.pathname]);
+    const isRouteActive = (path: string) => {
+        if (location.pathname === path) return true;
+        const hasExactMenuOption = navItems.some(item => isNavGroup(item)
+            ? item.submenu.some(subItem => subItem.path === location.pathname)
+            : item.path === location.pathname);
+        return !hasExactMenuOption && path !== '/' && location.pathname.startsWith(`${path}/`);
+    };
 
-    useEffect(() => {
-        navItems.forEach(item => {
-            if (item.submenu) {
-                const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
-                const hasActiveChild = visibleSubItems.some(sub => sub.path === location.pathname);
-                if (hasActiveChild && !expandedMenus.includes(item.label)) {
-                    setExpandedMenus(prev => [...prev, item.label]);
-                }
+    const visibleNavItems = (() => {
+        const query = menuSearch.trim().toLocaleLowerCase('es');
+        return navItems.reduce<NavItem[]>((result, item) => {
+            if (isNavGroup(item)) {
+                const submenu = item.submenu.filter(subItem => (
+                    hasPermission(subItem.permission) &&
+                    (!query || subItem.label.toLocaleLowerCase('es').includes(query) || item.label.toLocaleLowerCase('es').includes(query))
+                ));
+                if (submenu.length > 0) result.push({ ...item, submenu });
+            } else if (hasPermission(item.permission) && (!query || item.label.toLocaleLowerCase('es').includes(query))) {
+                result.push(item);
             }
-        });
-    }, [location.pathname, user]);
+            return result;
+        }, []);
+    })();
 
-    const toggleMenu = (label: string) => {
-        if (!isSidebarOpen) setIsSidebarOpen(true);
-        setExpandedMenus(prev =>
-            prev.includes(label)
-                ? prev.filter(item => item !== label)
-                : [...prev, label]
-        );
-    };
-
-    const activeRoute = navItems.reduce<any>((found, item: any) => {
-        if (found) return found;
-        if (item.submenu) {
-            const match = item.submenu.find((subItem: any) => subItem.path === location.pathname);
-            return match ? { ...match, group: item.label } : null;
+    const activeRoute = (() => {
+        for (const item of navItems) {
+            if (isNavGroup(item)) {
+                const match = item.submenu.find(subItem => isRouteActive(subItem.path));
+                if (match) return { ...match, group: item.label };
+            } else if (isRouteActive(item.path)) {
+                return { ...item, group: 'Inicio' };
+            }
         }
-        return item.path === location.pathname ? { ...item, group: 'Inicio' } : null;
-    }, null);
+        return null;
+    })();
+
     const CurrentIcon = activeRoute?.icon || LayoutDashboard;
-    const currentTitle = activeRoute?.label || 'Dashboard';
+    const currentTitle = activeRoute?.label || 'Resumen';
     const currentGroup = activeRoute?.group || 'Inicio';
     const userEmail = user?.email || 'Usuario';
     const userInitial = userEmail.charAt(0).toUpperCase();
+
+    const handleNavigation = () => {
+        setIsUserMenuOpen(false);
+        setMenuSearch('');
+        if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false);
+    };
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen(previous => {
+            const next = !previous;
+            if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                window.localStorage.setItem('kassa.sidebar', next ? 'expanded' : 'collapsed');
+            }
+            return next;
+        });
+    };
+
+    const toggleMenu = (label: string) => {
+        if (!isSidebarOpen) setIsSidebarOpen(true);
+        setExpandedMenus(previous => previous.includes(label)
+            ? previous.filter(item => item !== label)
+            : [...previous, label]);
+    };
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
 
     const openChangePassword = () => {
         setIsUserMenuOpen(false);
         setIsChangePasswordOpen(true);
     };
 
-    const handleMenuLogout = async () => {
-        setIsUserMenuOpen(false);
-        await handleLogout();
-    };
-
     const renderUserMenu = (compact = false) => (
         <div className="relative">
             {isUserMenuOpen && (
-                <button
-                    type="button"
-                    aria-label="Cerrar menú de cuenta"
-                    className="fixed inset-0 z-20 cursor-default bg-transparent"
-                    onClick={() => setIsUserMenuOpen(false)}
-                />
+                <button type="button" aria-label="Cerrar menú de cuenta" className="fixed inset-0 z-30 cursor-default bg-transparent" onClick={() => setIsUserMenuOpen(false)} />
             )}
             <button
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={isUserMenuOpen}
-                onClick={() => setIsUserMenuOpen(prev => !prev)}
-                className={clsx(
-                    "relative z-30 flex items-center gap-2 rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-blue-200 hover:bg-blue-50/40",
-                    compact ? "h-10 px-2" : "px-3 py-2"
-                )}
+                onClick={() => setIsUserMenuOpen(previous => !previous)}
+                className={clsx('k-user-trigger relative z-40', compact && 'k-user-trigger-compact')}
             >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-teal-50 text-xs font-extrabold text-teal-700">
-                    {userInitial}
-                </span>
-                {!compact && <span className="max-w-[190px] truncate text-sm font-semibold text-slate-700">{userEmail}</span>}
-                <ChevronDown size={16} className={clsx("text-slate-500 transition-transform", isUserMenuOpen && "rotate-180")} />
+                <span className="k-user-avatar">{userInitial}</span>
+                {!compact && <span className="max-w-[190px] truncate text-sm font-semibold">{userEmail}</span>}
+                <ChevronDown size={15} className={clsx('transition-transform', isUserMenuOpen && 'rotate-180')} />
             </button>
             {isUserMenuOpen && (
-                <div className="absolute right-0 z-40 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" role="menu">
-                    <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Cuenta</div>
-                        <div className="mt-1 truncate text-sm font-semibold text-slate-800">{userEmail}</div>
+                <div className="k-account-menu absolute right-0 z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)]" role="menu">
+                    <div className="border-b border-slate-200 px-4 py-3">
+                        <div className="text-[11px] font-bold uppercase text-slate-500">Cuenta activa</div>
+                        <div className="mt-1 truncate text-sm font-semibold text-slate-900">{userEmail}</div>
                     </div>
                     <div className="p-2">
-                        <button
-                            type="button"
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
-                            onClick={openChangePassword}
-                            role="menuitem"
-                        >
-                            <Key size={18} />
-                            Cambiar contraseña
-                        </button>
-                        <button
-                            type="button"
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                            onClick={handleMenuLogout}
-                            role="menuitem"
-                        >
-                            <LogOut size={18} />
-                            Cerrar sesión
-                        </button>
+                        <button type="button" className="k-menu-action" onClick={openChangePassword} role="menuitem"><Key size={18} />Cambiar contraseña</button>
+                        <button type="button" className="k-menu-action text-red-600 hover:bg-red-50" onClick={handleLogout} role="menuitem"><LogOut size={18} />Cerrar sesión</button>
                     </div>
-                    <div className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500" title={`Commit desplegado: ${commitSha}`}>
-                        Versión <span className="font-mono text-slate-600">{shortCommitSha}</span>
+                    <div className="border-t border-slate-200 px-4 py-2 text-[11px] text-slate-500" title={`Commit desplegado: ${commitSha}`}>
+                        Versión <span className="font-mono text-slate-700">{shortCommitSha}</span>
                     </div>
                 </div>
             )}
@@ -205,177 +255,113 @@ const Layout = () => {
 
     return (
         <div className="k-app-shell flex h-screen min-w-0 overflow-hidden">
-            <div className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden">
-                <div className="flex items-center space-x-2">
-                    <img src={logo} alt="Kassa" className="h-8 w-8 rounded-md bg-white object-contain shadow-sm" />
-                    <h1 className="text-lg font-extrabold tracking-tight text-slate-900">Kassa</h1>
+            <header className="k-mobile-header fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between px-3 md:hidden">
+                <div className="flex min-w-0 items-center gap-3">
+                    <button type="button" onClick={() => setIsSidebarOpen(true)} className="k-icon-button" title="Abrir navegación"><Menu size={22} /></button>
+                    <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-slate-950">{currentTitle}</div>
+                        <div className="truncate text-[11px] font-semibold text-slate-500">{currentGroup}</div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    {renderUserMenu(true)}
-                    <button onClick={() => setIsSidebarOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
-                        <Menu size={24} />
-                    </button>
-                </div>
-            </div>
+                {renderUserMenu(true)}
+            </header>
 
             {isSidebarOpen && (
-                <div
-                    className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm md:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
+                <button type="button" aria-label="Cerrar navegación" className="fixed inset-0 z-30 bg-slate-950/45 backdrop-blur-[2px] md:hidden" onClick={() => setIsSidebarOpen(false)} />
             )}
 
-            <aside
-                className={clsx(
-                    "z-40 flex h-full max-w-[85vw] flex-col text-white shadow-xl transition-all duration-300",
-                    "fixed inset-y-0 left-0 md:relative md:max-w-none",
-                    isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full md:w-20 md:translate-x-0"
-                )}
-                style={{ background: 'linear-gradient(180deg, var(--k-sidebar), var(--k-sidebar-2))' }}
-            >
-                <div className="flex h-16 items-center justify-between border-b border-white/10 p-4">
-                    {isSidebarOpen && (
-                        <div className="flex items-center space-x-2">
-                            <img src={logo} alt="Kassa" className="h-9 w-9 rounded-lg bg-white p-1 object-contain shadow-sm" />
-                            <div>
-                                <h1 className="text-xl font-extrabold leading-none tracking-tight">Kassa</h1>
-                                <p className="mt-1 text-[11px] font-medium text-slate-400">Gestión comercial</p>
-                            </div>
-                        </div>
-                    )}
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
-                        <Menu size={20} />
-                    </button>
+            <aside className={clsx(
+                'k-sidebar fixed inset-y-0 left-0 z-40 flex h-full max-w-[88vw] flex-col transition-[width,transform] duration-200 md:relative md:max-w-none',
+                isSidebarOpen ? 'w-[280px] translate-x-0' : '-translate-x-full md:w-[76px] md:translate-x-0'
+            )}>
+                <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-3">
+                    <Link to="/" onClick={handleNavigation} className={clsx('flex min-w-0 items-center', isSidebarOpen ? 'gap-3' : 'justify-center')} title="Ir al resumen">
+                        <span className="k-logo-mark"><img src={logo} alt="" /></span>
+                        {isSidebarOpen && <span className="min-w-0"><span className="block text-lg font-extrabold leading-none text-slate-950">Kassa</span><span className="mt-1 block text-[11px] font-semibold text-slate-500">Gestión posventa</span></span>}
+                    </Link>
+                    {isSidebarOpen && <button type="button" onClick={toggleSidebar} className="k-icon-button hidden md:inline-flex" title="Contraer navegación"><PanelLeftClose size={19} /></button>}
+                    <button type="button" onClick={() => setIsSidebarOpen(false)} className="k-icon-button md:hidden" title="Cerrar navegación"><X size={20} /></button>
                 </div>
 
-                {isSidebarOpen && (
-                    <div className="mx-3 mt-3 rounded-lg border border-white/10 bg-white/[0.06] p-3">
-                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Estado del sistema</div>
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                            <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
-                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                                Operativo
-                            </span>
-                            <span className="rounded-md bg-teal-400/10 px-2 py-1 text-[11px] font-bold text-teal-200">Kassa</span>
-                        </div>
+                {isSidebarOpen ? (
+                    <div className="px-3 pb-2 pt-3">
+                        <label className="relative block">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                            <input type="search" value={menuSearch} onChange={event => setMenuSearch(event.target.value)} placeholder="Buscar en el menú" className="k-nav-search" aria-label="Buscar en el menú" />
+                            {menuSearch && <button type="button" onClick={() => setMenuSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-200" title="Limpiar búsqueda"><X size={14} /></button>}
+                        </label>
                     </div>
+                ) : (
+                    <button type="button" onClick={toggleSidebar} className="k-sidebar-expand mx-auto mt-3 hidden md:inline-flex" title="Expandir navegación"><PanelLeftOpen size={19} /></button>
                 )}
 
-                <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
-                    {navItems.map((item) => {
+                <nav className="k-sidebar-nav flex-1 overflow-y-auto px-2 pb-4 pt-2" aria-label="Navegación principal">
+                    {isSidebarOpen && <div className="k-nav-caption">Navegación</div>}
+                    {visibleNavItems.map(item => {
                         const Icon = item.icon;
-
-                        if (item.submenu) {
-                            const visibleSubItems = item.submenu.filter(sub => hasPermission(sub.permission));
-                            if (visibleSubItems.length === 0) return null;
-
-                            const isExpanded = expandedMenus.includes(item.label);
-                            const hasActiveChild = visibleSubItems.some(sub => sub.path === location.pathname);
-
+                        if (isNavGroup(item)) {
+                            const hasActiveChild = item.submenu.some(subItem => isRouteActive(subItem.path));
+                            const isExpanded = expandedMenus.includes(item.label) || hasActiveChild || Boolean(menuSearch);
                             return (
                                 <div key={item.label} className="mb-1">
-                                    <button
-                                        onClick={() => toggleMenu(item.label)}
-                                        className={clsx(
-                                            "group relative flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-200",
-                                            hasActiveChild
-                                                ? "bg-white/14 text-white ring-1 ring-white/10"
-                                                : "text-slate-300 hover:bg-white/10 hover:text-white"
-                                        )}
-                                    >
-                                        <div className="flex items-center">
-                                            <Icon size={21} className={clsx("shrink-0 transition-transform duration-300", hasActiveChild ? "text-blue-300" : "")} />
-                                            {isSidebarOpen && <span className="ml-3 text-sm font-medium">{item.label}</span>}
-                                        </div>
-                                        {isSidebarOpen && (
-                                            isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
-                                        )}
+                                    <button type="button" onClick={() => toggleMenu(item.label)} className={clsx('k-nav-item group w-full', hasActiveChild && 'k-nav-parent-active')} title={!isSidebarOpen ? item.label : undefined}>
+                                        <Icon size={19} className="shrink-0" />
+                                        {isSidebarOpen && <span className="flex-1 truncate text-left">{item.label}</span>}
+                                        {isSidebarOpen && (isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />)}
+                                        {!isSidebarOpen && <span className="k-nav-tooltip">{item.label}</span>}
                                     </button>
-
-                                    <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isExpanded && isSidebarOpen ? "mt-1 max-h-96 opacity-100" : "max-h-0 opacity-0")}>
-                                        <div className="ml-3 rounded-lg border-l border-white/10 bg-black/15 py-1">
-                                            {visibleSubItems.map((subItem) => {
+                                    {isSidebarOpen && isExpanded && (
+                                        <div className="k-subnav">
+                                            {item.submenu.map(subItem => {
                                                 const SubIcon = subItem.icon;
-                                                const isSubActive = location.pathname === subItem.path;
-                                                return (
-                                                    <Link
-                                                        key={subItem.path}
-                                                        to={subItem.path}
-                                                        className={clsx(
-                                                            "group relative ml-2 flex items-center rounded-lg px-3 py-2 text-sm transition-all duration-200",
-                                                            isSubActive
-                                                                ? "bg-blue-500/20 font-semibold text-white"
-                                                                : "text-slate-400 hover:bg-white/10 hover:text-white"
-                                                        )}
-                                                    >
-                                                        <SubIcon size={18} className="mr-3" />
-                                                        <span>{subItem.label}</span>
-                                                    </Link>
-                                                );
+                                                return <Link key={subItem.path} to={subItem.path} onClick={handleNavigation} className={clsx('k-subnav-item', isRouteActive(subItem.path) && 'k-subnav-item-active')}><SubIcon size={16} className="shrink-0" /><span className="truncate">{subItem.label}</span></Link>;
                                             })}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             );
                         }
-
-                        if (!hasPermission(item.permission)) return null;
-
-                        const isActive = location.pathname === item.path;
                         return (
-                            <Link
-                                key={item.path}
-                                to={item.path!}
-                                className={clsx(
-                                    "group relative mb-1 flex items-center rounded-lg px-3 py-2.5 transition-all duration-200",
-                                    isActive
-                                        ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-300/30"
-                                        : "text-slate-300 hover:bg-white/10 hover:text-white"
-                                )}
-                            >
-                                <Icon size={21} className={clsx("shrink-0 transition-transform duration-300", isActive ? "scale-105" : "group-hover:scale-105")} />
-                                {isSidebarOpen && <span className="ml-3 text-sm font-medium">{item.label}</span>}
-                                {!isSidebarOpen && (
-                                    <div className="pointer-events-none absolute left-14 z-50 whitespace-nowrap rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
-                                        {item.label}
-                                    </div>
-                                )}
+                            <Link key={item.path} to={item.path} onClick={handleNavigation} className={clsx('k-nav-item group mb-1', isRouteActive(item.path) && 'k-nav-item-active')} title={!isSidebarOpen ? item.label : undefined}>
+                                <Icon size={19} className="shrink-0" />
+                                {isSidebarOpen && <span className="truncate">{item.label}</span>}
+                                {!isSidebarOpen && <span className="k-nav-tooltip">{item.label}</span>}
                             </Link>
                         );
                     })}
+                    {visibleNavItems.length === 0 && isSidebarOpen && <div className="px-3 py-8 text-center text-sm text-slate-500">No encontramos opciones.</div>}
                 </nav>
 
+                <div className={clsx('shrink-0 border-t border-slate-200 p-3', !isSidebarOpen && 'text-center')}>
+                    {isSidebarOpen ? (
+                        <div className="flex items-center justify-between gap-3 rounded-md bg-slate-100 px-3 py-2">
+                            <span className="flex items-center gap-2 text-xs font-semibold text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-500" />Sistema operativo</span>
+                            <span className="font-mono text-[10px] text-slate-500">{shortCommitSha}</span>
+                        </div>
+                    ) : <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" title="Sistema operativo" />}
+                </div>
             </aside>
 
-            <main className="k-workspace relative flex-1 min-w-0 overflow-auto pt-16 md:pt-0">
-                <div className="sticky top-0 z-20 hidden border-b border-slate-200/80 bg-white/88 px-6 py-3 backdrop-blur md:block">
-                    <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-blue-50 p-2 text-blue-700 ring-1 ring-blue-100">
-                                <CurrentIcon size={21} />
-                            </div>
-                            <div>
-                                <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">{currentGroup}</div>
-                                <div className="text-lg font-extrabold leading-tight text-slate-950">{currentTitle}</div>
+            <main className="k-workspace relative min-w-0 flex-1 overflow-auto pt-16 md:pt-0">
+                <header className="k-desktop-header sticky top-0 z-20 hidden h-16 items-center px-5 md:flex lg:px-7">
+                    <div className="mx-auto flex w-full max-w-[1540px] items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <div className="k-context-icon"><CurrentIcon size={19} /></div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500"><span>Kassa</span><ChevronRight size={12} /><span>{currentGroup}</span></div>
+                                <div className="truncate text-base font-extrabold leading-tight text-slate-950">{currentTitle}</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 lg:block">
-                                Ambiente operativo
-                            </div>
+                        <div className="flex items-center gap-2">
+                            {hasPermission('Menus.POS.View') && <Link to="/pos" className="k-button-primary hidden px-3 py-2 text-sm lg:inline-flex"><CirclePlus size={17} />Nueva venta</Link>}
                             {renderUserMenu(false)}
                         </div>
                     </div>
-                </div>
-                <div className="k-content-container mx-auto w-full max-w-[1500px] p-4 sm:p-6 md:p-8">
-                    <Outlet />
-                </div>
+                </header>
+                <div className="k-content-container mx-auto w-full max-w-[1540px] p-3 sm:p-5 lg:p-7"><Outlet /></div>
             </main>
 
-            <ChangePasswordModal
-                isOpen={isChangePasswordOpen}
-                onClose={() => setIsChangePasswordOpen(false)}
-            />
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
         </div>
     );
 };

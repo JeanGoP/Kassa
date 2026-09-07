@@ -268,10 +268,10 @@ def build_docx() -> None:
     add_title(doc, "Mapa del sistema", 2)
     for item in (
         "OPERACIONES: punto de venta, agenda, cotizaciones, historial de ventas y entradas de mercancía.",
-        "ÓRDENES DE SERVICIO: tablero de taller, expediente unificado, alistamientos, vehículos y garantías.",
+        "TALLER: control operativo, expedientes, alistamientos, vehículos y garantías.",
+        "INVENTARIO: existencias por ubicación, ajustes y traslados.",
         "CATÁLOGOS: productos, categorías, marcas/modelos, clientes, proveedores, servicios, técnicos, jefes de taller y sucursales.",
-        "MOVIMIENTOS: inventario por ubicación, ajustes y traslados.",
-        "SEGURIDAD Y REPORTES: empresas, usuarios, roles, permisos e informes.",
+        "ADMINISTRACIÓN Y REPORTES: empresas, usuarios, roles, permisos e informes.",
     ):
         add_bullet(doc, item)
 
@@ -286,15 +286,17 @@ def build_docx() -> None:
     add_figure(doc, "01_dashboard.png", "Figura 2. Panel principal con indicadores y accesos rápidos.")
     add_procedure(doc, "Usar el panel principal", [
         "Revise los indicadores de ventas, órdenes activas, inventario bajo y clientes nuevos.",
-        "Use el menú lateral para abrir el módulo requerido.",
-        "Use los accesos rápidos para iniciar una venta, consultar inventario o abrir el taller.",
+        "Use BUSCAR EN EL MENÚ para encontrar rápidamente una opción por su nombre.",
+        "Contraiga el menú en escritorio para ampliar el área de trabajo; los iconos conservan el acceso y muestran su nombre al pasar el puntero.",
+        "Use los accesos frecuentes para iniciar una venta, cotización, cita, expediente o consulta de inventario.",
+        "En escritorio puede iniciar una NUEVA VENTA desde el encabezado superior.",
         "Al terminar la jornada, abra el menú del usuario y cierre la sesión.",
     ])
 
     add_section_break(doc, "2. Configuración inicial", "Estas tareas corresponden normalmente al administrador. Deben completarse antes de operar ventas, inventario o taller.")
     add_figure(doc, "29_empresas.png", "Figura 3. Administración de empresas.")
     add_procedure(doc, "Registrar o actualizar la empresa", [
-        "Abra SEGURIDAD > EMPRESAS.",
+        "Abra ADMINISTRACIÓN > EMPRESAS.",
         "Seleccione NUEVA EMPRESA o EDITE la empresa existente.",
         "Registre RAZÓN SOCIAL, NIT y demás datos de contacto.",
         "Guarde y confirme que la empresa aparezca activa.",
@@ -308,14 +310,14 @@ def build_docx() -> None:
     ], "En Kassa cada sucursal funciona como una bodega. Las ubicaciones representan zonas internas como RECEPCIÓN, ESTANTE A o MOSTRADOR.")
     add_figure(doc, "30_usuarios.png", "Figura 5. Administración de usuarios.")
     add_procedure(doc, "Crear un usuario", [
-        "Abra SEGURIDAD > USUARIOS y seleccione NUEVO USUARIO.",
+        "Abra ADMINISTRACIÓN > USUARIOS y seleccione NUEVO USUARIO.",
         "Registre correo, nombres, apellidos y contraseña inicial.",
         "Asigne la EMPRESA, la SUCURSAL y un ROL.",
         "Guarde e indique al usuario que cambie su clave según la política interna.",
     ])
     add_figure(doc, "31_roles_permisos.png", "Figura 6. Roles y permisos del sistema.")
     add_procedure(doc, "Configurar un rol", [
-        "Abra SEGURIDAD > ROLES Y PERMISOS.",
+        "Abra ADMINISTRACIÓN > ROLES Y PERMISOS.",
         "Cree un rol o seleccione uno existente.",
         "Marque únicamente los permisos que requiere esa función.",
         "Guarde y verifique el acceso con un usuario de prueba del mismo rol.",
@@ -454,7 +456,7 @@ def build_docx() -> None:
     add_section_break(doc, "6. Inventario, ubicaciones y movimientos", "La sucursal representa la bodega y la ubicación identifica el punto físico donde permanece cada existencia.")
     add_figure(doc, "25_inventario.png", "Figura 20. Inventario por sucursal, ubicación y movimiento.")
     add_procedure(doc, "Crear una ubicación", [
-        "Abra MOVIMIENTOS > INVENTARIO.",
+        "Abra INVENTARIO > EXISTENCIAS.",
         "Seleccione la SUCURSAL que funcionará como bodega.",
         "Abra la sección UBICACIONES y seleccione NUEVA UBICACIÓN.",
         "Registre CÓDIGO, NOMBRE y DESCRIPCIÓN; por ejemplo REC, RECEPCIÓN DE MERCANCÍA.",
@@ -464,7 +466,7 @@ def build_docx() -> None:
     add_figure(doc, "26_ajustes_inventario.png", "Figura 21. Ajuste de inventario por ubicación.")
     add_procedure(doc, "Asignar o corregir ubicación de un producto existente", [
         "Realice un conteo físico antes de modificar existencias.",
-        "Abra MOVIMIENTOS > AJUSTES DE INVENTARIO.",
+        "Abra INVENTARIO > AJUSTES.",
         "Seleccione SUCURSAL y UBICACIÓN FÍSICA.",
         "Busque el producto y revise la cantidad y el costo actuales.",
         "Registre la NUEVA CANTIDAD y, si corresponde, el NUEVO COSTO.",
@@ -472,7 +474,7 @@ def build_docx() -> None:
     ], "No use ajustes para mover mercancía entre ubicaciones cuando ya existe stock en el origen. Para eso utilice TRASLADOS.")
     add_figure(doc, "27_traslados.png", "Figura 22. Traslado entre sucursales o ubicaciones.")
     add_procedure(doc, "Trasladar mercancía", [
-        "Abra MOVIMIENTOS > TRASLADOS.",
+        "Abra INVENTARIO > TRASLADOS.",
         "Seleccione SUCURSAL y UBICACIÓN DE ORIGEN.",
         "Seleccione SUCURSAL y UBICACIÓN DE DESTINO.",
         "Busque el producto y compruebe la existencia disponible en el origen.",
@@ -500,7 +502,7 @@ def build_docx() -> None:
     add_section_break(doc, "8. Vehículos y taller", "El expediente de taller reúne ingreso, diagnóstico, trabajos y repuestos, cierre y factura en una sola pantalla. El VIN o chasis de 17 caracteres conecta vehículo, propietario, historial y garantías.")
     add_figure(doc, "09_vehiculos.png", "Figura 24. Maestro de vehículos UIO.")
     add_procedure(doc, "Crear o actualizar un vehículo", [
-        "Abra ÓRDENES DE SERVICIO > VEHÍCULOS UIO.",
+        "Abra TALLER > VEHÍCULOS UIO.",
         "Busque primero por VIN, placa o motor para evitar duplicados.",
         "Registre el VIN o chasis completo de 17 caracteres.",
         "Complete motor, placa, marca, modelo, año, fecha de venta, propietario actual, sucursal y kilometraje.",
@@ -508,7 +510,7 @@ def build_docx() -> None:
     ], "El VIN es el identificador principal del vehículo. Verifíquelo directamente contra el vehículo o documento de propiedad.")
     add_figure(doc, "07_dashboard_taller.png", "Figura 25. Tablero de control del taller.")
     add_procedure(doc, "Controlar el trabajo del taller", [
-        "Abra DASHBOARD TALLER.",
+        "Abra TALLER > CONTROL DE TALLER.",
         "Revise órdenes por estado, carga de técnicos, entregas pendientes y alertas.",
         "Abra EXPEDIENTE DE TALLER, seleccione la orden y use sus pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS o CIERRE Y FACTURA.",
         "Priorice órdenes vencidas o con fecha prometida próxima.",
@@ -557,7 +559,7 @@ def build_docx() -> None:
     add_section_break(doc, "9. Órdenes de alistamiento", "El alistamiento documenta la preparación del vehículo, sus hallazgos y los consumos realizados antes de la entrega o apertura de garantía.")
     add_figure(doc, "08_alistamientos.png", "Figura 31. Orden de alistamiento.")
     add_procedure(doc, "Registrar un alistamiento", [
-        "Abra ÓRDENES DE SERVICIO > ALISTAMIENTOS y seleccione NUEVA ORDEN.",
+        "Abra TALLER > ALISTAMIENTOS y seleccione NUEVA ORDEN.",
         "Registre referencia, sucursal, cliente y ejecutor.",
         "Busque o complete VIN, motor, placa, marca, modelo, año y kilometraje.",
         "Indique si el hallazgo ABRE GARANTÍA.",
@@ -569,7 +571,7 @@ def build_docx() -> None:
     add_section_break(doc, "10. Garantías", "La garantía acompaña el caso desde la detección de la falla hasta la aprobación, facturación y pago del fabricante.")
     add_figure(doc, "15_garantias.png", "Figura 32. Consulta y seguimiento de garantías.")
     add_procedure(doc, "Consultar una garantía", [
-        "Abra ÓRDENES DE SERVICIO > GARANTÍAS.",
+        "Abra TALLER > GARANTÍAS.",
         "Filtre por vehículo, estado, orden de taller o referencia.",
         "Abra el caso para revisar diagnóstico, piezas, autorización, radicación, decisión, factura y pago.",
         "Actualice el estado cada vez que reciba respuesta del fabricante.",
@@ -676,14 +678,14 @@ def build_markdown() -> None:
 
 ![Panel principal](assets/01_dashboard.png)
 
-El panel resume ventas, órdenes activas, inventario bajo, clientes nuevos y estados del taller. Las opciones visibles dependen de los permisos del rol.
+El panel resume ventas, órdenes activas, inventario bajo, clientes nuevos y estados del taller. Use BUSCAR EN EL MENÚ para localizar una opción, contraiga la navegación cuando necesite más espacio y utilice los accesos frecuentes para iniciar ventas, cotizaciones, citas, expedientes o consultas de inventario. Las opciones visibles dependen de los permisos del rol.
 
 ## 2. CONFIGURACIÓN INICIAL
 
-1. En SEGURIDAD > EMPRESAS registre RAZÓN SOCIAL y NIT.
+1. En ADMINISTRACIÓN > EMPRESAS registre RAZÓN SOCIAL y NIT.
 2. En CATÁLOGOS > SUCURSALES cree cada sede, asígnele MARCA PRINCIPAL y JEFE DE TALLER.
-3. En SEGURIDAD > ROLES Y PERMISOS configure el acceso mínimo necesario.
-4. En SEGURIDAD > USUARIOS asigne empresa, sucursal y rol.
+3. En ADMINISTRACIÓN > ROLES Y PERMISOS configure el acceso mínimo necesario.
+4. En ADMINISTRACIÓN > USUARIOS asigne empresa, sucursal y rol.
 
 ![Sucursales](assets/24_sucursales.png)
 
@@ -776,7 +778,7 @@ Las cuentas con saldo cero permanecen disponibles para consulta histórica. Los 
 
 ### CREAR UNA UBICACIÓN
 
-1. Abra MOVIMIENTOS > INVENTARIO y seleccione la sucursal.
+1. Abra INVENTARIO > EXISTENCIAS y seleccione la sucursal.
 2. En UBICACIONES seleccione NUEVA UBICACIÓN.
 3. Registre código, nombre y descripción.
 4. Marque ES PREDETERMINADA solo para la ubicación habitual.
@@ -804,7 +806,7 @@ Configure una agenda, servicios y horarios. Comparta el enlace público autoriza
 
 ## 8. VEHÍCULOS Y ÓRDENES DE SERVICIO
 
-El VIN o chasis de 17 caracteres es el identificador principal. Abra ÓRDENES DE SERVICIO > EXPEDIENTE DE TALLER para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
+El VIN o chasis de 17 caracteres es el identificador principal. Abra TALLER > EXPEDIENTES para gestionar todo el proceso sin cambiar de pantalla. A la izquierda se buscan y seleccionan órdenes; a la derecha permanecen disponibles las pestañas INGRESO, DIAGNÓSTICO, TRABAJOS Y REPUESTOS, y CIERRE Y FACTURA.
 
 ### CREAR Y COMPLETAR UN EXPEDIENTE
 
