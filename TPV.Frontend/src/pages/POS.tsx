@@ -266,13 +266,15 @@ const POS = () => {
             setLoadingProducts(true);
             setQuotationError('');
             try {
-                const [quotationResponse, productResponse] = await Promise.all([
-                    api.get(`/quotations/${quotationId}`),
-                    api.get('/sales/products', { params: { search: '' } })
-                ]);
+                const quotationResponse = await api.get(`/quotations/${quotationId}`);
+                const quotation = quotationResponse.data as SourceQuotation;
+                const productResponse = await api.get('/sales/products', {
+                    params: {
+                        ids: quotation.details.map(detail => detail.productId).join(',')
+                    }
+                });
                 if (!isCurrent) return;
 
-                const quotation = quotationResponse.data as SourceQuotation;
                 if (quotation.status === 'COMPLETADA') {
                     setSourceQuotation(quotation);
                     setCart([]);

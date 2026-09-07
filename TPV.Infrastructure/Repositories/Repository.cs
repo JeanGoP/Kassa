@@ -26,15 +26,15 @@ namespace TPV.Infrastructure.Repositories
 
         public async Task<IReadOnlyList<T>> GetAllAsync()
         {
-            return await _dbContext.Set<T>().ToListAsync();
+            return await _dbContext.Set<T>().AsNoTracking().ToListAsync();
         }
 
         public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate)
         {
-            return await _dbContext.Set<T>().Where(predicate).ToListAsync();
+            return await _dbContext.Set<T>().AsNoTracking().Where(predicate).ToListAsync();
         }
 
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeString = null, bool disableTracking = true)
+        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeString = null, bool disableTracking = true, int? take = null)
         {
             IQueryable<T> query = _dbContext.Set<T>();
             if (disableTracking) query = query.AsNoTracking();
@@ -50,7 +50,10 @@ namespace TPV.Infrastructure.Repositories
             if (predicate != null) query = query.Where(predicate);
 
             if (orderBy != null)
-                return await orderBy(query).ToListAsync();
+                query = orderBy(query);
+
+            if (take.HasValue)
+                query = query.Take(take.Value);
 
             return await query.ToListAsync();
         }

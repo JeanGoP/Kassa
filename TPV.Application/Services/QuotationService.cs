@@ -38,7 +38,8 @@ namespace TPV.Application.Services
                      p.SKU.Contains(normalizedTerm) ||
                      (p.Barcode != null && p.Barcode.Contains(normalizedTerm)),
                 q => q.OrderBy(p => p.Name),
-                "Stocks.Branch");
+                "Stocks.Branch",
+                take: 50);
 
             var productResults = products.Select(MapProduct).ToList();
             var totalQuantity = productResults.Sum(p => p.TotalQuantity);

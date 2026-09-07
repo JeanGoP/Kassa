@@ -1,41 +1,48 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import POS from './pages/POS';
-import Inventory from './pages/Inventory';
-import StockAdjustments from './pages/StockAdjustments';
-import StockTransfers from './pages/StockTransfers';
-import Cash from './pages/Cash';
-import Reports from './pages/Reports';
-import Suppliers from './pages/Suppliers';
-import Products from './pages/Products';
-import Customers from './pages/Customers';
-import Categories from './pages/Categories';
-import Purchases from './pages/Purchases';
-import CreatePurchase from './pages/CreatePurchase';
-import PurchasePrint from './pages/PurchasePrint';
-import SalesHistory from './pages/SalesHistory';
-import Quotations from './pages/Quotations';
-import QuotationPrint from './pages/QuotationPrint';
-import Appointments from './pages/Appointments';
-import PublicBooking from './pages/PublicBooking';
-import MotorcycleServices from './pages/MotorcycleServices';
-import Layout from './components/Layout';
-import Branches from './pages/Branches';
-import ServiceOrders from './pages/ServiceOrders';
-import PreparationOrders from './pages/PreparationOrders';
-import Vehicles from './pages/Vehicles';
-import Technicians from './pages/Technicians';
-import WorkshopManagers from './pages/WorkshopManagers';
-import Roles from './pages/Roles';
-import Users from './pages/Users';
-import Tenants from './pages/Tenants';
-import WorkshopDashboard from './pages/WorkshopDashboard';
-import Warranties from './pages/Warranties';
-import VehicleCatalogs from './pages/VehicleCatalogs';
-import CustomerAdvances from './pages/CustomerAdvances';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const POS = lazy(() => import('./pages/POS'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const StockAdjustments = lazy(() => import('./pages/StockAdjustments'));
+const StockTransfers = lazy(() => import('./pages/StockTransfers'));
+const Cash = lazy(() => import('./pages/Cash'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const Products = lazy(() => import('./pages/Products'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Purchases = lazy(() => import('./pages/Purchases'));
+const CreatePurchase = lazy(() => import('./pages/CreatePurchase'));
+const PurchasePrint = lazy(() => import('./pages/PurchasePrint'));
+const SalesHistory = lazy(() => import('./pages/SalesHistory'));
+const Quotations = lazy(() => import('./pages/Quotations'));
+const QuotationPrint = lazy(() => import('./pages/QuotationPrint'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+const PublicBooking = lazy(() => import('./pages/PublicBooking'));
+const MotorcycleServices = lazy(() => import('./pages/MotorcycleServices'));
+const Layout = lazy(() => import('./components/Layout'));
+const Branches = lazy(() => import('./pages/Branches'));
+const ServiceOrders = lazy(() => import('./pages/ServiceOrders'));
+const PreparationOrders = lazy(() => import('./pages/PreparationOrders'));
+const Vehicles = lazy(() => import('./pages/Vehicles'));
+const Technicians = lazy(() => import('./pages/Technicians'));
+const WorkshopManagers = lazy(() => import('./pages/WorkshopManagers'));
+const Roles = lazy(() => import('./pages/Roles'));
+const Users = lazy(() => import('./pages/Users'));
+const Tenants = lazy(() => import('./pages/Tenants'));
+const WorkshopDashboard = lazy(() => import('./pages/WorkshopDashboard'));
+const Warranties = lazy(() => import('./pages/Warranties'));
+const VehicleCatalogs = lazy(() => import('./pages/VehicleCatalogs'));
+const CustomerAdvances = lazy(() => import('./pages/CustomerAdvances'));
+
+const LoadingScreen = () => (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-semibold text-slate-600" role="status">
+        Cargando...
+    </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
     const { user, isLoading } = useAuth();
@@ -46,7 +53,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
 
 const AppRoutes = () => {
     return (
-        <Routes>
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/reservar/:slug" element={<PublicBooking />} />
             <Route path="/purchases/print/:id" element={
@@ -97,7 +105,8 @@ const AppRoutes = () => {
                 <Route path="reports" element={<Reports />} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Route>
-        </Routes>
+          </Routes>
+        </Suspense>
     );
 };
 

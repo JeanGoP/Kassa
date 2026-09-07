@@ -11,6 +11,8 @@ using TPV.Infrastructure.Repositories;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -25,6 +27,16 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
 builder.Services.AddScoped<TPV.Web.Controllers.Api.Integrations.MchUtcJsonResultFilter>();
 if (builder.Environment.IsDevelopment())
 {
@@ -115,6 +127,9 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
+app.UseResponseCompression();
+app.UseMiddleware<TPV.Web.Middleware.RequestPerformanceMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

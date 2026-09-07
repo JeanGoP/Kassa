@@ -32,7 +32,7 @@ namespace TPV.Web.Controllers.Api
         }
 
         [HttpGet("products")]
-        public async Task<IActionResult> GetProducts(string search = "", int? branchId = null)
+        public async Task<IActionResult> GetProducts(string search = "", int? branchId = null, string? ids = null)
         {
             if (!branchId.HasValue || branchId == 0)
             {
@@ -40,13 +40,14 @@ namespace TPV.Web.Controllers.Api
                 branchId = branches.FirstOrDefault()?.Id ?? 1;
             }
 
-            // Simplified search - in real app use pagination and proper filtering
-            var products = await _productService.GetAllProductsAsync(branchId);
-            if (!string.IsNullOrEmpty(search))
-            {
-                products = products.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || 
-                                             p.SKU.Contains(search, StringComparison.OrdinalIgnoreCase));
-            }
+            var productIds = (ids ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => int.TryParse(value, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray();
+
+            var products = await _productService.SearchProductsAsync(search, branchId, productIds);
             return Ok(products);
         }
 

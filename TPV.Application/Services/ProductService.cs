@@ -14,6 +14,7 @@ namespace TPV.Application.Services
         private const string ProductIncludes = "Category,Stocks,Brand,BaseUnit,PurchaseUnit,SaleUnit,UnitConversions," +
             "Applicabilities.VehicleModel.Brand,OutgoingReferenceRelations.RelatedProduct," +
             "IncomingReferenceRelations.Product,KitComponents.ComponentProduct,KitComponents.UnitOfMeasure";
+        private const string ProductSearchIncludes = "Category,Stocks,Brand,BaseUnit,PurchaseUnit,SaleUnit,UnitConversions";
 
         private static readonly HashSet<string> CatalogStatuses = new(StringComparer.OrdinalIgnoreCase)
             { "ACTIVO", "DESCONTINUADO", "BLOQUEADO" };
@@ -64,6 +65,32 @@ namespace TPV.Application.Services
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? branchId = null)
         {
             var products = await _productRepository.GetAsync(null, null, ProductIncludes);
+            return products.Select(product => MapProduct(product, branchId));
+        }
+
+        public async Task<IEnumerable<ProductDto>> SearchProductsAsync(
+            string? search,
+            int? branchId = null,
+            IReadOnlyCollection<int>? productIds = null,
+            int maxResults = 100)
+        {
+            var normalizedSearch = search?.Trim() ?? string.Empty;
+            var ids = productIds?.Where(id => id > 0).Distinct().ToArray() ?? Array.Empty<int>();
+            var limit = Math.Clamp(maxResults, 1, 200);
+
+            var products = await _productRepository.GetAsync(
+                predicate: product => ids.Length > 0
+                    ? ids.Contains(product.Id)
+                    : string.IsNullOrEmpty(normalizedSearch) ||
+                      product.Name.Contains(normalizedSearch) ||
+                      product.SKU.Contains(normalizedSearch) ||
+                      (product.Barcode != null && product.Barcode.Contains(normalizedSearch)),
+                orderBy: query => query
+                    .OrderBy(product => product.SKU == normalizedSearch || product.Barcode == normalizedSearch ? 0 : 1)
+                    .ThenBy(product => product.Name),
+                includeString: ProductSearchIncludes,
+                take: limit);
+
             return products.Select(product => MapProduct(product, branchId));
         }
 
