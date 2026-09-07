@@ -69,6 +69,7 @@ const Layout = () => {
         return window.localStorage.getItem('kassa.sidebar') !== 'collapsed';
     });
     const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
+    const [collapsedMenus, setCollapsedMenus] = React.useState<string[]>([]);
     const [menuSearch, setMenuSearch] = React.useState('');
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
@@ -202,11 +203,15 @@ const Layout = () => {
         });
     };
 
-    const toggleMenu = (label: string) => {
+    const toggleMenu = (label: string, isCurrentlyExpanded: boolean) => {
         if (!isSidebarOpen) setIsSidebarOpen(true);
-        setExpandedMenus(previous => previous.includes(label)
-            ? previous.filter(item => item !== label)
-            : [...previous, label]);
+        if (isCurrentlyExpanded) {
+            setExpandedMenus(previous => previous.filter(item => item !== label));
+            setCollapsedMenus(previous => previous.includes(label) ? previous : [...previous, label]);
+        } else {
+            setCollapsedMenus(previous => previous.filter(item => item !== label));
+            setExpandedMenus(previous => previous.includes(label) ? previous : [...previous, label]);
+        }
     };
 
     const handleLogout = async () => {
@@ -301,10 +306,12 @@ const Layout = () => {
                         const Icon = item.icon;
                         if (isNavGroup(item)) {
                             const hasActiveChild = item.submenu.some(subItem => isRouteActive(subItem.path));
-                            const isExpanded = expandedMenus.includes(item.label) || hasActiveChild || Boolean(menuSearch);
+                            const isExpanded = expandedMenus.includes(item.label) ||
+                                (!collapsedMenus.includes(item.label) && hasActiveChild) ||
+                                Boolean(menuSearch);
                             return (
                                 <div key={item.label} className="mb-1">
-                                    <button type="button" onClick={() => toggleMenu(item.label)} className={clsx('k-nav-item group w-full', hasActiveChild && 'k-nav-parent-active')} title={!isSidebarOpen ? item.label : undefined}>
+                                    <button type="button" onClick={() => toggleMenu(item.label, isExpanded)} className={clsx('k-nav-item group w-full', hasActiveChild && 'k-nav-parent-active')} title={!isSidebarOpen ? item.label : undefined}>
                                         <Icon size={19} className="shrink-0" />
                                         {isSidebarOpen && <span className="flex-1 truncate text-left">{item.label}</span>}
                                         {isSidebarOpen && (isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />)}
