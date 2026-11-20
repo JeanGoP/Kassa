@@ -353,6 +353,10 @@ const ServiceOrders = () => {
             setWorkCost('');
             setWorkTaxRate('0');
             setWorkReviewMileage('');
+            setWorkPayer('CLIENTE');
+            setWorkAddsToTotal(true);
+            setWorkType('CORRECTIVO');
+            setServiceOptionsOpen(false);
             await loadWorkspace(workspace.order.id, 'works');
         } catch (error) {
             await Swal.fire('No se pudo agregar el trabajo', errorMessage(error, 'Revisa los datos ingresados.'), 'error');
@@ -371,11 +375,15 @@ const ServiceOrders = () => {
                     input: 'number',
                     inputLabel: 'Tiempo real en horas',
                     inputValue: work.actualTimeHours || work.estimatedTimeHours || '',
-                    inputAttributes: { min: '0.01', step: '0.25' },
+                    inputAttributes: { min: '0.01', step: '0.01' },
                     showCancelButton: true,
                     confirmButtonText: 'Marcar realizado',
                     cancelButtonText: 'Cancelar',
-                    inputValidator: value => Number(value) > 0 ? undefined : 'Registra un tiempo mayor que cero.'
+                    inputValidator: value => {
+                        const hours = Number(value);
+                        if (!Number.isFinite(hours) || hours < 0.01) return 'Registra un tiempo de al menos 0,01 horas.';
+                        if (Number(hours.toFixed(2)) !== hours) return 'Usa hasta dos decimales para el tiempo real.';
+                    }
                 });
                 if (!result.isConfirmed) return;
                 actualTimeHours = Number(result.value);
@@ -774,7 +782,7 @@ const ServiceOrders = () => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Tiempo estimado</span><input type="number" min="0" step="0.25" value={workEstimatedHours} onChange={event => setWorkEstimatedHours(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
+                                                    <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Tiempo estimado</span><input type="number" min="0" step="0.01" value={workEstimatedHours} onChange={event => setWorkEstimatedHours(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Precio fijo</span><input type="number" min="0" value={workCost} readOnly className="h-11 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm font-semibold" /></label>
                                                     <label className="space-y-1 lg:col-span-1"><span className="text-xs font-bold uppercase text-slate-600">IVA %</span><input type="number" value={workTaxRate} readOnly className="h-11 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm font-semibold" /></label>
                                                     <label className="space-y-1 lg:col-span-2"><span className="text-xs font-bold uppercase text-slate-600">Pagador</span><select value={workPayer} onChange={event => setWorkPayer(event.target.value)} className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm"><option>CLIENTE</option><option>FABRICA</option><option>INTERNO</option></select></label>

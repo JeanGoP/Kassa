@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import api from '../api/axios';
 import { ArrowRightLeft, Search, Save, MapPin, ArrowRight } from 'lucide-react';
+import { formatInventoryQuantity, inventoryUnitLabel } from '../utils/inventoryQuantity';
 
 interface Branch {
     id: number;
@@ -11,13 +13,19 @@ interface Product {
     id: number;
     name: string;
     sku: string;
-    saleUnitId?: number;
+    baseUnitId?: number | null;
+    baseUnitCode?: string | null;
+    saleUnitId?: number | null;
+    saleUnitCode?: string | null;
+    unitOfMeasure?: string | null;
+    allowsFractionalQuantity: boolean;
 }
 interface InventoryLocation { id: number; code: string; name: string; isDefault: boolean; }
 
 interface StockInfo {
+    productId: number;
     quantity: number;
-    cost: number;
+    baseUnitCode?: string | null;
 }
 
 const StockTransfers = () => {
@@ -34,6 +42,7 @@ const StockTransfers = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     
     const [sourceStock, setSourceStock] = useState<StockInfo | null>(null);
+    const [stockRefresh, setStockRefresh] = useState(0);
     
     const [transferQuantity, setTransferQuantity] = useState<number>(0);
     const [notes, setNotes] = useState('');
@@ -41,6 +50,18 @@ const StockTransfers = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+
+    const moveInMilliliters = selectedProduct?.baseUnitId != null && selectedProduct.baseUnitCode?.toUpperCase() === 'ML';
+    // The server resolves legacy articles by their stored unit when no sale unit is set.
+    const legacyUnitCode = selectedProduct?.saleUnitId == null && selectedProduct?.unitOfMeasure === selectedProduct?.baseUnitCode
+        ? selectedProduct?.baseUnitCode
+        : undefined;
+    const movementUnitCode = moveInMilliliters
+        ? selectedProduct?.baseUnitCode
+        : selectedProduct?.saleUnitCode || legacyUnitCode;
+    const maxTransferQuantity = sourceStock && movementUnitCode && movementUnitCode === sourceStock.baseUnitCode
+        ? sourceStock.quantity
+        : undefined;
 
     useEffect(() => {
         const fetchBranches = async () => {
@@ -92,43 +113,54 @@ const StockTransfers = () => {
         }
     }, [searchTerm, sourceBranchId]);
 
-    const handleProductSelect = async (product: Product) => {
+    useEffect(() => {
+        if (!sourceBranchId || !selectedProduct) return;
+        const controller = new AbortController();
+
+        api.get<StockInfo[]>('/inventory', { params: { branchId: sourceBranchId }, signal: controller.signal })
+            .then(({ data }) => {
+                if (controller.signal.aborted) return;
+                const stock = data.find(item => item.productId === selectedProduct.id);
+                setSourceStock(stock ?? {
+                    productId: selectedProduct.id,
+                    quantity: 0,
+                    baseUnitCode: selectedProduct.baseUnitCode
+                });
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) setError('No se pudo consultar la existencia de la sucursal de origen.');
+            });
+
+        return () => controller.abort();
+    }, [sourceBranchId, selectedProduct, stockRefresh]);
+
+    const handleProductSelect = (product: Product) => {
+        if (selectedProduct !== product) setSourceStock(null);
         setSelectedProduct(product);
         setSearchTerm('');
         setProducts([]);
-        
-        try {
-            const res = await api.get(`/inventory?branchId=${sourceBranchId}`);
-            const stockItem = res.data.find((s: any) => s.productId === product.id);
-            
-            if (stockItem) {
-                setSourceStock({ quantity: stockItem.quantity, cost: stockItem.cost });
-                setTransferQuantity(1);
-            } else {
-                setSourceStock({ quantity: 0, cost: 0 });
-                setTransferQuantity(0);
-            }
-        } catch (error) {
-            console.error("Error fetching stock details", error);
-        }
+        setTransferQuantity(product.allowsFractionalQuantity ? 0 : 1);
+        setError('');
+        setSuccess('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedProduct || !sourceBranchId || !targetBranchId) return;
+        if (!selectedProduct || !sourceBranchId || !targetBranchId || !sourceStock || loading) return;
         
         if (sourceBranchId === targetBranchId && sourceLocationId === targetLocationId) {
             setError('EL ORIGEN Y EL DESTINO DEBEN SER DIFERENTES');
             return;
         }
 
-        if (transferQuantity > (sourceStock?.quantity || 0)) {
-            setError('La cantidad a transferir supera el stock disponible');
+        if (transferQuantity <= 0) {
+            setError('La cantidad a trasladar debe ser mayor que cero.');
             return;
         }
 
         setLoading(true);
         setError('');
+        setSuccess('');
         try {
             await api.post('/inventory/transfer', {
                 productId: selectedProduct.id,
@@ -136,22 +168,20 @@ const StockTransfers = () => {
                 targetBranchId,
                 quantity: transferQuantity,
                 notes,
-                unitOfMeasureId: selectedProduct.saleUnitId,
+                unitOfMeasureId: moveInMilliliters ? selectedProduct.baseUnitId : selectedProduct.saleUnitId,
                 sourceLocationId,
                 targetLocationId
             });
-            setSuccess('Traslado realizado correctamente');
-            
-            // Refresh source stock
-            const newQty = (sourceStock?.quantity || 0) - transferQuantity;
-            setSourceStock(prev => prev ? { ...prev, quantity: newQty } : null);
-            
+            setSuccess(movementUnitCode
+                ? `Se trasladó ${formatInventoryQuantity(transferQuantity, movementUnitCode)}.`
+                : 'Traslado realizado. Consulta la unidad registrada en el kardex.');
+            setSourceStock(null);
+            setStockRefresh(refresh => refresh + 1);
             setNotes('');
             setTransferQuantity(0);
-            setTimeout(() => setSuccess(''), 3000);
-        } catch (error: any) {
-            console.error("Error transferring stock", error);
-            setError(error.response?.data || "Error al realizar el traslado");
+        } catch (error) {
+            const message = isAxiosError<{ message?: string }>(error) ? error.response?.data?.message : undefined;
+            setError(message || 'Error al realizar el traslado.');
         } finally {
             setLoading(false);
         }
@@ -263,22 +293,28 @@ const StockTransfers = () => {
                                 <p className="text-sm text-gray-500">SKU: {selectedProduct.sku}</p>
                             </div>
                             <div className="text-right">
-                                <div className="text-sm text-gray-500">Disponible en Origen</div>
-                                <div className="text-xl font-bold text-slate-700">{sourceStock?.quantity ?? 0} unid.</div>
+                                <div className="text-sm text-gray-500">Existencia en la sucursal de origen</div>
+                                <div className="text-xl font-bold text-slate-700">
+                                    {sourceStock ? formatInventoryQuantity(sourceStock.quantity, sourceStock.baseUnitCode) : '—'}
+                                </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad a Trasladar</label>
+                                <label htmlFor="transfer-quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Cantidad a trasladar{movementUnitCode ? ` (${inventoryUnitLabel(movementUnitCode)})` : ''}
+                                </label>
                                 <input
+                                    id="transfer-quantity"
                                     type="number"
                                     step="0.0001"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={transferQuantity || ''}
                                     onChange={(e) => setTransferQuantity(Number(e.target.value))}
                                     min="0.0001"
-                                    max={sourceStock?.quantity ?? 0}
+                                    max={maxTransferQuantity}
+                                    required
                                 />
                             </div>
                             <div>

@@ -44,7 +44,7 @@ Brechas principales:
 | MCH-T12 | Valores monetarios indican IVA | Parcial | Ventas/compras exponen impuestos en lineas; no todos los recursos indican si incluyen IVA. |
 | MCH-T13 | Todo recurso trae empresa, marca y sucursal | Cumple | Empresa y sucursal se exponen por hecho; la marca se toma del vehiculo o de cada articulo/linea y nunca se infiere desde la sucursal. |
 | MCH-T14 | Cantidades numericas decimales | Cumple | Stock, ventas, compras, partes de taller, alistamientos, garantias y movimientos usan cantidades decimales y conservan cantidad en unidad base. |
-| MCH-T15 | Unidades cerradas y por registro | Cumple | `UnitsOfMeasure` es catalogo cerrado y autoprovisionado por empresa; cada linea y movimiento conserva unidad declarada, factor y cantidad base. |
+| MCH-T15 | Unidades cerradas y por registro | Cumple | `UnitsOfMeasure` es catalogo cerrado y autoprovisionado por empresa. Cada linea y movimiento conserva unidad declarada, factor y cantidad base. El formulario de traslados indica la unidad enviada y usa mL cuando es la unidad base del producto. |
 
 ## Recursos
 

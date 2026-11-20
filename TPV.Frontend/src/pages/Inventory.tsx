@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { formatInventoryQuantity } from '../utils/inventoryQuantity';
 import { Package, AlertTriangle, Edit, Save, X, MapPin, Search, Plus, History } from 'lucide-react';
 
 interface StockItem {
@@ -342,7 +343,22 @@ const Inventory = () => {
                 <div className="overflow-x-auto border-y border-slate-200">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-100 text-xs uppercase text-slate-600"><tr><th className="p-3">FECHA</th><th className="p-3">TIPO</th><th className="p-3">ARTÍCULO</th><th className="p-3">UBICACIÓN</th><th className="p-3">CANTIDAD</th><th className="p-3">DOCUMENTO</th><th className="p-3">MOTIVO</th></tr></thead>
-                        <tbody>{movements.map(movement => <tr key={movement.id} className="border-t border-slate-100"><td className="p-3 whitespace-nowrap">{new Date(movement.occurredAt).toLocaleString('es-CO')}</td><td className="p-3 font-semibold">{movement.movementType}</td><td className="p-3">{movement.productSku} - {movement.productName}</td><td className="p-3">{movement.locationName || 'GENERAL'}{movement.destinationBranchName ? ` → ${movement.destinationBranchName} / ${movement.destinationLocationName || 'GENERAL'}` : ''}</td><td className="p-3 whitespace-nowrap">{movement.quantity} {movement.unitCode}<div className="text-xs text-slate-500">{movement.baseQuantity} BASE</div></td><td className="p-3">{movement.documentNumber || '-'}</td><td className="p-3">{movement.reason || '-'}</td></tr>)}</tbody>
+                        <tbody>{movements.map(movement => (
+                            <tr key={movement.id} className="border-t border-slate-100">
+                                <td className="p-3 whitespace-nowrap">{new Date(movement.occurredAt).toLocaleString('es-CO')}</td>
+                                <td className="p-3 font-semibold">{movement.movementType}</td>
+                                <td className="p-3">{movement.productSku} - {movement.productName}</td>
+                                <td className="p-3">{movement.locationName || 'GENERAL'}{movement.destinationBranchName ? ` → ${movement.destinationBranchName} / ${movement.destinationLocationName || 'GENERAL'}` : ''}</td>
+                                <td className="p-3 whitespace-nowrap">
+                                    {movement.movementType === 'TRASLADO' || movement.movementType === 'REUBICACION'
+                                        ? formatInventoryQuantity(movement.quantity, movement.unitCode)
+                                        : `${movement.quantity} ${movement.unitCode}`}
+                                    <div className="text-xs text-slate-500">{movement.baseQuantity} BASE</div>
+                                </td>
+                                <td className="p-3">{movement.documentNumber || '-'}</td>
+                                <td className="p-3">{movement.reason || '-'}</td>
+                            </tr>
+                        ))}</tbody>
                     </table>
                 </div>
             </section>

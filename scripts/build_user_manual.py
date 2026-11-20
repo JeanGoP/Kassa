@@ -477,8 +477,8 @@ def build_docx() -> None:
         "Abra INVENTARIO > TRASLADOS.",
         "Seleccione SUCURSAL y UBICACIÓN DE ORIGEN.",
         "Seleccione SUCURSAL y UBICACIÓN DE DESTINO.",
-        "Busque el producto y compruebe la existencia disponible en el origen.",
-        "Registre la cantidad, incluida una cantidad decimal cuando la unidad lo permita.",
+        "Busque el producto y compruebe la existencia de la sucursal de origen. La disponibilidad de la ubicación se valida al confirmar.",
+        "Registre la cantidad en la unidad que indica el formulario. Los productos con unidad base mL se trasladan en mililitros.",
         "Agregue observaciones y confirme el traslado.",
         "Verifique que el movimiento descontó el origen y aumentó el destino.",
     ], "Origen y destino deben ser diferentes. El sistema no permite trasladar más cantidad que la disponible.")
@@ -536,9 +536,9 @@ def build_docx() -> None:
     add_procedure(doc, "Etapa 3: asignar trabajos", [
         "En el mismo expediente, abra TRABAJOS Y REPUESTOS.",
         "Busque y agregue los servicios aprobados desde el catálogo.",
-        "Compruebe el técnico heredado automáticamente desde el ingreso; no debe volver a seleccionarlo. Revise también el tiempo, el precio fijo y el IVA cargados desde el catálogo.",
-        "Seleccione responsable de pago y si la línea suma a la factura.",
-        "Cambie cada trabajo a REALIZADO cuando termine y registre el tiempo real solicitado.",
+        "Compruebe el técnico heredado del ingreso y revise el tiempo, el precio fijo y el IVA del catálogo. Si ajusta el tiempo estimado, use horas con hasta dos decimales, por ejemplo 0,33.",
+        "Seleccione el pagador, el tipo de servicio y si la línea suma a la factura. Tras guardar, el formulario recupera sus valores iniciales para el próximo trabajo.",
+        "Al marcar el trabajo como REALIZADO, registre el tiempo real en horas con hasta dos decimales.",
     ])
     add_figure(doc, "13_repuestos_insumos.png", "Figura 29. Sección de repuestos e insumos dentro de trabajos.")
     add_procedure(doc, "Etapa 4: cargar repuestos e insumos", [
@@ -792,8 +792,8 @@ Use AJUSTES para establecer el saldo físico inicial o corregirlo, indicando ubi
 ### TRASLADAR
 
 1. Seleccione sucursal/ubicación de origen y destino.
-2. Busque el producto y verifique disponibilidad.
-3. Registre cantidad y observaciones.
+2. Busque el producto y revise la existencia de la sucursal de origen. El sistema valida el saldo de la ubicación al confirmar.
+3. Ingrese la cantidad en la unidad indicada y agregue observaciones. Los productos con unidad base mL se trasladan en mililitros.
 4. Confirme y verifique ambos saldos.
 
 ![Traslados](assets/27_traslados.png)
@@ -812,7 +812,7 @@ El VIN o chasis de 17 caracteres es el identificador principal. Abra TALLER > EX
 
 1. Seleccione NUEVO INGRESO. Verifique primero la fecha y hora, seleccione el cliente y asigne un técnico activo de la sucursal. Después registre vehículo, kilometraje, tipo, origen, estado visual, fotografías y firma del cliente. La entrega prometida es opcional y puede dejarse vacía. Al guardar, la orden se abre en el mismo expediente.
 2. En DIAGNÓSTICO registre el problema informado, la conclusión técnica y la aprobación del cliente. El sistema conserva fecha y responsable.
-3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El técnico se muestra solo como información y no se vuelve a seleccionar: cada trabajo hereda automáticamente la asignación realizada en el ingreso. El sistema también carga el tiempo, el precio fijo y el IVA configurados. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Al marcar un trabajo como REALIZADO, indique su tiempo real.
+3. En TRABAJOS Y REPUESTOS busque un servicio del catálogo. El técnico se hereda del ingreso. Revise el precio fijo, el IVA y el tiempo estimado. Puede ingresar tiempos en horas con hasta dos decimales, por ejemplo 0,33. Defina pagador y tipo de servicio. Para mantenimiento preventivo registre el kilometraje de revisión. Tras agregar el trabajo, el formulario vuelve a sus valores iniciales. Al marcarlo como REALIZADO, registre sus horas reales con hasta dos decimales.
 4. En la misma pestaña, busque los repuestos e insumos, indique cantidad, tipo y pagador, y confirme el consumo. Esta confirmación descuenta inventario y vincula el movimiento a la orden; todavía no genera factura.
 5. En CIERRE Y FACTURA revise el diagnóstico, los trabajos, impuestos, repuestos y total estimado. Complete el checklist, registre el usuario que recibe y finalice la orden.
 6. Seleccione el medio de pago y genere la factura. El sistema factura una sola vez los trabajos y repuestos cobrables y deja la orden CERRADA.
